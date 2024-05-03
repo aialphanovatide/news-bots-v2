@@ -34,3 +34,24 @@ def create_bot():
         return jsonify({'error': f'Missing key in request data: {str(e)}'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+@bots_bp.route('/delete_bots', methods=['DELETE'])
+def delete_bot():
+    try:
+        data = request.json
+
+        if 'id' not in data:
+            return jsonify({'error': 'Bot ID is missing from request data'}), 400
+
+        bot_id = data['id']
+        bot = Bot.query.get(bot_id)
+
+        if not bot:
+            return jsonify({'error': 'Bot not found'}), 404
+
+        db.session.delete(bot)
+        db.session.commit()
+
+        return jsonify({'message': f'Bot with ID {bot_id} deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

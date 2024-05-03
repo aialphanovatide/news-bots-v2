@@ -4,7 +4,7 @@ db = SQLAlchemy()
 class Category(db.Model):
     __tablename__ = 'category'
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String)
     alias = db.Column(db.String)
     time_interval = db.Column(db.Integer)  # Nueva columna
@@ -18,7 +18,7 @@ class Category(db.Model):
 
 class Bot(db.Model):
     __tablename__ = 'bot'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String)
     # relationships
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
@@ -29,7 +29,7 @@ class Bot(db.Model):
 class Site(db.Model):
     __tablename__ = 'site'
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String)
     url = db.Column(db.String)
 
@@ -42,7 +42,7 @@ class Site(db.Model):
 
 class Keyword(db.Model):
     __tablename__ = 'keyword'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String)
     # relationship
     bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'))
@@ -52,7 +52,7 @@ class Keyword(db.Model):
 
 class Blacklist(db.Model):
     __tablename__ = 'blacklist'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String)
     # relationship
     bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'))
@@ -62,7 +62,7 @@ class Blacklist(db.Model):
 
 class Article(db.Model):
     __tablename__ = 'article'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title = db.Column(db.String)
     content = db.Column(db.String)
     analysis = db.Column(db.String)
@@ -78,7 +78,7 @@ class Article(db.Model):
 
 class UnwantedArticle(db.Model):
     __tablename__ = 'unwanted_article'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title = db.Column(db.String)
     content = db.Column(db.String)
     analysis = db.Column(db.String)
