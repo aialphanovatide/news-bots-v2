@@ -3,6 +3,10 @@ import aiofiles
 import json
 import os
 
+from flask import app
+
+from config import Bot
+
 async def save_dict_to_json(data_dict, filename='data.json'):
     try:
         if os.path.exists(filename):
@@ -49,22 +53,3 @@ async def save_list_to_json(data_list, filename='data.json'):
         print("Data saved to", filename)
     except Exception as e:
         print("Error:", e)
-
-
-#populate bot table
-def initialize_fixed_data():
-    with app.app_context():
-        try:
-            # Check if data already exists
-            if db.session.query(Bot).count() == 0:
-                # No data found, proceed to insert fixed data
-                for bot_data in bots_fixed:
-                    new_bot = Bot(**bot_data)
-                    db.session.add(new_bot)
-                db.session.commit()
-                print("Fixed data inserted into the 'bot' table.")
-            else:
-                print("The 'bot' table is already populated.")
-        except Exception as e:
-            print(f"Error initializing fixed data: {e}")
-            db.session.rollback()
