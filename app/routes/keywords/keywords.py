@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from config import Keyword, db
+from datetime import datetime
 
 keyword_bp = Blueprint(
     'keyword_bp', __name__,
@@ -33,7 +34,8 @@ def get_keywords_by_bot():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Ruta para agregar una entrada en la blacklist por bot_id
+
+
 @keyword_bp.route('/add_keyword_to_bot', methods=['POST'])
 def add_keyword_to_bot():
     try:
@@ -41,16 +43,27 @@ def add_keyword_to_bot():
         name = data.get('name')
         bot_id = data.get('bot_id')
 
-        if name is None or bot_id is None:
+        if not name or not bot_id:
             return jsonify({'error': 'Name or Bot ID missing in request data'}), 400
 
-        new_keyword = Keyword(name=name, bot_id=bot_id)
-        db.session.add(new_keyword)
+        keywords = [keyword.strip() for keyword in name.split(',')]
+        current_time = datetime.now()
+
+        for keyword in keywords:
+            new_keyword = Keyword(
+                name=keyword,
+                bot_id=bot_id,
+                created_at=current_time,
+                updated_at=current_time
+            )
+            db.session.add(new_keyword)
+        
         db.session.commit()
 
-        return jsonify({'message': 'Keyword added to bot successfully', 'keyword_id': new_keyword.id}), 200
+        return jsonify({'message': 'Keywords added to bot successfully', 'last_keyword_id': new_keyword.id}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 # Ruta para eliminar una entrada de la blacklist por ID
 @keyword_bp.route('/delete_keyword_from_bot', methods=['DELETE'])
