@@ -75,8 +75,13 @@ async def filter_links(urls: List[str], prefix: str, exclude_terms: List[str] = 
         return {'error': str(e)}
 
 
+# Topic: Velo, velodrome, crypto - TABLE BOT
+# link_keywords: Velo, velodrome =  Words to search to inlcude in the search url - NEW TABLE TO CREATE
+# link_blacklist: msn = Words to exclude in the search url - NEW TABLE TO CREATE
+
+
 # Possible improvements: google news search by date and intext:[list of keywords]
-async def fetch_news_links(topic: str, url: Optional[str] = None) -> Dict[str, Union[str, List[str]]]:
+async def fetch_news_links(blacklist: list[str], keywords: list[str], topic: list[str], url: Optional[str] = None) -> Dict[str, Union[str, List[str]]]:
     """
     Fetches news related to the given topic asynchronously.
 
@@ -98,6 +103,7 @@ async def fetch_news_links(topic: str, url: Optional[str] = None) -> Dict[str, U
         
         if url and not isinstance(url, str):
             raise ValueError('url is required and must be a string')
+        
         
         search_url = f'https://news.google.com/search?q={topic}&hl=en-US&gl=US&ceid=US%3Aen' if not url else url
         parsed_url = urlparse(search_url)

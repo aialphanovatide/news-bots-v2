@@ -18,7 +18,7 @@ def get_bots():
                 'name': bot.name,
                 'category_id': bot.category_id,
             })
-        return jsonify(bot_data), 200
+        return jsonify({'message': bot_data}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

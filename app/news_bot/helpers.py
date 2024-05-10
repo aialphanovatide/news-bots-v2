@@ -3,9 +3,6 @@ import aiofiles
 import json
 import os
 
-from flask import app
-
-from config import Bot
 
 async def save_dict_to_json(data_dict, filename='data.json'):
     try:
