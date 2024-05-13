@@ -64,3 +64,40 @@ def add_unwanted_article():
         return jsonify({'error': str(e)}), 500
 
 
+
+# Ruta de búsqueda de artículos no válidos
+@unwanted_articles_bp.route('/search_unwanted_articles', methods=['POST'])
+def search_unwanted_articles():
+    try:
+        data = request.json
+        search_query = data.get('search_query')
+
+
+        if search_query is None:
+            return jsonify({'error': 'Search query missing in request data'}), 400
+
+        unwanted_articles = UnwantedArticle.query.filter(
+            (UnwantedArticle.title.ilike(f'%{search_query}%')) | 
+            (UnwantedArticle.analysis.ilike(f'%{search_query}%'))
+        ).all()
+
+        if not unwanted_articles:
+            return jsonify({'message': 'No matching unwanted articles found for the specified search query'}), 404
+
+        unwanted_article_data = []
+        for unwanted_article in unwanted_articles:
+            unwanted_article_data.append({
+                'id': unwanted_article.id,
+                'title': unwanted_article.title,
+                'content': unwanted_article.content,
+                'analysis': unwanted_article.analysis,
+                'url': unwanted_article.url,
+                'date': unwanted_article.date,
+                'used_keywords': unwanted_article.used_keywords,
+                'is_article_efficent': unwanted_article.is_article_efficent,
+                'bot_id': unwanted_article.bot_id,
+            })
+
+        return jsonify({'message': unwanted_article_data}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

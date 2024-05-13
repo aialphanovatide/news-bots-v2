@@ -17,6 +17,7 @@ def get_categories():
                 'id': category.id,
                 'name': category.name,
                 'alias': category.alias,
+                'prompt': category.prompt,
                 'time_interval': category.time_interval,
                 'is_active': category.is_active,
                 'border_color': category.border_color,

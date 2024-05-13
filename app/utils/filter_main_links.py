@@ -3,7 +3,7 @@ import re
 
 # this function filter links retrieves from the main URL
 async def filter_links(urls: List[str], prefix: str, exclude_terms: List[str] = ['privacy-policy', 'glossary', 'careers', 'about', 'newsletter', '/events/', 
-                                               'discord.com', 'tiktok.com', 'b1.com', 'youtube.com',
+                                               'discord.com', 'tiktok.com', 'b1.com', 'youtube.com','yahoo.com',
                                                'advertise', 'contact-us', 'cookie-policy', 'terms-of-service', 'sirwin', 'bs3', '/tag/','/learn/']) -> dict:
     
     try:
