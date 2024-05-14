@@ -8,6 +8,7 @@ import os
 import requests
 from config import Bot, Keyword, Site, UnwantedArticle, Article, UsedKeywords, db
 from app.services.slack.actions import send_INFO_message_to_slack_channel
+from app.services.d3.dalle3 import generate_poster_prompt, resize_and_upload_image_to_s3
 
 from app.services.perplexity.article_convert import article_perplexity_remaker
 
@@ -27,12 +28,22 @@ async def save_dict_to_json(data_dict, filename='data.json'):
         print("Data saved to", filename)
     except Exception as e:
         print("Error:", e)
+ 
 
 def validate_keywords(news_link, article_title, paragraphs_text, category_id, bot_id):
     articles_saved = 0
     unwanted_articles_saved = 0
     
     try:
+        # Check if the URL has already been analyzed
+        existing_unwanted_article = UnwantedArticle.query.filter_by(bot_id=bot_id, url=news_link).first()
+        existing_article = Article.query.filter_by(bot_id=bot_id, url=news_link).first()
+        print(existing_unwanted_article, existing_article)
+        if existing_unwanted_article or existing_article:
+            print("URL already analyzed. Not valid to analyze.")
+            return {'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
+
+
         # Retrieve keywords related to the bot from the database
         bot_keywords = Keyword.query.filter_by(bot_id=bot_id).all()
         bot_keyword_names = [keyword.name for keyword in bot_keywords]
@@ -42,7 +53,7 @@ def validate_keywords(news_link, article_title, paragraphs_text, category_id, bo
 
         # Perform perplexity analysis on the article
         perplexity_result = article_perplexity_remaker(paragraphs_text, category_id)
-
+        
         # Extract title from perplexity results, if present
         title_match = re.search(r"\*\*(.*?)\*\*", perplexity_result)
         if title_match:
@@ -58,11 +69,8 @@ def validate_keywords(news_link, article_title, paragraphs_text, category_id, bo
         if used_keywords:
             print(f"Matched Keywords: {', '.join(used_keywords)}")
             print("BOT ID: ", bot_id)
-
-            # Notify on Slack about the article
-            send_INFO_message_to_slack_channel(channel_id='C071142J72R', title=slack_title, content=perplexity_result, used_keywords=used_keywords)
             
-            # Save the article to the database
+             # Save the article to the database
             new_article = Article(
                 title=slack_title,
                 content=perplexity_result,
@@ -73,6 +81,28 @@ def validate_keywords(news_link, article_title, paragraphs_text, category_id, bo
             db.session.add(new_article)
             db.session.commit()
             articles_saved += 1
+            
+            article_id = new_article.id
+            image_filename = f"{article_id}.jpg"
+            image = generate_poster_prompt(perplexity_result)
+            image_url=f'https://apparticleimages.s3.us-east-2.amazonaws.com/{image_filename}'     
+                        
+            if image:
+                try:
+                    # Resize and upload the image to S3
+                    resized_image_url = resize_and_upload_image_to_s3(image, 'apparticleimages', image_filename)
+
+                    if resized_image_url:
+                        print("Image resized and uploaded to S3 successfully.")
+                    else:
+                        print("Error resizing and uploading the image to S3.")
+                except Exception as e:
+                    print("Error:", e)
+            else:
+                print("Image not generated.")
+                    
+            # Notify on Slack about the article
+            send_INFO_message_to_slack_channel(channel_id='C071142J72R', title=slack_title, content=perplexity_result, used_keywords=used_keywords, image=image_url)
             
             # Save the used keywords related to this article
             new_used_keyword = UsedKeywords(
@@ -103,14 +133,15 @@ def validate_keywords(news_link, article_title, paragraphs_text, category_id, bo
             )
             db.session.add(unwanted_article)
             db.session.commit()
+            
             unwanted_articles_saved += 1
             print("No matched keywords, saved to database.")
+            
 
     except Exception as e:
         print(f"An unexpected error occurred during keyword validation: {str(e)}")
 
     return {'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
-
 
 async def fetch_url(news_link, category_id, title, bot_id) :
     try:

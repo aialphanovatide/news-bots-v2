@@ -6,11 +6,11 @@ articles_bp = Blueprint(
     template_folder='templates',
     static_folder='static'
 )
-
 @articles_bp.route('/get_all_articles', methods=['GET'])
 def get_all_articles():
     try:
-        articles = Article.query.all()
+        limit = int(request.args.get('limit', 10)) 
+        articles = Article.query.limit(limit).all()  
         article_data = []
         for article in articles:
             article_data.append({
@@ -35,12 +35,12 @@ def get_articles_by_bot():
     try:
         data = request.json
         bot_id = data.get('bot_id')
+        limit = int(data.get('limit', 10)) 
 
         if bot_id is None:
             return jsonify({'error': 'Missing bot ID in request data'}), 400
 
-        articles = Article.query.filter_by(bot_id=bot_id).all()
-
+        articles = Article.query.filter_by(bot_id=bot_id).limit(limit).all() 
         if not articles:
             return jsonify({'message': 'No articles found for the specified bot ID'}), 404
 
@@ -62,8 +62,6 @@ def get_articles_by_bot():
         return jsonify({'message': article_data}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-
 
 @articles_bp.route('/create_article', methods=['POST'])
 def create_article():

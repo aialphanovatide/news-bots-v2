@@ -1,10 +1,10 @@
 from .index import client
 from slack_sdk.errors import SlackApiError
 
-# Send a message to a Slack Channel
 
 
-def send_INFO_message_to_slack_channel(channel_id, title, content, used_keywords):
+
+def send_INFO_message_to_slack_channel(channel_id, title, content, used_keywords,image):
     trimmed_title = title[:1800]
     last_period_index = content.rfind('.', 0, 1970)
     if last_period_index == -1:
@@ -20,6 +20,11 @@ def send_INFO_message_to_slack_channel(channel_id, title, content, used_keywords
             "text": {
                 "type": "mrkdwn",
                 "text": f"*{trimmed_title}*"
+            },
+            "accessory": {
+                "type": "image",
+                "image_url": f"{image}",
+                "alt_text": f"News Image"
             }
         },
         {
@@ -27,7 +32,7 @@ def send_INFO_message_to_slack_channel(channel_id, title, content, used_keywords
             "fields": [
                 {
                     "type": "mrkdwn",
-                    "text": f"Content: {trimmed_content}"
+                    "text": f"{trimmed_content}"
                 }
             ]
         },

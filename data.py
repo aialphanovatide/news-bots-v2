@@ -357,7 +357,7 @@ def initialize_sites_data():
         if db.session.query(Site).count() == 0:
             # No data found, proceed to insert fixed data
             sites_fixed = [
-                {'name': 'Google News', 'url': 'https://news.google.com/search?q=bitcoin%20btc%20%22bitcoin%20btc%22%20when%3A1d%20-buy%20-trading%20-view&hl=en-US&gl=US&ceid=US%3Aen', 'bot_id': 1, },
+                {'name': 'Google News', 'url': 'https://news.google.com/search?q=bitcoin%20btc%20%22bitcoin%20btc%22%20when%3A1d%20-buy%20-tradingview%20-msn%20-medium&hl=en-US&gl=US&ceid=US%3Aen', 'bot_id': 1, },
                 {'name': 'Google News', 'url': 'https://news.google.com/search?q=ethereum%20%22ethereum%22%20when%3A1d%20-msn%20-buy&hl=en-US&gl=US&ceid=US%3Aen', 'bot_id': 2, },
                 {'name': 'Google News', 'url': 'https://news.google.com/search?q=Crypto%20Hacks%20when%3A1d%20-Sead%20-medical%20-msn&hl=en-US&gl=US&ceid=US%3Aen', 'bot_id': 3, },
                 {'name': 'Google News', 'url': 'https://news.google.com/search?q=LDO%20Lido%20%22LDO%22%20%22lido%22%20when%3A1d%20-msn&hl=en-US&gl=US&ceid=US%3Aen', 'bot_id': 4, },
