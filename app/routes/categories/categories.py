@@ -22,6 +22,6 @@ def get_categories():
                 'border_color': category.border_color,
                 'icon': category.icon,
             })
-        return jsonify(category_data)
+        return jsonify({'message': category_data})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
