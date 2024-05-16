@@ -40,29 +40,6 @@ def get_unwanted_articles_by_bot():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Ruta para agregar un nuevo UnwantedArticle
-@unwanted_articles_bp.route('/add_unwanted_article', methods=['POST'])
-def add_unwanted_article():
-    try:
-        data = request.json
-        new_unwanted_article = UnwantedArticle(
-            title=data['title'],
-            content=data['content'],
-            analysis=data['analysis'],
-            url=data['url'],
-            date=data['date'],
-            used_keywords=data['used_keywords'],
-            is_article_efficent=data['is_article_efficent'],
-            bot_id=data['bot_id']
-        )
-        db.session.add(new_unwanted_article)
-        db.session.commit()
-        return jsonify({'message': 'Unwanted article added successfully', 'article_id': new_unwanted_article.id}), 200
-    except KeyError as e:
-        return jsonify({'error': f'Missing key in request data: {str(e)}'}), 400
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 
 
 # Ruta de búsqueda de artículos no válidos
@@ -99,5 +76,32 @@ def search_unwanted_articles():
             })
 
         return jsonify({'message': unwanted_article_data}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+
+
+
+# Review route later
+# Ruta para agregar un nuevo UnwantedArticle
+@unwanted_articles_bp.route('/add_unwanted_article', methods=['POST'])
+def add_unwanted_article():
+    try:
+        data = request.json
+        new_unwanted_article = UnwantedArticle(
+            title=data['title'],
+            content=data['content'],
+            analysis=data['analysis'],
+            url=data['url'],
+            date=data['date'],
+            used_keywords=data['used_keywords'],
+            is_article_efficent=data['is_article_efficent'],
+            bot_id=data['bot_id']
+        )
+        db.session.add(new_unwanted_article)
+        db.session.commit()
+        return jsonify({'message': 'Unwanted article added successfully', 'article_id': new_unwanted_article.id}), 200
+    except KeyError as e:
+        return jsonify({'error': f'Missing key in request data: {str(e)}'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500

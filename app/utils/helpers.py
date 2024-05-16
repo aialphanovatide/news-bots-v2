@@ -1,13 +1,25 @@
-
+import requests
 import aiofiles
 import json
 import os
 
-from flask import app
-import requests
+# Recursive function that aims to resolve redirects URLs
+def resolve_redirects(url):
+    try:
+        response = requests.get(url, allow_redirects=False)
+        if response.status_code in (300, 301, 302, 303):
+            redirect_url = response.headers['location']
+            return resolve_redirects(redirect_url)
+        else:
+            return response.url
+    except Exception as e:
+        print(f"Error while resolving redirect: {e}")
+        return None
 
-from config import Bot
 
+
+
+# Saves a Dict of elements into a JSON file
 async def save_dict_to_json(data_dict, filename='data.json'):
     try:
         if os.path.exists(filename):
@@ -25,18 +37,6 @@ async def save_dict_to_json(data_dict, filename='data.json'):
         print("Data saved to", filename)
     except Exception as e:
         print("Error:", e)
-
-def resolve_redirects(url):
-    try:
-        response = requests.get(url, allow_redirects=False)
-        if response.status_code in (300, 301, 302, 303):
-            redirect_url = response.headers['location']
-            return resolve_redirects(redirect_url)
-        else:
-            return response.url
-    except Exception as e:
-        print(f"Error al resolver redireccionamientos: {e}")
-        return None
 
 
 # Saves a long string to a TXT file
