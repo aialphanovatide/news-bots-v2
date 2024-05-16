@@ -6,21 +6,18 @@ from dotenv import load_dotenv
 load_dotenv()
 PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY")
 
-def perplexity_api_request(content, prompt="Be precise and concise", model='codellama-70b-instruct'):
-    
+
+def perplexity_api_request(content, prompt, model='llama-3-sonar-large-32k-online'):
     url = "https://api.perplexity.ai/chat/completions"
+
+    if not content or not prompt:
+        return {'response': 'content and prompt are required', 'success': False}
 
     payload = {
         "model": model,
         "messages": [
-            {
-                "role": "system",
-                "content": prompt
-            },
-            {
-                "role": "user",
-                "content": content
-            }
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": content}
         ]
     }
 
@@ -32,24 +29,27 @@ def perplexity_api_request(content, prompt="Be precise and concise", model='code
 
     try:
         response = requests.post(url, json=payload, headers=headers)
-       
-        response.raise_for_status()  
+        response_data = response.json()  # Convierte la respuesta en JSON
 
-        choices = response.json().get('choices', [])
-        if choices:
-            assistant_message = choices[0].get('message', {})
-            answer_content = assistant_message.get('content', None)
-            
-            if answer_content:
-                return {'response': answer_content, 'success': True}
+        if response_data.get('choices'):
+            first_choice = response_data['choices'][0]
+            if 'message' in first_choice:
+                content_response = first_choice['message']['content']
+                return {'response': content_response, 'success': True}
             else:
-                print(f"No answer found for this prompt: {prompt}. Error: {assistant_message}")
-                return {'response': f"No answer found for this prompt: {prompt}. Error: {assistant_message}", 'success': False}
+                return {'response': "No 'message' key found in choices", 'success': False}
+
         else:
-            print(f"No choices found for this prompt: {prompt} - in the API response.")
-            return {'response': f"No choices found for this prompt: {prompt}, Error: {choices}", 'success': False}
+            return {'response': "No 'choices' key in the response or 'choices' is empty", 'success': False}
+
+    except requests.exceptions.RequestException as e:
+        return {'response': f'Perplexity API request failed: {str(e)}', 'success': False}
     
-    except requests.exceptions.RequestException as err:
-        print(f"Error during API request: {err}")
-        return {'response': f"Error during API request: {err}", 'success': False}
+    except Exception as e:
+        return {'response': f'Perplexity failed: {str(e)}', 'success': False}
     
+
+# Example usage
+# Prompt = 'Be precise and concise'
+# content = 'What is a matrix?'
+# print(perplexity_api_request(content=content, prompt=Prompt))

@@ -2,29 +2,25 @@
 CREATE TABLE bot (
     id SERIAL PRIMARY KEY,
     name VARCHAR,
-    sites_id INTEGER,
-    keywords_id INTEGER,
-    blacklist_id INTEGER,
-    articles_id INTEGER,
     category_id INTEGER,
     created_at TIMESTAMP,
-    updated_at TIMESTAMP,
-    FOREIGN KEY (sites_id) REFERENCES site(id),
-    FOREIGN KEY (keywords_id) REFERENCES keyword(id),
-    FOREIGN KEY (blacklist_id) REFERENCES blacklist(id),
-    FOREIGN KEY (articles_id) REFERENCES article(id),
-    FOREIGN KEY (category_id) REFERENCES category(id)
+    updated_at TIMESTAMP
 );
 -- Crear la tabla 'category'
+
 CREATE TABLE category (
     id SERIAL PRIMARY KEY,
     name VARCHAR,
     alias VARCHAR,
+    prompt VARCHAR,
+    time_interval INTEGER,
+    icon VARCHAR,
     is_active BOOLEAN,
     border_color VARCHAR,
     created_at TIMESTAMP,
     updated_at TIMESTAMP
 );
+
 
 
 -- Crear la tabla 'site'
@@ -87,5 +83,21 @@ CREATE TABLE unwanted_article (
     bot_id INTEGER,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
+    FOREIGN KEY (bot_id) REFERENCES bot(id)
+);
+
+
+-- Create UsedKeywords table
+CREATE TABLE used_keywords (
+    id SERIAL PRIMARY KEY,
+    article_content VARCHAR,
+    article_date VARCHAR,
+    article_url VARCHAR,
+    keywords VARCHAR,
+    source VARCHAR,
+    article_id INTEGER,
+    bot_id INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (article_id) REFERENCES article(id),
     FOREIGN KEY (bot_id) REFERENCES bot(id)
 );

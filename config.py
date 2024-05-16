@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 
@@ -7,8 +8,9 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String)
     alias = db.Column(db.String)
-    time_interval = db.Column(db.Integer)  # Nueva columna
-    icon = db.Column(db.String)  # Nueva columna
+    time_interval = db.Column(db.Integer)  
+    icon = db.Column(db.String) 
+    prompt = db.Column(db.String)
     is_active = db.Column(db.Boolean)
     border_color = db.Column(db.String)
     created_at = db.Column(db.TIMESTAMP)
@@ -93,3 +95,20 @@ class UnwantedArticle(db.Model):
     created_at = db.Column(db.TIMESTAMP)
     updated_at = db.Column(db.TIMESTAMP)
     
+
+class UsedKeywords(db.Model):
+    __tablename__ = 'used_keywords'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    article_content = db.Column(db.String)
+    article_date = db.Column(db.TIMESTAMP)
+    article_url = db.Column(db.String)
+    keywords = db.Column(db.String)
+    source = db.Column(db.String)
+    article_id = db.Column(db.Integer, db.ForeignKey('article.id'))
+    bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'))
+    created_at = db.Column(db.TIMESTAMP, default=datetime.now)
+
+
+    def __repr__(self):
+        return f"UsedKeywords(id={self.id}, article_content={self.article_content}, article_date={self.article_date}, article_url={self.article_url}, keywords={self.keywords}, source={self.source}, article_id={self.article_id}, bot_id={self.bot_id}, created_at={self.created_at})"

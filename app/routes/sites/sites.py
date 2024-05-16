@@ -28,7 +28,7 @@ def get_sites_by_bot():
                 'created_at': site.created_at,
                 'updated_at': site.updated_at
             })
-        return jsonify(site_data), 200
+        return jsonify({'message': site_data}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

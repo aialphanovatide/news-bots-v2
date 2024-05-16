@@ -29,7 +29,7 @@ def get_blacklist_by_bot():
                 'updated_at': entry.updated_at
             })
 
-        return jsonify(blacklist_data), 200
+        return jsonify({'message': blacklist_data}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
