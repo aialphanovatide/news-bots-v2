@@ -4,36 +4,6 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 from app.utils.helpers import resolve_redirects
 from app.utils.analyze_links import fetch_url
-import requests
-import re
-
-
-def filter_links(urls: List[str], prefix: str, exclude_terms: List[str] = ['privacy-policy', 'glossary', 'careers', 'about', 'newsletter', '/events/', 
-                                               'discord.com', 'tiktok.com', 'b1.com', 'youtube.com', 'medium.com', 'msn.com', 'msn', 
-                                               'advertise', 'contact-us', 'cookie-policy', 'terms-of-service', 'sirwin', 'bs3', '/tag/','/learn/']) -> dict:
-    try:
-        filtered_urls = []
-        social_media_regex = r'(facebook\.com|twitter\.com|linkedin\.com|instagram\.com|sponsored)'
-        telegram_regex = r't\.me'
-        
-        for url in urls:
-            if url is not None and url.strip() != '' and \
-               not any(term in url for term in exclude_terms) and \
-               not re.search(social_media_regex, url) and \
-               not re.search(telegram_regex, url):
-                if prefix.startswith("https://news.google.com"):
-                    if url.startswith('./article'):
-                        url = prefix + url[1:]
-                        filtered_urls.append(url)
-                else:
-                    if len(url) > 20:
-                        url = prefix + url
-                        filtered_urls.append(url)
-        
-        return {'response': filtered_urls}
-    except Exception as e:
-        return {'error': str(e)}
-    
 
 
 async def fetch_news_links(url: str, keywords: List[str], blacklist: List[str], category_id: int, bot_id: int) -> None:

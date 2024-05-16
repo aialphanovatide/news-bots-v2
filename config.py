@@ -22,7 +22,6 @@ class Bot(db.Model):
     __tablename__ = 'bot'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String)
-    topics = db.column(db.String)
     # relationships
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     created_at = db.Column(db.TIMESTAMP)
@@ -47,6 +46,7 @@ class Keyword(db.Model):
     __tablename__ = 'keyword'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String)
+    
     # relationship
     bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'))
     created_at = db.Column(db.TIMESTAMP)
@@ -57,6 +57,7 @@ class Blacklist(db.Model):
     __tablename__ = 'blacklist'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String)
+    
     # relationship
     bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'))
     created_at = db.Column(db.TIMESTAMP)

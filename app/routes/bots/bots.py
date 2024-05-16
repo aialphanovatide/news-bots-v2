@@ -6,7 +6,6 @@ from app.utils.index import fetch_news_links
 from config import Blacklist, Bot, Keyword, Site, db
 import re
 
-
 bots_bp = Blueprint(
     'bots_bp', __name__,
     template_folder='templates',

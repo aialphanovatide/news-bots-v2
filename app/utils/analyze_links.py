@@ -1,36 +1,16 @@
-from datetime import datetime
-from playwright.async_api import async_playwright
-from bs4 import BeautifulSoup
-import aiofiles
 import re
-import json
-import os
 import requests
-from config import Bot, Keyword, Site, UnwantedArticle, Article, UsedKeywords, db
-from app.services.slack.actions import send_INFO_message_to_slack_channel
+from datetime import datetime
+from bs4 import BeautifulSoup
+from config import Keyword, UnwantedArticle, Article, UsedKeywords, db
+# from app.services.slack.actions import send_INFO_message_to_slack_channel
 from app.services.d3.dalle3 import generate_poster_prompt, resize_and_upload_image_to_s3
-
 from app.services.perplexity.article_convert import article_perplexity_remaker
 
-async def save_dict_to_json(data_dict, filename='data.json'):
-    try:
-        if os.path.exists(filename):
-            index = 1
-            while True:
-                new_filename = f"{os.path.splitext(filename)[0]}_{index}.json"
-                if not os.path.exists(new_filename):
-                    filename = new_filename
-                    break
-                index += 1
-
-        async with aiofiles.open(filename, 'w', encoding='utf-8') as file:
-            await file.write(json.dumps(data_dict, indent=4))
-        print("Data saved to", filename)
-    except Exception as e:
-        print("Error:", e)
  
-
-def validate_keywords(news_link, article_title, paragraphs_text, category_id, bot_id):
+# 
+def validate_keywords(news_link, article_title, article_content, category_id, bot_id):
+    
     articles_saved = 0
     unwanted_articles_saved = 0
     
@@ -38,21 +18,24 @@ def validate_keywords(news_link, article_title, paragraphs_text, category_id, bo
         # Check if the URL has already been analyzed
         existing_unwanted_article = UnwantedArticle.query.filter_by(bot_id=bot_id, url=news_link).first()
         existing_article = Article.query.filter_by(bot_id=bot_id, url=news_link).first()
-        print(existing_unwanted_article, existing_article)
+      
         if existing_unwanted_article or existing_article:
-            print("URL already analyzed. Not valid to analyze.")
-            return {'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
+            return {'response': 'article already analyzed', 
+                    'articles_saved': articles_saved,
+                    'unwanted_articles_saved': unwanted_articles_saved}
 
 
         # Retrieve keywords related to the bot from the database
         bot_keywords = Keyword.query.filter_by(bot_id=bot_id).all()
         bot_keyword_names = [keyword.name for keyword in bot_keywords]
+        print('bot_keyword_names: ', bot_keyword_names)
 
         # Check for used keywords within the article content
-        used_keywords = [keyword for keyword in bot_keyword_names if any(keyword.lower() in paragraph.lower() for paragraph in paragraphs_text)]
+        used_keywords = [keyword for keyword in bot_keyword_names if any(keyword.lower() in paragraph.lower() for paragraph in article_content)]
 
         # Perform perplexity analysis on the article
-        perplexity_result = article_perplexity_remaker(paragraphs_text, category_id)
+        perplexity_result = article_perplexity_remaker(content=article_content, 
+                                                       category_id=category_id)
         
         # Extract title from perplexity results, if present
         title_match = re.search(r"\*\*(.*?)\*\*", perplexity_result)
@@ -85,6 +68,12 @@ def validate_keywords(news_link, article_title, paragraphs_text, category_id, bo
             article_id = new_article.id
             image_filename = f"{article_id}.jpg"
             image = generate_poster_prompt(perplexity_result)
+            
+            if image['success'] == False:
+                # Send a message to slack
+                print(f'Image couldnt be generated: {str(image['error'])}')
+
+            image = image['response']
             image_url=f'https://apparticleimages.s3.us-east-2.amazonaws.com/{image_filename}'     
                         
             if image:
@@ -102,7 +91,7 @@ def validate_keywords(news_link, article_title, paragraphs_text, category_id, bo
                 print("Image not generated.")
                     
             # Notify on Slack about the article
-            send_INFO_message_to_slack_channel(channel_id='C071142J72R', title=slack_title, content=perplexity_result, used_keywords=used_keywords, image=image_url)
+            # send_INFO_message_to_slack_channel(channel_id='C071142J72R', title=slack_title, content=perplexity_result, used_keywords=used_keywords, image=image_url)
             
             # Save the used keywords related to this article
             new_used_keyword = UsedKeywords(
@@ -121,7 +110,7 @@ def validate_keywords(news_link, article_title, paragraphs_text, category_id, bo
             # Save article deemed unwanted due to no keyword match
             unwanted_article = UnwantedArticle(
                 title=article_title,
-                content=paragraphs_text,
+                content=article_content,
                 analysis=perplexity_result,
                 url=news_link,
                 date=datetime.now(),
@@ -143,6 +132,8 @@ def validate_keywords(news_link, article_title, paragraphs_text, category_id, bo
 
     return {'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
 
+
+
 async def fetch_url(news_link, category_id, title, bot_id) :
     try:
         # Obtain HTML content of the page
@@ -160,13 +151,13 @@ async def fetch_url(news_link, category_id, title, bot_id) :
 
         # Extract paragraphs from the article
         paragraphs = html.find_all('p')
-        paragraphs_text = [p.text.strip() for p in paragraphs]
+        article_content = [p.text.strip() for p in paragraphs]
         
-        results = await validate_keywords(news_link, article_title, paragraphs_text, category_id, bot_id)
+        results = await validate_keywords(news_link, article_title, article_content, category_id, bot_id)
 
         print(f"Category ID {category_id} scraping process finished - {results['articles_saved']} articles saved in Article (DB), and {results['unwanted_articles_saved']} articles without matched keywords saved in Unwanted Articles (DB).")
 
-        return {'url': news_link, 'title': article_title, 'paragraphs': paragraphs_text, 'message': 'Article successfully fetched and processed'}
+        return {'url': news_link, 'title': article_title, 'paragraphs': article_content, 'message': 'Article successfully fetched and processed'}
 
     except Exception as e:
         return {'url': news_link, 'title': None, 'paragraphs': [], 'error': str(e)}

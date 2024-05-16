@@ -1,7 +1,7 @@
 from typing import List
 import re
 
-# this function filter links retrieves from the main URL
+# This function filter links retrieves from the main URL
 async def filter_links(urls: List[str], prefix: str, exclude_terms: List[str] = ['privacy-policy', 'glossary', 'careers', 'about', 'newsletter', '/events/', 
                                                'discord.com', 'tiktok.com', 'b1.com', 'youtube.com','yahoo.com',
                                                'advertise', 'contact-us', 'cookie-policy', 'terms-of-service', 'sirwin', 'bs3', '/tag/','/learn/']) -> dict:
@@ -21,7 +21,7 @@ async def filter_links(urls: List[str], prefix: str, exclude_terms: List[str] = 
         social_media_regex = r'(facebook\.com|twitter\.com|linkedin\.com|instagram\.com|sponsored)'
         telegram_regex = r't\.me'
         
-        for url in urls:
+        for url in urls: 
             # general filters
             if url is not None and url.strip() != '' and \
                not any(term in url for term in exclude_terms) and \

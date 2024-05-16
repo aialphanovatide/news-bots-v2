@@ -34,6 +34,8 @@ async def activate_all_bots():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+
 @activate_bots_bp.route('/activate_bots_by_category', methods=['POST'])
 async def activate_bots_by_category():
     try:
