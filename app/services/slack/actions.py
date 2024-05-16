@@ -4,7 +4,7 @@ from slack_sdk.errors import SlackApiError
 
 
 
-def send_INFO_message_to_slack_channel(channel_id, title, content, used_keywords,image):
+def send_INFO_message_to_slack_channel(channel_id, title, content, used_keywords, image):
     trimmed_title = title[:1800]
     last_period_index = content.rfind('.', 0, 1970)
     if last_period_index == -1:

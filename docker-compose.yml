@@ -1,3 +1,4 @@
+version: '3.8'
 services:
   production:
     image: postgres
@@ -7,26 +8,16 @@ services:
     ports:
       - 5432:5432
 
-  development:
-    image: postgres
-    restart: always
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    depends_on:
+      - production
     environment:
-      POSTGRES_PASSWORD: "38890773"
-    command: -p 5433
-    ports:
-      - 5433:5433
-
-  empty:
-    image: postgres
-    restart: always
-    environment:
-      POSTGRES_PASSWORD: "38890773"
-    command: -p 5434
-    ports:
-      - 5434:5434
-
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - 8080:8080
+      DB_PORT: "5432"
+      DB_NAME: "yourdbname"
+      DB_USER: "postgres"
+      DB_PASSWORD: "38890773"
+      DB_HOST: "production"
+    command: ["python", "app.py"]
