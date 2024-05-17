@@ -18,9 +18,8 @@ client = OpenAI(
 )
 
 
-# Generate a prompt based on the article and then uses D-ALLE to create an Image
-def generate_poster_prompt(article):
-    prompt = f'Generate a DALL-E prompt related to this {article}. It should be 400 characters or less and avoid specific names focused on abstract image without mention letters, numbers or words..'
+def generate_poster_prompt(article, bot_id):
+    prompt = f'Generate a DALL-E prompt related to this {article}. It should be 400 characters or less and avoid specific names focused on abstract image without mention letters, numbers or words.'
     api_url = 'https://api.openai.com/v1/images/generations'
     
     poster_response_prompt = client.chat.completions.create(
@@ -34,7 +33,14 @@ def generate_poster_prompt(article):
     if not poster_response_prompt:
         return {'error': 'No poster prompt given', 'success': False}
     
-    final_prompt = poster_response_prompt.choices[0].message.content[:450] 
+    final_prompt = poster_response_prompt.choices[0].message.content[:450]
+    
+    if 1 <= bot_id <= 39:
+        postfinalprompt = 'depicting an anime style.'
+    else:
+        postfinalprompt = 'Generate realistic, photograph-style images, using natural lighting and a professional color palette to convey credibility and authority.'
+
+   
 
     headers = {
         'Content-Type': 'application/json',
@@ -42,7 +48,7 @@ def generate_poster_prompt(article):
     }
     data = {
         "model": "dall-e-3",
-        "prompt": f'{final_prompt} - depicting an anime style.', 
+        "prompt": f'{final_prompt} - {postfinalprompt}', 
         "n": 1,
         "size": "1024x1024"
     }

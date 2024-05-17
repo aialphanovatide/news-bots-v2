@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import Blueprint, jsonify, request
 from config import UnwantedArticle, db
 
@@ -96,7 +97,9 @@ def add_unwanted_article():
             date=data['date'],
             used_keywords=data['used_keywords'],
             is_article_efficent=data['is_article_efficent'],
-            bot_id=data['bot_id']
+            bot_id=data['bot_id'],
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
         db.session.add(new_unwanted_article)
         db.session.commit()
