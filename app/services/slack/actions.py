@@ -79,7 +79,7 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
 					"emoji": True
 				},
 				"value": f"link_to_article: {article_url}",
-				"action_id": "button-action"
+				"action_id": "add_to_top_story"
 			}
 		},
         {
@@ -87,7 +87,7 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
 			"type": "input",
 			"element": {
 				"type": "plain_text_input",
-				"action_id": "plain_text_input-action"
+				"action_id": "green"
 			},
 			"label": {
 				"type": "plain_text",
@@ -100,7 +100,7 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
 			"type": "input",
 			"element": {
 				"type": "plain_text_input",
-				"action_id": "plain_text_input-action"
+				"action_id": "red"
 			},
 			"label": {
 				"type": "plain_text",
@@ -113,7 +113,7 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
 			"type": "input",
 			"element": {
 				"type": "plain_text_input",
-				"action_id": "plain_text_input-action"
+				"action_id": "yellow"
 			},
 			"label": {
 				"type": "plain_text",
