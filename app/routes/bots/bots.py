@@ -1,10 +1,9 @@
+import re
 import asyncio
 from datetime import datetime
-from flask import Blueprint, jsonify, request
-import requests
 from app.utils.index import fetch_news_links
+from flask import Blueprint, jsonify, request
 from config import Blacklist, Bot, Keyword, Site, db
-import re
 
 bots_bp = Blueprint(
     'bots_bp', __name__,
@@ -12,25 +11,26 @@ bots_bp = Blueprint(
     static_folder='static'
 )
 
+# Get all available bots
 @bots_bp.route('/bots', methods=['GET'])
 def get_bots():
     try:
         bots = Bot.query.all()
-        bot_data = []
-        for bot in bots:
-            bot_data.append({
+        bot_data = [
+            {
                 'id': bot.id,
                 'name': bot.name,
                 'category_id': bot.category_id,
-            })
-        return jsonify({'message': bot_data}), 200
+            }
+        for bot in bots]
+
+        return jsonify({'bots': bot_data}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
     
-    
-    
-@bots_bp.route('/create_coin_bot', methods=['POST'])
-def create_bot():
+# Create and schedule a new news Bot
+@bots_bp.route('/create_bot', methods=['POST'])
+async def create_bot():
     try:
         data = request.json
 
@@ -86,31 +86,29 @@ def create_bot():
             db.session.add(new_blacklist_entry)
         
         db.session.commit()
+        
         # run fetch news link function after create a bot 
-        news_response = asyncio.run(fetch_news_links( 
+        await fetch_news_links( 
             url=data['url'],  
-            keywords=data['keywords'].split(','), 
             blacklist=data['blacklist'].split(','), 
             category_id=data['category_id'],
-            bot_id=new_bot.id
-        ))
+            bot_id=new_bot.id,
+            bot_name=new_bot.name
+        )
 
-        if news_response['error']:
-            return jsonify({'error': news_response['error']}), 500
-        else:
-            return jsonify({'message': 'Bot created and automated successfully', 'bot_id': new_bot.id, 'news_links': news_response['response']}), 200
+        return jsonify({'message': 'Bot created and automated successfully', 'bot_id': new_bot.id, 'news_links': data['url']}), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
   
-    
+# Delete a single Bot by ID
 @bots_bp.route('/delete_bots', methods=['DELETE'])
 def delete_bot():
     try:
-        data = request.json
+        data = request.get_json()
 
-        if 'id' not in data:
+        if not data or 'id' not in data:
             return jsonify({'error': 'Bot ID is missing from request data'}), 400
 
         bot_id = data['id']
@@ -123,7 +121,9 @@ def delete_bot():
         db.session.commit()
 
         return jsonify({'message': f'Bot with ID {bot_id} deleted successfully'}), 200
+
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        db.session.rollback()
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
     
     

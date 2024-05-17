@@ -8,6 +8,7 @@ activate_bots_bp = Blueprint(
     static_folder='static'
 )
 
+# Change status of the categy field is_active=True
 # Activates all bots
 @activate_bots_bp.route('/activate_all_bots', methods=['POST'])
 async def activate_all_bots():
@@ -48,6 +49,7 @@ async def activate_all_bots():
         return jsonify({'error': f"Error activating all bots: {e}"}), 500
 
 
+# Change status of the categy field is_active=True
 # Activate all the bots of a categoy
 @activate_bots_bp.route('/activate_bots_by_category', methods=['POST'])
 async def activate_bots_by_category():

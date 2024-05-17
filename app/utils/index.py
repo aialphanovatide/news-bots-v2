@@ -11,7 +11,7 @@ async def fetch_news_links(url: str, bot_name: str, blacklist: List[str], catego
 
     try:
         async with async_playwright() as p:
-            browser = await p.chromium.launch(slow_mo=10, headless=True)
+            browser = await p.chromium.launch(slow_mo=30, headless=False)
             page = await browser.new_page()
             await page.goto(url)
             await page.wait_for_load_state("domcontentloaded", timeout=70000)
@@ -20,15 +20,18 @@ async def fetch_news_links(url: str, bot_name: str, blacklist: List[str], catego
 
             # Extract links to news articles
             links = await page.query_selector_all('a[href*="/articles/"]')
+           
             for link in links:
                 href = await link.get_attribute('href')
                 title = await link.text_content()
-
-                # Verify title and filter based on blacklist
-                if title and title.strip() and not any(href.startswith(domain) for domain in blacklist):
+                
+                # Verify title
+                if title and title.strip():
                     full_link = base_url + href
+                    print('full_link: ', full_link)
                     try:
                         resolved_link = resolve_redirects(full_link)
+                        print('\nresolved_link: ', resolved_link)
                         if resolved_link:
                             news_links.add(resolved_link)
                     except Exception as e:
