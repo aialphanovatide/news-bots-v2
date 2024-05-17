@@ -75,6 +75,7 @@ class Article(db.Model):
     date = db.Column(db.TIMESTAMP)
     used_keywords = db.Column(db.String)
     is_article_efficent = db.Column(db.String)
+    is_top_story = db.Column(db.Boolean)
     # relationship
     bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'))
     created_at = db.Column(db.TIMESTAMP)

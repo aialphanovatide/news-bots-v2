@@ -28,10 +28,9 @@ async def fetch_news_links(url: str, bot_name: str, blacklist: List[str], catego
                 # Verify title
                 if title and title.strip():
                     full_link = base_url + href
-                    print('full_link: ', full_link)
+                   
                     try:
                         resolved_link = resolve_redirects(full_link)
-                        print('\nresolved_link: ', resolved_link)
                         if resolved_link:
                             news_links.add(resolved_link)
                     except Exception as e:
