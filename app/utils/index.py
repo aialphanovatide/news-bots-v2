@@ -46,10 +46,10 @@ async def fetch_news_links(url: str, bot_name: str, blacklist: List[str], catego
                 article_info = await fetch_article_content(news_link, category_id, title, bot_id, bot_name)
                 if 'error' in article_info:
                     # SEND MESSAGE TO SLACK
-                    result['errors'].append(f'\nError fetching content for {article_info['url']}, Reason: {article_info['error']}')
+                    result['errors'].append(f"\nError fetching content for {article_info['url']}, Reason: {article_info['error']}")
                 
                 if 'message' in article_info:
-                    print(f'\nSUCCEED: {article_info['message']}')
+                    print(f'\nSUCCEED: {article_info["message"]}')
                 
                 if len(news_links) >= max_links:
                     break
@@ -63,7 +63,3 @@ async def fetch_news_links(url: str, bot_name: str, blacklist: List[str], catego
 
     except Exception as e:
         return {'success': False, 'links_fetched': 0, 'errors': [str(e)]}
-
-
-
-
