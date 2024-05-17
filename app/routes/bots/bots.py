@@ -102,6 +102,8 @@ def create_bot():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+  
     
 @bots_bp.route('/delete_bots', methods=['DELETE'])
 def delete_bot():

@@ -69,6 +69,7 @@ class Article(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title = db.Column(db.String)
     content = db.Column(db.String)
+    image = db.Column(db.String)
     analysis = db.Column(db.String)
     url = db.Column(db.String)
     date = db.Column(db.TIMESTAMP)
@@ -85,14 +86,11 @@ class UnwantedArticle(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title = db.Column(db.String)
     content = db.Column(db.String)
-    analysis = db.Column(db.String)
+    reason = db.Column(db.String)
     url = db.Column(db.String)
     date = db.Column(db.TIMESTAMP)
-    used_keywords = db.Column(db.String)
-    is_article_efficent = db.Column(db.String)
     # relationship
     bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'))
-
     created_at = db.Column(db.TIMESTAMP)
     updated_at = db.Column(db.TIMESTAMP)
     

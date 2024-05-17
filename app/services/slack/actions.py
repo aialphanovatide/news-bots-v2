@@ -1,11 +1,27 @@
-from app.services.slack.index import client
+# from app.services.slack.index import client
 from slack_sdk.errors import SlackApiError
+
+import os
+import ssl  
+import certifi  
+from slack_sdk import WebClient
+from dotenv import load_dotenv
+
+load_dotenv()
+
+token = os.getenv("SLACK_BOT_TOKEN")
+ssl_context = ssl.create_default_context(cafile=certifi.where())
+
+client = WebClient(
+    token=token,
+    ssl=ssl_context  
+)
 
 
 # Send news to the specified Slack Channel
 def send_NEWS_message_to_slack_channel(channel_id: str, title: str, 
-                                       datetime: str, article_url: str,
-                                       content: str, used_keywords: list[str], image: str):
+                                       article_url: str, content: str, 
+                                       used_keywords: list[str], image: str):
    
     trimmed_title = title[:1800]
     last_period_index = content.rfind('.', 0, 1970)
@@ -17,6 +33,12 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
     trimmed_content = trimmed_content.replace('**', '*')
     
     formatted_keywords = ', '.join(used_keywords)
+ 
+    # print('trimmed_content: ', trimmed_content)
+    # print('trimmed_title: ', trimmed_title)
+    # print('used_keywords: ', used_keywords)
+    # print('image: ', image)
+    # print('article_url: ', article_url)
     
     blocks = [
         {
@@ -35,10 +57,6 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
         {
             "type": "section",
             "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": f"{datetime}"
-                },
                 {
                     "type": "mrkdwn",
                     "text": f"{article_url}"
@@ -130,8 +148,8 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
             text=title,
             blocks=blocks
         )
+
         response = result['ok']
-        print('response', response)
         ts = result['ts']
         print(f'Slack message timestamp:', ts)
 
@@ -228,7 +246,6 @@ def send_WARNING_message_to_slack_channel(channel_id, title_message, sub_title, 
 
 # send_NEWS_message_to_slack_channel(channel_id='C071142J72R',
 #                                    title='Gold rally continues with buyers eyeing $2,400 as inflation recedes',
-#                                    datetime='05/15/2024 22:49:51 GMT',
 #                                    article_url='https://www.fxstreet.com/news/gold-price-soars-to-three-week-high-amid-easing-inflation-rate-cut-hopes-202405151942',
 #                                    content="""
 # Introduction
@@ -295,7 +312,7 @@ def send_WARNING_message_to_slack_channel(channel_id, title_message, sub_title, 
 # The recent surge in gold prices to a three-week high of $2,390 reflects a complex interplay of factors, including declining US Treasury bond yields, a weaker US Dollar, and evolving expectations around Federal Reserve monetary policy. Key economic indicators, such as slowing inflation and stagnant retail sales, have significant implications for future interest rate decisions. Fed officials' comments and market expectations suggest a cautious but growing sentiment towards potential rate cuts in 2024. This analysis underscores the importance of monitoring economic data and central bank communications to understand the drivers of gold prices and broader market trends.
 # """,
 #                                    used_keywords=['Gold', 'Federal Reserve'],
-#                                    image='https://img.money.com/2024/03/News-Stock-Versus-Gold-Investment.jpg?quality=60&w=800'
+#                                    image='https://apparticleimages.s3.us-east-2.amazonaws.com/Crypto Market Outlook for 2024: Trends and Predictions.jpg'
 #                                    )
 
 # Example usage

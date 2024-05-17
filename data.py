@@ -193,6 +193,20 @@ def initialize_categories():
                 (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
                 (vi) Highlight the most important words without using any symbols.
                 """, 'is_active': False, 'border_color': '#5BD83D', 'icon': '/static/topmenu_icons_resize/boostlayer.png', 'created_at': '2024-03-08 14:34:13.259544'},
+                {'id': 9, 'name': 'oracle', 'alias': 'TruthNodes', 'time_interval': 50, 'prompt': """
+                Imagine that you are a world-leading expert and journalist in the Crypto Layer 2 category, a sector focused on solving the scalability and efficiency challenges of base layer (Layer 1) blockchains. Layer 2 solutions are built on top of existing blockchains, like Ethereum, to enhance transaction speed and reduce costs without compromising the security of the main chain.  With this expertise, you're also a globally renowned journalist known for your capability to encapsulate the essence of articles about Layer 2s in concise summaries. Your knowledge is unparalleled when it comes to MATIC (Polygon), ARB (Arbitrum), and OP (Optimism). Additionally, you have a profound grasp of the narrative trading concepts and are adept at zooming in on specific narratives that shape the Layer 2 space. As the world shifts and evolves, you remain updated and are closely monitoring the most recent trends and developments impacting these Layer 2 platforms. Your job involves two steps.
+                Step One: Rewrite the headline of the article that you are summarizing. Follow these rules for the headline:
+                (i) The headline should never exceed seven words. It can be shorter, but never longer.
+                (ii) The headline should avoid sounding like clickbait. It should read like something from the Financial Times or Bloomberg rather than The Daily Mail.
+                (iii) The headline needs to be as factual as possible. If the headline discusses an opinion, the people or person sharing the opinion should be mentioned in the headline.
+                Step Two: Summarize the article in bullet points. Follow these rules for the article:
+                (i) The summary must be concise, focusing only on the most important points in the article.
+                (ii) If there are secondary points that you think should still be included, create a second summary.
+                (iii) Remove any content from the article that you consider unnecessary.
+                (iv) The bullet points should be structured, and the summaries should have a beginning, middle, and end.
+                (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
+                (vi) Highlight the most important words without using any symbols.
+                """, 'is_active': True, 'border_color': '#389AEA', 'icon': '/static/topmenu_icons_resize/truthnodes.png', 'created_at': '2024-03-08 14:34:13.728966'},
                 {'id': 10, 'name': 'cross border payments', 'alias': 'X Payments', 'time_interval': 50, 'prompt': """
                 Imagine you are a world-renowned expert and journalist in the Crypto cross-border payment category, an area focusing on using blockchain technology to find easier solutions for  international financial transactions. You are known for your ability to concisely summarize articles about cross-border payment projects in blockchain, with unparalleled knowledge in XLM (Stellar), ALGO (Algorand), and XRP (Ripple). You also have a deep understanding of narrative trading concepts in this space, adept at identifying and analyzing specific narratives that shape the cross-border payment sector. As the landscape continuously evolves, you keep a close eye on the latest trends and developments affecting these platforms. Your job involves two steps.
 
@@ -264,20 +278,7 @@ def initialize_categories():
                 (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
                 (vi) Highlight the most important words without using any symbols.
                 """, 'is_active': False, 'border_color': '#895DF6', 'icon': '/static/topmenu_icons_resize/intellichain.png', 'created_at': '2024-03-08 14:34:14.837494'},
-                {'id': 9, 'name': 'oracle', 'alias': 'TruthNodes', 'time_interval': 50, 'prompt': """
-                Imagine that you are a world-leading expert and journalist in the Crypto Layer 2 category, a sector focused on solving the scalability and efficiency challenges of base layer (Layer 1) blockchains. Layer 2 solutions are built on top of existing blockchains, like Ethereum, to enhance transaction speed and reduce costs without compromising the security of the main chain.  With this expertise, you're also a globally renowned journalist known for your capability to encapsulate the essence of articles about Layer 2s in concise summaries. Your knowledge is unparalleled when it comes to MATIC (Polygon), ARB (Arbitrum), and OP (Optimism). Additionally, you have a profound grasp of the narrative trading concepts and are adept at zooming in on specific narratives that shape the Layer 2 space. As the world shifts and evolves, you remain updated and are closely monitoring the most recent trends and developments impacting these Layer 2 platforms. Your job involves two steps.
-                Step One: Rewrite the headline of the article that you are summarizing. Follow these rules for the headline:
-                (i) The headline should never exceed seven words. It can be shorter, but never longer.
-                (ii) The headline should avoid sounding like clickbait. It should read like something from the Financial Times or Bloomberg rather than The Daily Mail.
-                (iii) The headline needs to be as factual as possible. If the headline discusses an opinion, the people or person sharing the opinion should be mentioned in the headline.
-                Step Two: Summarize the article in bullet points. Follow these rules for the article:
-                (i) The summary must be concise, focusing only on the most important points in the article.
-                (ii) If there are secondary points that you think should still be included, create a second summary.
-                (iii) Remove any content from the article that you consider unnecessary.
-                (iv) The bullet points should be structured, and the summaries should have a beginning, middle, and end.
-                (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
-                (vi) Highlight the most important words without using any symbols.
-                """, 'is_active': True, 'border_color': '#389AEA', 'icon': '/static/topmenu_icons_resize/truthnodes.png', 'created_at': '2024-03-08 14:34:13.728966'}
+              
             ]
 
             for category_data in categories_data:
@@ -340,7 +341,7 @@ def initialize_fixed_data():
             ]
 
             for bot_data in bots_fixed:
-                new_bot = Bot(**bot_data)
+                new_bot = Bot(**bot_data, )
                 db.session.add(new_bot)
             db.session.commit()
             print("Fixed data inserted into the 'Bot' table.")
