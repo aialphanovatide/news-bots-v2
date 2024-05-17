@@ -1,8 +1,8 @@
 from flask import Blueprint, jsonify, request
 from config import Article, db
 from datetime import datetime
+from app.services.slack.actions import send_WARNING_message_to_slack_channel
 import json
-import re
 
 slack_action_bp = Blueprint(
     'slack_action_bp', __name__,
@@ -10,12 +10,13 @@ slack_action_bp = Blueprint(
     static_folder='static'
 )
 
+# Handles the DB modification of the article
 def handle_block_actions(data):
     actions = data.get('actions', [])
     response = {'success': False, 'error': None, 'message': None}
 
     if not actions:
-        response['error'] = 'No actions found'
+        response['error'] = 'No actions found in the slack message'
         return response
     
     article_data = {}
@@ -40,11 +41,10 @@ def handle_block_actions(data):
                 article_data['title'] = title
 
     if not article_data.keys():
-        response['error'] = 'No data found'
+        response['error'] = 'No data found in the slack message for querying the database'
         return response
     
-  
-    # Assuming Article is your SQLAlchemy model
+
     existing_article = Article.query.filter_by(url=article_data['article_link']).first()
     if existing_article:
         if article_data['action_id'] == 'add_to_top_story':
@@ -58,12 +58,12 @@ def handle_block_actions(data):
             existing_article.is_article_efficent = f"{article_data['action_id']} - {article_data['value']}"
             db.session.commit()
             response['success'] = True
-            response['message'] = f'Article updated as {article_data["value"]} successfully'
+            response['message'] = f'Article updated with: {article_data["value"]} AS feedback'
         else:
             # Handle the case when action ID doesn't match any expected value
-            response['error'] = f'Unknown action ID: {article_data["action_id"]}'
+            response['error'] = f'Unknown action ID: {article_data["action_id"]} while updating {article_data["title"]}'
     else:
-        response['error'] = 'Article not found in the database'
+        response['error'] = f'Article {article_data["title"]} - not found in the database'
 
     return response
 
@@ -88,8 +88,13 @@ def slack_events():
             # Handle block_actions payload
             response = handle_block_actions(data)
             print('response: ', response)
-            if 'error' in response:
+            if 'error' in response and response['error'] is not None:
                 # SEND MESSAGE TO SLACK
+                send_WARNING_message_to_slack_channel(channel_id='C070SM07NGL',
+                                                      title_message='Error while updating news',
+                                                      sub_title='Reason',
+                                                      message=response['error']
+                                                      )
                 return jsonify({'error': response['error']}), 400
             return jsonify({'status': 'success'}), 200  
         else:
@@ -97,76 +102,3 @@ def slack_events():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
-
-
-
-    #     data = request.get_data().decode('utf-8')  # Decode the bytes to a string
-    #     payload = unquote(data.split('payload=')[1])  # Extract and decode the payload
-
-    #     payload_dict = json.loads(payload)
-    #     value = payload_dict['actions'][0]['value']
-        
-    #     # Decode the URL-encoded value and replace '+' with spaces
-    #     url = unquote(value).replace('+', ' ').strip()
-    #     url = url.split('linkToArticle:')[1]
-        
-    #     article = session.query(Article).filter(func.trim(Article.url) == url.strip()).first()
-    #     if not article:
-    #         print('Article not found')
-    #         send_INFO_message_to_slack_channel(channel_id="C06FTS38JRX",
-    #                                            title_message="Error saving article in top story section",
-    #                                            sub_title="Response",
-    #                                            message=f"Article with link: {url} - not found")
-    #         return 'Article not found', 404
-        
-    #     if article:
-    #         is_top_story_article = session.query(TopStory).filter(TopStory.top_story_id == article.article_id).first()
-
-    #         if is_top_story_article:
-    #             send_INFO_message_to_slack_channel(channel_id="C06FTS38JRX",
-    #                                            title_message="Error saving article in top story section",
-    #                                            sub_title="Response",
-    #                                            message=f"Article with link: {url} already exist.")
-    #             return 'Article already exist', 409 
-
-    #         if not is_top_story_article:
-    #             article_image = session.query(ArticleImage).filter(ArticleImage.article_id == article.article_id).first()
-    #             new_topstory = TopStory(coin_bot_id=article.coin_bot_id,
-    #                                     summary=article.summary,
-    #                                     story_date=article.date)
-                                
-    #             session.add(new_topstory)
-    #             session.commit()
-                
-    #             image = article_image.image if article_image else "No image"
-    #             new_topstory_image = TopStoryImage(image=image,
-    #                                                 top_story_id=new_topstory.top_story_id)
-    #             session.add(new_topstory_image)
-    #             session.commit()
-
-    #             return 'Message received', 200
-
-    # except JSONDecodeError as e:
-    #     print(f"Error decoding JSON: {e}")
-    #     send_INFO_message_to_slack_channel(channel_id="C06FTS38JRX",
-    #                                            title_message="Error saving article in top story section",
-    #                                            sub_title="Response",
-    #                                            message=f"Error decoding JSON: {e}")
-    #     return 'Bad Request: Invalid JSON', 400
-
-    # except KeyError as e:
-    #     print(f"Error accessing key in JSON: {e}")
-    #     send_INFO_message_to_slack_channel(channel_id="C06FTS38JRX",
-    #                                            title_message="Error saving article in top story section",
-    #                                            sub_title="Response",
-    #                                            message=f"Error accessing key in JSON: {e}")
-    #     return 'Bad Request: Missing key in JSON', 400
-
-    # except Exception as e:
-    #     print(f"Unexpected error: {e}")
-    #     send_INFO_message_to_slack_channel(channel_id="C06FTS38JRX",
-    #                                            title_message="Error saving article in top story section",
-    #                                            sub_title="Response",
-    #                                            message=f"Unexpected error: {e}")
-    #     return 'Internal Server Error', 500
