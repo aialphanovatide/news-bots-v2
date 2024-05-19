@@ -10,7 +10,7 @@ from app.services.slack.actions import send_NEWS_message_to_slack_channel
 from app.services.perplexity.article_convert import article_perplexity_remaker
 from app.services.d3.dalle3 import generate_poster_prompt, resize_and_upload_image_to_s3
 
- 
+
 # validate a link against a list of keyword and then saves it to the DB
 def validate_and_save_article(news_link, article_title, article_content, category_id, bot_id):
     
@@ -26,7 +26,6 @@ def validate_and_save_article(news_link, article_title, article_content, categor
             return {'error': 'article already analyzed', 
                     'articles_saved': articles_saved,
                     'unwanted_articles_saved': unwanted_articles_saved}
-
 
         # Retrieve keywords related to the bot from the database
         bot_keywords = Keyword.query.filter_by(bot_id=bot_id).all()
@@ -61,7 +60,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
         
         # if there's no summary, then return so the bot tries in the next execution
         if perplexity_result['success'] == False:
-            return {'error': f'There is no summary, perplexity error {perplexity_result['error']}', 
+            return {'error': f'There is no summary, perplexity error {perplexity_result["error"]}', 
                     'articles_saved': articles_saved,
                     'unwanted_articles_saved': unwanted_articles_saved}
 
@@ -83,7 +82,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
         image = generate_poster_prompt(new_article_summary)
         # if image generation fails, then return so the bot tries in the next execution
         if image['success'] == False:
-            return {'error': f'Image couldnt be generated: {str(image['error'])}', 
+            return {'error': f'Image couldnt be generated: {image["error"]}', 
                 'articles_saved': articles_saved,
                 'unwanted_articles_saved': unwanted_articles_saved}
         
@@ -96,11 +95,11 @@ def validate_and_save_article(news_link, article_title, article_content, categor
             # Resize and upload the image to S3
             resized_image_url = resize_and_upload_image_to_s3(image, 'apparticleimages', image_filename)
             if resized_image_url['success'] == False:
-                return {'error': f'Image couldnt be upload to AWS: {str(resized_image_url['error'])}', 
+                return {'error': f'Image couldnt be upload to AWS: {resized_image_url["error"]}', 
                 'articles_saved': articles_saved,
                 'unwanted_articles_saved': unwanted_articles_saved}
         except Exception as e:
-            return {'error': f'Unexpected error while uploading image to AWS', 
+            return {'error': 'Unexpected error while uploading image to AWS', 
                 'articles_saved': articles_saved,
                 'unwanted_articles_saved': unwanted_articles_saved}
         
@@ -152,7 +151,6 @@ def validate_and_save_article(news_link, article_title, article_content, categor
                 'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
 
 
-
 # Extract the H1 and content from the original article, VALIDATE content and SAVE to DB
 async def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: int, bot_name: str) -> Dict[str, Any]:
     try:
@@ -199,49 +197,3 @@ async def fetch_article_content(news_link: str, category_id: int, title: str, bo
         return {'success': False, 'url': news_link, 'title': None, 'paragraphs': [], 'error': f"Client error: {e}"}
     except Exception as e:
         return {'success': False, 'url': news_link, 'title': None, 'paragraphs': [], 'error': f'Error while gettig article content: {str(e)}'}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# async def fetch_url(news_link, category_id, title, bot_id) :
-#     try:
-#         # Obtain HTML content of the page
-#         article_response = requests.get(news_link)
-#         article_content_type = article_response.headers.get("Content-Type", "").lower()
-
-#         if 'text/html' not in article_content_type or article_response.status_code != 200:
-#             return {'url': news_link, 'title': None, 'paragraphs': [], 'error': f"Unable to retrieve content from {news_link}"}
-
-#         html = BeautifulSoup(article_response.text, 'html.parser')
-
-#         # Extract article title
-#         title_element = html.find('h1')
-#         article_title = title_element.text.strip() if title_element else title  # Fallback to the passed title if h1 not found
-
-#         # Extract paragraphs from the article
-#         paragraphs = html.find_all('p')
-#         article_content = [p.text.strip() for p in paragraphs]
-        
-#         results = await validate_keywords(news_link, article_title, article_content, category_id, bot_id)
-
-#         print(f"Category ID {category_id} scraping process finished - {results['articles_saved']} articles saved in Article (DB), and {results['unwanted_articles_saved']} articles without matched keywords saved in Unwanted Articles (DB).")
-
-#         return {'url': news_link, 'title': article_title, 'paragraphs': article_content, 'message': 'Article successfully fetched and processed'}
-
-#     except Exception as e:
-#         return {'url': news_link, 'title': None, 'paragraphs': [], 'error': str(e)}

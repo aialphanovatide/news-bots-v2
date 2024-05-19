@@ -18,17 +18,14 @@ client = OpenAI(
 )
 
 
-# Generate a prompt based on the article and then uses D-ALLE to create an Image
-def generate_poster_prompt(article):
-    
-    metals_prompt = f'Generate a DALL-E prompt related to this {article}. It should be 400 characters or less and Generate realistic, photograph-style images for gold-related news, avoiding cartoonish or drawn styles, and emulate the corporate aesthetics of professional news websites like Bloomberg or Mining.com. The visuals should feature real-world elements such as mining equipment or gold bars, using natural lighting and a professional color palette to convey credibility and authority.'
-    prompt = f'Generate a DALL-E prompt related to this {article}. It should be 400 characters or less and avoid specific names focused on abstract image without mention letters, numbers or words.. - depicting an anime style.'
+def generate_poster_prompt(article, bot_id):
+    prompt = f'Generate a DALL-E prompt related to this {article}. It should be 400 characters or less and avoid specific names focused on abstract image without mention letters, numbers or words.'
     api_url = 'https://api.openai.com/v1/images/generations'
     
     poster_response_prompt = client.chat.completions.create(
         model="gpt-4",
-        messages=[{"role": "system", "content": metals_prompt},
-                  {"role": "user", "content": metals_prompt}],
+        messages=[{"role": "system", "content": prompt},
+                  {"role": "user", "content": prompt}],
         temperature=0.6,
         max_tokens=1024,
     )
@@ -36,7 +33,14 @@ def generate_poster_prompt(article):
     if not poster_response_prompt:
         return {'error': 'No poster prompt given', 'success': False}
     
-    final_prompt = poster_response_prompt.choices[0].message.content[:450] 
+    final_prompt = poster_response_prompt.choices[0].message.content[:450]
+    
+    if 1 <= bot_id <= 39:
+        postfinalprompt = 'depicting an anime style.'
+    else:
+        postfinalprompt = 'Generate realistic, photograph-style images, using natural lighting and a professional color palette to convey credibility and authority.'
+
+   
 
     headers = {
         'Content-Type': 'application/json',
@@ -44,7 +48,7 @@ def generate_poster_prompt(article):
     }
     data = {
         "model": "dall-e-3",
-        "prompt": f'{final_prompt}', 
+        "prompt": f'{final_prompt} - {postfinalprompt}', 
         "n": 1,
         "size": "1024x1024"
     }

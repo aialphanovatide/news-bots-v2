@@ -29,7 +29,7 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": f"{trimmed_title}",
+                "text": f"{title}",
                 "emoji": True
             }
         },

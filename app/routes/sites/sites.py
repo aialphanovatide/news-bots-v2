@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import Blueprint, jsonify, request
 from config import Site, db
 
@@ -37,7 +38,7 @@ def get_sites_by_bot():
 def add_site():
     try:
         data = request.json
-        new_site = Site(name=data['name'], url=data['url'], bot_id=data['bot_id'])
+        new_site = Site(name=data['name'], url=data['url'], bot_id=data['bot_id'], created_at=datetime.now(), updated_at=datetime.now())
         db.session.add(new_site)
         db.session.commit()
         return jsonify({'message': 'Site added successfully', 'site_id': new_site.id}), 201

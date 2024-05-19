@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import Blueprint, jsonify
 from config import Category
 from flask import request
@@ -30,7 +31,9 @@ def create_category():
             time_interval=data.get('time_interval', None),
             is_active=data.get('is_active', False),
             border_color=data.get('border_color', None),
-            icon=data.get('icon', None)
+            icon=data.get('icon', None),
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
         
         db.session.add(new_category)

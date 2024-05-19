@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from config import Blacklist, Category, Bot, Keyword, Site
+from config import Blacklist, Category, Bot, Keyword, Site, db
 from app.utils.index import fetch_news_links
 
 activate_bots_bp = Blueprint(
@@ -8,7 +8,7 @@ activate_bots_bp = Blueprint(
     static_folder='static'
 )
 
-# Change status of the categy field is_active=True
+# Change status of the category field is_active=True
 # Activates all bots
 @activate_bots_bp.route('/activate_all_bots', methods=['POST'])
 async def activate_all_bots():
@@ -19,6 +19,10 @@ async def activate_all_bots():
             return jsonify({'error': 'No categories found'}), 404
 
         for category in categories:
+            # Set category as active
+            category.is_active = True
+            db.session.commit()  # Commit the change to the database
+
             # Fetch all bots associated with the current category
             bots = Bot.query.filter_by(category_id=category.id).all()
             for bot in bots:
@@ -49,8 +53,8 @@ async def activate_all_bots():
         return jsonify({'error': f"Error activating all bots: {e}"}), 500
 
 
-# Change status of the categy field is_active=True
-# Activate all the bots of a categoy
+# Change status of the category field is_active=True
+# Activate all the bots of a category
 @activate_bots_bp.route('/activate_bots_by_category', methods=['POST'])
 async def activate_bots_by_category():
     try:
@@ -63,6 +67,10 @@ async def activate_bots_by_category():
         category = Category.query.filter_by(name=category_name).first()
         if not category:
             return jsonify({'error': 'Category not found'}), 404
+
+        # Set category as active
+        category.is_active = True
+        db.session.commit()  # Commit the change to the database
 
         # Fetch all bots associated with the category
         bots = Bot.query.filter_by(category_id=category.id).all()

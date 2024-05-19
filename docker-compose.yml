@@ -16,7 +16,7 @@ services:
       - production
     environment:
       DB_PORT: "5432"
-      DB_NAME: "news_bot"
+      DB_NAME: "newsbots"
       DB_USER: "postgres"
       DB_PASSWORD: "postgres"
       DB_HOST: "production"
