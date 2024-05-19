@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from config import Article, db
+from datetime import datetime
 
 articles_bp = Blueprint(
     'articles_bp', __name__,
@@ -77,7 +78,9 @@ def create_article():
             date=data.get('date'),
             used_keywords=data.get('used_keywords'),
             is_article_efficent=data.get('is_article_efficent'),
-            bot_id=data.get('bot_id')
+            bot_id=data.get('bot_id'),
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
         db.session.add(new_article)
         db.session.commit()
