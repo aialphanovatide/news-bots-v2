@@ -20,13 +20,15 @@ client = OpenAI(
 
 # Generate a prompt based on the article and then uses D-ALLE to create an Image
 def generate_poster_prompt(article):
-    prompt = f'Generate a DALL-E prompt related to this {article}. It should be 400 characters or less and avoid specific names focused on abstract image without mention letters, numbers or words..'
+    
+    metals_prompt = f'Generate a DALL-E prompt related to this {article}. It should be 400 characters or less and Generate realistic, photograph-style images for gold-related news, avoiding cartoonish or drawn styles, and emulate the corporate aesthetics of professional news websites like Bloomberg or Mining.com. The visuals should feature real-world elements such as mining equipment or gold bars, using natural lighting and a professional color palette to convey credibility and authority.'
+    prompt = f'Generate a DALL-E prompt related to this {article}. It should be 400 characters or less and avoid specific names focused on abstract image without mention letters, numbers or words.. - depicting an anime style.'
     api_url = 'https://api.openai.com/v1/images/generations'
     
     poster_response_prompt = client.chat.completions.create(
         model="gpt-4",
-        messages=[{"role": "system", "content": prompt},
-                  {"role": "user", "content": prompt}],
+        messages=[{"role": "system", "content": metals_prompt},
+                  {"role": "user", "content": metals_prompt}],
         temperature=0.6,
         max_tokens=1024,
     )
@@ -42,7 +44,7 @@ def generate_poster_prompt(article):
     }
     data = {
         "model": "dall-e-3",
-        "prompt": f'{final_prompt} - depicting an anime style.', 
+        "prompt": f'{final_prompt}', 
         "n": 1,
         "size": "1024x1024"
     }
