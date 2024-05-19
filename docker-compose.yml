@@ -4,9 +4,9 @@ services:
     image: postgres
     restart: always
     environment:
-      POSTGRES_PASSWORD: "38890773"
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - 5432:5432
+      - "5432:5432"
 
   app:
     build: .
@@ -15,9 +15,9 @@ services:
     depends_on:
       - production
     environment:
-      DB_PORT: "5432"
-      DB_NAME: "newsbots"
-      DB_USER: "postgres"
-      DB_PASSWORD: "postgres"
-      DB_HOST: "production"
-    command: ["python", "app.py"]
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: ${DB_HOST}
+    command: ["python", "run.py"]

@@ -79,7 +79,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
         # print("BOT ID: ", bot_id)
 
 
-        image = generate_poster_prompt(new_article_summary)
+        image = generate_poster_prompt(article=new_article_summary, bot_id=bot_id)
         # if image generation fails, then return so the bot tries in the next execution
         if image['success'] == False:
             return {'error': f'Image couldnt be generated: {image["error"]}', 
