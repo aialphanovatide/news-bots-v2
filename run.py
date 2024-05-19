@@ -38,4 +38,4 @@ def create_db(app):
 
 if __name__ == "__main__":
     create_db(app)
-    app.run(debug=True, use_reloader=True)
+    app.run(debug=True, use_reloader=False)
