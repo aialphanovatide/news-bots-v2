@@ -1,11 +1,12 @@
 from app.services.slack.index import client
 from slack_sdk.errors import SlackApiError
+from typing import List
 
 
 # Send news to the specified Slack Channel
 def send_NEWS_message_to_slack_channel(channel_id: str, title: str, 
                                        article_url: str, content: str, 
-                                       used_keywords: list[str], image: str):
+                                       used_keywords: List[str], image: str):
    
     trimmed_title = title[:1800]
     last_period_index = content.rfind('.', 0, 1970)
@@ -29,7 +30,7 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": f"{title}",
+                "text": f"{trimmed_title}",
                 "emoji": True
             }
         },
