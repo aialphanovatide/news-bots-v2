@@ -1,0 +1,1171 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "News Bots V2 API",
+    "description": "API for managing All routes related to news bots.",
+    "version": "1.0"
+  },
+  "paths": {
+    "/get_all_articles": {
+      "get": {
+        "summary": "Get all articles",
+        "tags": ["Articles"],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      },
+                      "analysis": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      },
+                      "date": {
+                        "type": "string"
+                      },
+                      "used_keywords": {
+                        "type": "string"
+                      },
+                      "is_article_efficent": {
+                        "type": "boolean"
+                      },
+                      "bot_id": {
+                        "type": "integer"
+                      },
+                      "created_at": {
+                        "type": "string"
+                      },
+                      "updated_at": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_articles_by_bot": {
+      "post": {
+        "summary": "Get articles by bot ID",
+        "tags": ["Articles"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "bot_id": {
+                  "type": "integer"
+                },
+                "limit": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      },
+                      "analysis": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      },
+                      "date": {
+                        "type": "string"
+                      },
+                      "used_keywords": {
+                        "type": "string"
+                      },
+                      "is_article_efficent": {
+                        "type": "boolean"
+                      },
+                      "bot_id": {
+                        "type": "integer"
+                      },
+                      "created_at": {
+                        "type": "string"
+                      },
+                      "updated_at": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/create_article": {
+      "post": {
+        "summary": "Create an article",
+        "tags": ["Articles"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "analysis": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string"
+                },
+                "used_keywords": {
+                  "type": "string"
+                },
+                "is_article_efficent": {
+                  "type": "boolean"
+                },
+                "bot_id": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Article created successfully"
+          }
+        }
+      }
+    },
+    "/delete_article": {
+      "delete": {
+        "summary": "Delete an article",
+        "tags": ["Articles"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "article_id": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Article deleted successfully"
+          }
+        }
+      }
+    },
+    "/get_blacklist_by_bot": {
+      "post": {
+        "summary": "Get entries from blacklist by bot ID",
+        "tags": ["Blacklist"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "bot_id": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "bot_id": {
+                        "type": "integer"
+                      },
+                      "created_at": {
+                        "type": "string"
+                      },
+                      "updated_at": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/add_to_blacklist": {
+      "post": {
+        "summary": "Add an entry to the blacklist",
+        "tags": ["Blacklist"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "bot_id": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Entry added to blacklist successfully"
+          }
+        }
+      }
+    },
+    "/delete_from_blacklist": {
+      "delete": {
+        "summary": "Delete an entry from the blacklist",
+        "tags": ["Blacklist"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "blacklist_id": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Entry deleted from blacklist successfully"
+          }
+        }
+      }
+    },
+    "/bots": {
+      "get": {
+        "summary": "Get all available bots",
+        "tags": ["Bots"],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "bots": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "category_id": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/create_bot": {
+      "post": {
+        "summary": "Create and schedule a new news Bot",
+        "tags": ["Bots"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "category_id": {
+                  "type": "integer"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "keywords": {
+                  "type": "string"
+                },
+                "blacklist": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bot created and automated successfully"
+          }
+        }
+      }
+    },
+    "/delete_bots": {
+      "delete": {
+        "summary": "Delete a single Bot by ID",
+        "tags": ["Bots"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bot deleted successfully"
+          }
+        }
+      }
+    },
+    "/add_new_category": {
+      "post": {
+        "summary": "Create a new category",
+        "tags": ["Category"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "alias": {
+                  "type": "string"
+                },
+                "prompt": {
+                  "type": "string"
+                },
+                "time_interval": {
+                  "type": "integer"
+                },
+                "is_active": {
+                  "type": "boolean"
+                },
+                "border_color": {
+                  "type": "string"
+                },
+                "icon": {
+                  "type": "string"
+                }
+              },
+              "required": ["name", "alias", "prompt", "time_interval"]
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Category created successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "alias": {
+                  "type": "string"
+                },
+                "prompt": {
+                  "type": "string"
+                },
+                "time_interval": {
+                  "type": "integer"
+                },
+                "is_active": {
+                  "type": "boolean"
+                },
+                "border_color": {
+                  "type": "string"
+                },
+                "icon": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, object invalid"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/categories": {
+      "get": {
+        "summary": "Get all available categories",
+        "tags": ["Category"],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "alias": {
+                        "type": "string"
+                      },
+                      "prompt": {
+                        "type": "string"
+                      },
+                      "time_interval": {
+                        "type": "integer"
+                      },
+                      "is_active": {
+                        "type": "boolean"
+                      },
+                      "border_color": {
+                        "type": "string"
+                      },
+                      "icon": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/get_keywords_by_bot": {
+      "post": {
+        "summary": "Get all keywords by bot ID",
+        "tags": ["Keywords"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "bot_id": {
+                  "type": "integer"
+                }
+              },
+              "required": ["bot_id"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "bot_id": {
+                        "type": "integer"
+                      },
+                      "created_at": {
+                        "type": "string"
+                      },
+                      "updated_at": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bot ID missing in request data"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/add_keyword_to_bot": {
+      "post": {
+        "summary": "Add a keyword to a bot",
+        "tags": ["Keywords"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "bot_id": {
+                  "type": "integer"
+                }
+              },
+              "required": ["name", "bot_id"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Keywords added to bot successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                },
+                "last_keyword_id": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Name or Bot ID missing in request data"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/delete_keyword_from_bot": {
+      "delete": {
+        "summary": "Delete a keyword from a bot",
+        "tags": ["Keywords"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "keyword_id": {
+                  "type": "integer"
+                }
+              },
+              "required": ["keyword_id"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Keyword deleted from bot successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Keyword ID missing in request data"
+          },
+          "404": {
+            "description": "Keyword not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/get_sites_by_bot": {
+      "post": {
+        "summary": "Get all sites by bot ID",
+        "tags": ["Sites"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "bot_id": {
+                  "type": "integer"
+                }
+              },
+              "required": ["bot_id"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      },
+                      "bot_id": {
+                        "type": "integer"
+                      },
+                      "created_at": {
+                        "type": "string"
+                      },
+                      "updated_at": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bot ID missing in request data"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/add_site": {
+      "post": {
+        "summary": "Add a new site",
+        "tags": ["Sites"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "bot_id": {
+                  "type": "integer"
+                }
+              },
+              "required": ["name", "url", "bot_id"]
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Site added successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                },
+                "site_id": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing key in request data"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/delete_site": {
+      "delete": {
+        "summary": "Delete a site by ID",
+        "tags": ["Sites"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "site_id": {
+                  "type": "integer"
+                }
+              },
+              "required": ["site_id"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Site deleted successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Site ID missing in request data"
+          },
+          "404": {
+            "description": "Site not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/get_unwanted_articles_by_bot": {
+      "post": {
+        "summary": "Get all unwanted articles by bot ID",
+        "tags": ["Unwanted Articles"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "bot_id": {
+                  "type": "integer"
+                }
+              },
+              "required": ["bot_id"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      },
+                      "analysis": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      },
+                      "date": {
+                        "type": "string"
+                      },
+                      "used_keywords": {
+                        "type": "string"
+                      },
+                      "is_article_efficent": {
+                        "type": "boolean"
+                      },
+                      "bot_id": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bot ID missing in request data"
+          },
+          "404": {
+            "description": "No unwanted articles found for the specified bot ID"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/search_unwanted_articles": {
+      "post": {
+        "summary": "Search unwanted articles",
+        "tags": ["Unwanted Articles"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "search_query": {
+                  "type": "string"
+                }
+              },
+              "required": ["search_query"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      },
+                      "analysis": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      },
+                      "date": {
+                        "type": "string"
+                      },
+                      "used_keywords": {
+                        "type": "string"
+                      },
+                      "is_article_efficent": {
+                        "type": "boolean"
+                      },
+                      "bot_id": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Search query missing in request data"
+          },
+          "404": {
+            "description": "No matching unwanted articles found for the specified search query"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/add_unwanted_article": {
+      "post": {
+        "summary": "Add a new unwanted article",
+        "tags": ["Unwanted Articles"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "analysis": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string"
+                },
+                "used_keywords": {
+                  "type": "string"
+                },
+                "is_article_efficent": {
+                  "type": "boolean"
+                },
+                "bot_id": {
+                  "type": "integer"
+                }
+              },
+              "required": ["title", "content", "analysis", "url", "date", "used_keywords", "is_article_efficent", "bot_id"]
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Unwanted article added successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                },
+                "article_id": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing key in request data"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/get_used_keywords_to_download": {
+      "get": {
+        "summary": "Get used keywords to download by coin bot ID and time period",
+        "tags": ["Used Keywords"],
+        "parameters": [
+          {
+            "name": "coin_bot_id",
+            "in": "query",
+            "type": "integer",
+            "required": true,
+            "description": "ID of the coin bot"
+          },
+          {
+            "name": "time_period",
+            "in": "query",
+            "type": "string",
+            "required": true,
+            "description": "Time period for filtering (1w, 1m, 3m)",
+            "enum": ["1w", "1m", "3m"]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "keywords": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid time period provided"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/get/used_keywords": {
+      "get": {
+        "summary": "Fetch all used keywords",
+        "tags": ["Used Keywords"],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "used_keywords": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "keywords": {
+                        "type": "string"
+                      },
+                      "coin_bot_id": {
+                        "type": "integer"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No used keywords found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    }
+  }
+}

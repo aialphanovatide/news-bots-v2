@@ -1,4 +1,5 @@
 import re
+import ssl
 import aiohttp
 import requests
 from datetime import datetime
@@ -13,7 +14,7 @@ from app.services.d3.dalle3 import generate_poster_prompt, resize_and_upload_ima
 
 # validate a link against a list of keyword and then saves it to the DB
 def validate_and_save_article(news_link, article_title, article_content, category_id, bot_id):
-    
+    print("2")
     articles_saved = 0
     unwanted_articles_saved = 0
     
@@ -151,11 +152,10 @@ def validate_and_save_article(news_link, article_title, article_content, categor
                 'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
 
 
-# Extract the H1 and content from the original article, VALIDATE content and SAVE to DB
+# 
 async def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: int, bot_name: str) -> Dict[str, Any]:
     try:
-        # Obtain HTML content of the page using aiohttp
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ssl.SSLContext())) as session:
             async with session.get(news_link) as response:
                 if response.status != 200:
                     return {
@@ -183,7 +183,6 @@ async def fetch_article_content(news_link: str, category_id: int, title: str, bo
         paragraphs = html.find_all('p')
         article_content = [p.text.strip() for p in paragraphs]
 
-      
         # Validate and process the content
         result = validate_and_save_article(news_link, article_title, article_content, category_id, bot_id)
         if 'error' in result:
@@ -191,9 +190,9 @@ async def fetch_article_content(news_link: str, category_id: int, title: str, bo
                     'paragraphs': article_content, 'error': result['error']}
 
         return {'success': True, 'url': news_link, 'title': article_title, 'paragraphs': article_content, 'message': result['message']}
-        # return {'success': True, 'url': news_link, 'title': article_title, 'paragraphs': article_content, 'message': f'{article_title} VALIDATED AND SAVED'}
 
     except aiohttp.ClientError as e:
         return {'success': False, 'url': news_link, 'title': None, 'paragraphs': [], 'error': f"Client error: {e}"}
     except Exception as e:
-        return {'success': False, 'url': news_link, 'title': None, 'paragraphs': [], 'error': f'Error while gettig article content: {str(e)}'}
+        return {'success': False, 'url': news_link, 'title': None, 'paragraphs': [], 'error': f'Error while getting article content: {str(e)}'}
+

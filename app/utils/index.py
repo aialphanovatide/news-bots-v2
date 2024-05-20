@@ -58,7 +58,6 @@ async def fetch_news_links(url: str, bot_name: str, blacklist: List[str], catego
     title = fetch_result['title']
     print(f'Length links to scrape for {str(bot_name).upper()}: ', len(news_links))
     result['links_fetched'] = len(news_links)
-    
     # Fetch article, validate and save to DB
     for news_link in news_links:
         article_info = await fetch_article_content(news_link=news_link,
