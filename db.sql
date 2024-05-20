@@ -64,6 +64,7 @@ CREATE TABLE article (
     date TIMESTAMP,
     used_keywords VARCHAR,
     is_article_efficent VARCHAR,
+    is_top_soty BOOLEAN,
     bot_id INTEGER,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,

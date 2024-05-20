@@ -16,3 +16,4 @@ openai
 pillow
 asyncio
 aiohttp
+flasgger

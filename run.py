@@ -2,9 +2,10 @@ import os
 from config import db
 from app import create_app
 from flask_cors import CORS
+from flasgger import Swagger
+from dotenv import load_dotenv
 from dotenv import load_dotenv
 from flask_migrate import Migrate
-from dotenv import load_dotenv
 from data import initialize_categories, initialize_fixed_data, initialize_keywords, initialize_sites_data
 
 load_dotenv()
@@ -17,6 +18,22 @@ DB_HOST = os.getenv('DB_HOST')
 
 app = create_app()
 db_uri = app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+
+swagger_config = {
+    "headers": [],
+    "specs": [
+        {
+            "endpoint": 'apispec_1',
+            "route": '/apispec_1.json',
+            "rule_filter": lambda rule: True,
+            "model_filter": lambda tag: True,
+        }
+    ],
+    "static_url_path": "/flasgger_static",
+    "swagger_ui": True,
+    "specs_route": "/apidocs/"
+}
+swagger = Swagger(app, config=swagger_config)
 
 
 db.init_app(app)
@@ -38,4 +55,4 @@ def create_db(app):
 
 if __name__ == "__main__":
     create_db(app)
-    app.run(debug=True, use_reloader=False)
+    app.run(debug=True, use_reloader=False, host='0.0.0.0', port=5000)

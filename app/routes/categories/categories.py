@@ -28,12 +28,11 @@ def create_category():
             name=data['name'],
             alias=data['alias'],
             prompt=data.get('prompt', ''),
-            time_interval=data.get('time_interval', None),
+            time_interval=data.get('time_interval', 3),
             is_active=data.get('is_active', False),
             border_color=data.get('border_color', None),
             icon=data.get('icon', None),
             created_at=datetime.now(),
-            updated_at=datetime.now()
         )
         
         db.session.add(new_category)
