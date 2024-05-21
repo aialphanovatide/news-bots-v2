@@ -14,7 +14,7 @@ from app.services.d3.dalle3 import generate_poster_prompt, resize_and_upload_ima
 
 # validate a link against a list of keyword and then saves it to the DB
 def validate_and_save_article(news_link, article_title, article_content, category_id, bot_id):
-    print("2")
+    
     articles_saved = 0
     unwanted_articles_saved = 0
     
@@ -130,21 +130,6 @@ def validate_and_save_article(news_link, article_title, article_content, categor
         
         return {'message': f'article {new_article_title} validated and saved', 
                 'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
-        
-        # There's no point on running this if the Used Keywords are already being saved in the Article table
-        # # Save the used keywords related to this article
-        # new_used_keyword = UsedKeywords(
-        #     article_id=new_article.id,
-        #     article_content=new_article_summary,
-        #     article_date=datetime.now(),
-        #     article_url=news_link,
-        #     keywords=', '.join(used_keywords),
-        #     source='google news',
-        #     bot_id=bot_id,
-        #     created_at=datetime.now()
-        # )
-        # db.session.add(new_used_keyword)
-        # db.session.commit()
             
       
     except Exception as e:
@@ -152,7 +137,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
                 'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
 
 
-# 
+
 async def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: int, bot_name: str) -> Dict[str, Any]:
     try:
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ssl.SSLContext())) as session:

@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from config import Blacklist, Category, Bot, Keyword, Site, db
 from app.utils.index import fetch_news_links
+from scheduler_config import scheduler
 
 activate_bots_bp = Blueprint(
     'activate_bots_bp', __name__,
@@ -68,12 +69,10 @@ async def activate_bots_by_category():
         if not category:
             return jsonify({'error': 'Category not found'}), 404
 
-        # Set category as active
-        category.is_active = True
-        db.session.commit()  # Commit the change to the database
-
         # Fetch all bots associated with the category
-        bots = Bot.query.filter_by(category_id=category.id).all()
+        category_id=category.id
+        bots = Bot.query.filter_by(category_id=category_id).all()
+
 
         for bot in bots:
             # Fetch the associated site for the bot
@@ -88,17 +87,34 @@ async def activate_bots_by_category():
             bot_id = bot.id
             bot_name = bot.name
 
-            # Perform the asynchronous task to fetch news links
-            res = await fetch_news_links(
-                url=bot_site,
-                bot_name=bot_name,
-                blacklist=blacklist,
-                category_id=category.id,
-                bot_id=bot_id
-            )
-            print(f'\n{bot_name} RESULTS: ', res)
+            print('bot_id', bot_id)
+            print('bot_id', type(bot_id))
 
-        return jsonify({'message': f'{category_name} was activated successfully'}), 200
+            # # Perform the asynchronous task to fetch news links
+            # res = await fetch_news_links(
+            #     url=bot_site,
+            #     bot_name=bot_name,
+            #     blacklist=blacklist,
+            #     category_id=category.id,
+            #     bot_id=bot_id
+            # )
+            # print(f'\n{bot_name} RESULTS: ', res)
+            
+            scheduler.add_job(fetch_news_links, 'interval', 
+                                    hours=category.time_interval, 
+                                    id=str(bot_id), 
+                                    name=bot_name,
+                                    replace_existing=True, 
+                                    args=[bot_site, bot_name, blacklist, category_id, bot_id], 
+                                    max_instances=2
+                                    )
+            
+
+        # Set category as active
+        category.is_active = True
+        db.session.commit()
+
+        return jsonify({'message': f'{category_name} category was activated successfully'}), 200
 
     except Exception as e:
         return jsonify({'error': f"Error activating bots for category '{category_name}': {e}"}), 500
