@@ -1,5 +1,8 @@
 
+import os
+from config import db
 from flask import Flask
+from dotenv import load_dotenv
 from app.routes.bots.bots import bots_bp
 from app.routes.sites.sites import sites_bp
 from app.routes.slack.slack import slack_action_bp
@@ -11,11 +14,30 @@ from app.routes.blacklist.blacklist import blacklist_bp
 from app.routes.categories.categories import categories_bp
 from app.routes.used_keywords.u_k import news_bots_features_bp
 from app.routes.unwanted_articles.unwanted_article import unwanted_articles_bp
+from data import initialize_categories, initialize_fixed_data, initialize_keywords, initialize_sites_data
+
+load_dotenv()
+
+DB_PORT = os.getenv('DB_PORT')
+DB_NAME = os.getenv('DB_NAME')
+DB_USER = os.getenv('DB_USER')
+DB_PASSWORD = os.getenv('DB_PASSWORD')
+DB_HOST = os.getenv('DB_HOST')
 
 
 def create_app():
     app = Flask(__name__)
     app.name = 'NEWS BOT'
+
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+    db.init_app(app)
+
+    with app.app_context():
+        db.create_all()  # Create tables if they doccccn't exist
+        initialize_categories()
+        initialize_fixed_data()
+        initialize_sites_data()
+        initialize_keywords() 
 
     # Register blueprints -  routes
     app.register_blueprint(bots_bp)

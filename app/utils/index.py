@@ -1,29 +1,33 @@
 from typing import List, Dict
 from app.utils.helpers import resolve_redirects
 from playwright.async_api import async_playwright
+from playwright.sync_api import sync_playwright
 from app.utils.analyze_links import fetch_article_content
 
 
 
 # Get all urls from a source
-async def fetch_urls(url: str) -> Dict:
+def fetch_urls(url: str) -> Dict:
     base_url = "https://news.google.com"
     result = {'success': False, 'data': [], 'errors': [], 'title': None}
+    max_links = 3
 
     try:
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=False, slow_mo=20)
-            page = await browser.new_page()
-            await page.goto(url)
-            await page.wait_for_load_state("domcontentloaded", timeout=70000)
+        with sync_playwright() as p:
+            browser =  p.chromium.launch(headless=False, slow_mo=20)
+            page =  browser.new_page()
+            page.goto(url)
+            page.wait_for_load_state("domcontentloaded", timeout=70000)
             
             news_links = set()
             
             # Extract links to news articles
-            links = await page.query_selector_all('a[href*="/articles/"]')
+            links =  page.query_selector_all('a[href*="/articles/"]')
+        
             for link in links:
-                href = await link.get_attribute('href')
-                title = await link.text_content()
+                href =  link.get_attribute('href')
+                title =  link.text_content()
+                print('Title: ', title)
                 
                 # Verify title
                 if title and title.strip():
@@ -33,11 +37,15 @@ async def fetch_urls(url: str) -> Dict:
                         resolved_link = resolve_redirects(full_link)
                         if resolved_link:
                             news_links.add(resolved_link)
+                            if len(news_links) >= max_links:
+                                break
                     except Exception as e:
                         result['errors'].append(f"Error resolving redirects for {full_link}: {str(e)}")
             
             result['data'] = list(news_links)
             result['success'] = True if len(news_links) > 0 else False
+
+            browser.close()
             return result
 
     except Exception as e:
@@ -45,11 +53,11 @@ async def fetch_urls(url: str) -> Dict:
 
 
 # Process URLs, validate, save to DB and send notififcations
-async def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id: int, bot_id: int) -> dict:
+def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id: int, bot_id: int) -> dict:
     max_links = 30
     result = {'success': False, 'links_fetched': 0, 'errors': []}
-
-    fetch_result = await fetch_urls(url)
+    # with current_app.app_context():
+    fetch_result =  fetch_urls(url)
     
     if not fetch_result['success']:
         return fetch_result
@@ -62,11 +70,12 @@ async def fetch_news_links(url: str, bot_name: str, blacklist: List[str], catego
     
     # Fetch article, validate and save to DB
     for news_link in news_links:
-        article_info = await fetch_article_content(news_link=news_link,
-                                                   category_id=category_id,
+        article_info = fetch_article_content(news_link=news_link,
+                                                category_id=category_id,
                                                     bot_id=bot_id,
                                                     bot_name=bot_name,
                                                     title=title)
+
         if 'error' in article_info:
             result['errors'].append(f"Error fetching content for {article_info['url']}, Reason: {article_info['error']}")
         

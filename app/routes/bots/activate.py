@@ -1,7 +1,8 @@
-from flask import Blueprint, jsonify, request
-from config import Blacklist, Category, Bot, Keyword, Site, db
+from flask import Blueprint, jsonify, request, current_app
+from config import Blacklist, Category, Bot, Site, db
 from app.utils.index import fetch_news_links
 from scheduler_config import scheduler
+
 
 activate_bots_bp = Blueprint(
     'activate_bots_bp', __name__,
@@ -40,6 +41,7 @@ async def activate_all_bots():
                 bot_id = bot.id
                 bot_name = bot.name
 
+
                 # Schedule job for bot
                 scheduler.add_job(fetch_news_links, 'interval',
                                   hours=category_interval,
@@ -67,8 +69,9 @@ async def activate_all_bots():
 
 # Activate a single category
 @activate_bots_bp.route('/activate_category', methods=['POST'])
-async def activate_bots_by_category():
+def activate_bots_by_category():
     response = {'data': None, 'error': None, 'success': False}
+  
     try:
         # Get the category name from the request JSON
         category_name = request.json.get('category_name')
@@ -102,18 +105,39 @@ async def activate_bots_by_category():
             bot_id = bot.id
             bot_name = bot.name
 
+            # Function to be scheduled
+            # def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, current_app):
+            #     with current_app.app_context(): 
+            #         fetch_news_links(
+            #             url=bot_site,
+            #             bot_name=bot_name,
+            #             blacklist=bot_blacklist,
+            #             category_id=category_id,
+            #             bot_id=bot_id
+            #         )
+        
+            
             scheduler.add_job(fetch_news_links, 'interval',
-                              hours=category.time_interval,
-                              id=str(bot_id),
-                              name=bot_name,
-                              replace_existing=True,
-                              args=[bot_site, bot_name, bot_blacklist, category.id, bot_id],
-                              max_instances=2
-                              )
+                            minutes=2,
+                            id=str(bot_id),
+                            name=bot_name,
+                            replace_existing=True,
+                            args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, ],
+                            max_instances=2
+                            )
 
+            # # Perform fetch news links
+            # fetch_news_links(
+            #     url=bot_site,
+            #     blacklist=bot_blacklist,
+            #     bot_name=bot_name,
+            #     category_id=category.id,
+            #     bot_id=bot_id
+            # )
+            
         # Set category as active
-        category.is_active = True
-        db.session.commit()
+        # category.is_active = True
+        # db.session.commit()
 
         response['message'] = f'{category_name} category was activated successfully'
         response['success'] = True

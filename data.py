@@ -406,3 +406,6 @@ def initialize_sites_data():
     except Exception as e:
         print(f"Error initializing fixed data: {e}")
         db.session.rollback()
+
+
+
