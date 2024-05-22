@@ -278,6 +278,19 @@ def initialize_categories():
                 (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
                 (vi) Highlight the most important words without using any symbols.
                 """, 'is_active': False, 'border_color': '#895DF6', 'icon': '/static/topmenu_icons_resize/intellichain.png', 'created_at': '2024-03-08 14:34:14.837494'},
+                {'id': 15, 'name': 'metals', 'alias': 'Metals', 'time_interval': 50, 'prompt': """Imagine you are the leading authority in the intersection of Operable Metals within the global markets. This dynamic sector, often termed as "Operable Metals," focuses on the trading and valuation of gold, silver, platinum, and palladium. In tandem with your vast expertise, you have also carved a niche as a distinguished international journalist, renowned for your adeptness in distilling the multifaceted nuances of metals markets into concise, captivating summaries. Your unparalleled understanding is particularly evident when it comes to gold, silver, platinum, and palladium. Equipped with a deep appreciation for narrative trading dynamics, you navigate the intricate tales and themes that characterize the precious metals market. As the flux of these metals heralds new frontiers, you are poised at the epicenter, keenly tracking and elucidating the cutting-edge developments specific to these commodities. Your job involves two steps.
+                Step One: Rewrite the headline of the article that you are summarizing. Follow these rules for the headline:
+                (i) The headline should never exceed seven words. It can be shorter, but never longer.
+                (ii) The headline should avoid sounding like clickbait. It should read like something from the Financial Times or Bloomberg rather than The Daily Mail.
+                (iii) The headline needs to be as factual as possible. If the headline discusses an opinion, the people or person sharing the opinion should be mentioned in the headline.
+                Step Two: Summarize the article in bullet points. Follow these rules for the article:
+                (i) The summary must be concise, focusing only on the most important points in the article.
+                (ii) If there are secondary points that you think should still be included, create a second summary.
+                (iii) Remove any content from the article that you consider unnecessary.
+                (iv) The bullet points should be structured, and the summaries should have a beginning, middle, and end.
+                (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
+                (vi) Highlight the most important words without using any symbols.
+                """, 'is_active': False, 'border_color': '#895DF6', 'icon': '/static/topmenu_icons_resize/metals.png', 'created_at': '2024-03-08 14:34:14.837494'}
               
             ]
 
@@ -338,6 +351,7 @@ def initialize_fixed_data():
                 {'id': 37, 'name': 'total3', 'category_id': 1},
                 {'id': 38, 'name': 'sp500', 'category_id': 1},
                 {'id': 39, 'name': 'dxy', 'category_id': 1},
+                {'id': 40, 'name': 'gold', 'category_id': 15},
             ]
 
             for bot_data in bots_fixed:
@@ -394,6 +408,7 @@ def initialize_sites_data():
                 {'name': 'Google News', 'url': 'https://news.google.com/search?q=ocean%20protocol%20%22Ocean%20protocol%22%20when%3A1d%20-FET%20-RNDR%20-MSN%20-medium&hl=en-US&gl=US&ceid=US%3Aen', 'bot_id': 34, },
                 {'name': 'Google News', 'url': 'https://news.google.com/search?q=fetch%20ai%20%22Fetch%20Ai%22%20%22FET%22%20when%3A1d%20-MSN%20-medium&hl=en-US&gl=US&ceid=US%3Aen', 'bot_id': 35, },
                 {'name': 'Google News', 'url': 'https://news.google.com/search?q=Render%20RNDR%20%22Render%22%20%22RNDR%22%20when%3A1d%20-MSN%20-medium&hl=en-US&gl=US&ceid=US%3Aen', 'bot_id': 36, },
+                {'name': 'Google News', 'url': 'https://news.google.com/search?q=Gold%20XAU%20%22Gold%22%20%20when%3A1d%20-MSN%20-medium&hl=en-US&gl=US&ceid=US%3Aen', 'bot_id': 40, }
             ]
 
             for site_data in sites_fixed:

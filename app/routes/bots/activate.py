@@ -95,7 +95,7 @@ async def activate_bots_by_category():
             site = Site.query.filter_by(bot_id=bot.id).first()
             if not site or not site.url:
                 continue  # Skip if no site or site URL is found
-
+            
             # Prepare the necessary data for the bot
             bot_site = site.url
             bot_blacklist = [bl.name for bl in Blacklist.query.filter_by(bot_id=bot.id).all()]
