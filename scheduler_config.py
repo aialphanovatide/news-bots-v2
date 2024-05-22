@@ -5,6 +5,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.services.slack.actions import send_WARNING_message_to_slack_channel
 from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_MAX_INSTANCES, EVENT_JOB_EXECUTED
 
+# scheduler = AsyncIOScheduler()
 scheduler = BackgroundScheduler(executors={'default': {'type': 'threadpool', 'max_workers': 50}})
 scheduler.add_jobstore('sqlalchemy', url=db_uri)
 logs_channel_id = "C070SM07NGL"
