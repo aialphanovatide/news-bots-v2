@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from config import Blacklist, db
+from datetime import datetime
 
 blacklist_bp = Blueprint(
     'blacklist_bp', __name__,
@@ -7,68 +8,98 @@ blacklist_bp = Blueprint(
     static_folder='static'
 )
 
-# Ruta para obtener todas las filas filtradas por bot_id
-@blacklist_bp.route('/get_blacklist_by_bot', methods=['POST'])
+# Get blacklist of a bot
+@blacklist_bp.route('/get_blacklist', methods=['GET'])
 def get_blacklist_by_bot():
+    response = {'data': None, 'error': None, 'success': False}
     try:
-        data = request.json
-        bot_id = data.get('bot_id')
+        # Get bot ID from request arguments
+        bot_id = request.args.get('bot_id')
 
         if bot_id is None:
-            return jsonify({'error': 'Bot ID missing in request data'}), 400
+            response['error'] = 'Bot ID missing in request data'
+            return jsonify(response), 400
 
-        blacklist = Blacklist.query.filter_by(bot_id=bot_id).all()
+        # Query blacklist data for the bot
+        blacklist_data = Blacklist.query.filter_by(bot_id=bot_id).all()
+        if not blacklist_data:
+            response['error'] = f'blacklist with ID: {str(bot_id)} not found'
+            return jsonify(response), 404
 
-        blacklist_data = []
-        for entry in blacklist:
-            blacklist_data.append({
-                'id': entry.id,
-                'name': entry.name,
-                'bot_id': entry.bot_id,
-                'created_at': entry.created_at,
-                'updated_at': entry.updated_at
-            })
-
-        return jsonify({'message': blacklist_data}), 200
+        # Prepare the response with blacklist data
+        blacklist_data = [blacklist.as_dict() for blacklist in blacklist_data]
+        response['data'] = blacklist_data
+        response['success'] = True
+        return jsonify(response), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        response['error'] = f'Internal server error: {str(e)}'
+        return jsonify(response), 500
+    
 
-# Ruta para agregar una entrada en la blacklist por bot_id
+# Add an entry to the blacklist by bot_id
 @blacklist_bp.route('/add_to_blacklist', methods=['POST'])
 def add_to_blacklist():
+    response = {'data': None, 'error': None, 'success': False}
     try:
         data = request.json
-        name = data.get('name')
+        blacklist_entry = data.get('blacklist')
         bot_id = data.get('bot_id')
 
-        if name is None or bot_id is None:
-            return jsonify({'error': 'Name or Bot ID missing in request data'}), 400
+        if not bot_id or not blacklist_entry:
+            response['error'] = 'Bot ID or Blacklist entry missing in request data'
+            return jsonify(response), 400
 
-        new_entry = Blacklist(name=name, bot_id=bot_id)
+        # Find the blacklist associated with the provided bot ID
+        existing_blacklist = Blacklist.query.filter_by(bot_id=bot_id, name=blacklist_entry.casefold()).first()
+        if existing_blacklist:
+            response['error'] = f'Blacklist entry "{blacklist_entry}" already exists for bot with ID {bot_id}'
+            return jsonify(response), 400
+
+        # Add a new entry to the blacklist
+        new_entry = Blacklist(name=blacklist_entry, 
+                              bot_id=bot_id,
+                              created_at=datetime.now(),
+                              updated_at=datetime.now()
+                              )
         db.session.add(new_entry)
         db.session.commit()
 
-        return jsonify({'message': 'Entry added to blacklist successfully', 'blacklist_id': new_entry.id}), 200
+        # Prepare the success response with the data of the new blacklist entry
+        response['data'] = new_entry.as_dict()
+        response['success'] = True
+        response['message'] = 'Entry added to blacklist successfully'
+        return jsonify(response), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        db.session.rollback()
+        response['error'] = f'Internal server error: {str(e)}'
+        return jsonify(response), 500
+
+
     
     
-# Ruta para eliminar una entrada de la blacklist por ID 
+# Delete an entry from the blacklist by ID
 @blacklist_bp.route('/delete_from_blacklist', methods=['DELETE'])
 def delete_from_blacklist():
+    response = {'message': None, 'error': None, 'success': False}
     try:
-        data = request.json
-        blacklist_id = data.get('blacklist_id')
+        blacklist_id = request.args.get('blacklist_id')
 
-        if blacklist_id is None:
-            return jsonify({'error': 'Blacklist ID missing in request data'}), 400
+        if blacklist_id is None or not blacklist_id:
+            response['error'] = 'Blacklist ID missing in request data'
+            return jsonify(response), 400
 
         entry = Blacklist.query.get(blacklist_id)
         if entry:
             db.session.delete(entry)
             db.session.commit()
-            return jsonify({'message': 'Entry deleted from blacklist successfully'}), 200
+            response['message'] = f'Entry deleted from blacklist successfully'
+            response['success'] = True
+            return jsonify(response), 200
         else:
-            return jsonify({'error': 'Entry not found'}), 404
+            response['error'] = 'Entry not found'
+            return jsonify(response), 404
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        db.session.rollback()
+        response['error'] = f'Internal server error: {str(e)}'
+        return jsonify(response), 500
+

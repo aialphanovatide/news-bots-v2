@@ -27,8 +27,11 @@ class Category(db.Model):
     border_color = db.Column(db.String)
     created_at = db.Column(db.TIMESTAMP)
 
-    def __repr__(self):
-        return f"Category(category_id={self.category_id}, category={self.category}, category_name={self.category_name}, time_interval={self.time_interval}, icon={self.icon}, is_active={self.is_active}, border_color={self.border_color}, created_at={self.created_at})"
+    bots = db.relationship("Bot", backref="category", cascade="all, delete-orphan")
+
+    def as_dict(self):
+        return {column.name: getattr(self, column.name) for column in self.__table__.columns}
+
 
 class Bot(db.Model):
     __tablename__ = 'bot'
@@ -38,6 +41,15 @@ class Bot(db.Model):
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     created_at = db.Column(db.TIMESTAMP)
     updated_at = db.Column(db.TIMESTAMP)
+
+    sites = db.relationship("Site", backref="bot", cascade="all, delete-orphan")
+    keywords = db.relationship("Keyword", backref="bot", cascade="all, delete-orphan")
+    blacklist = db.relationship("Blacklist", backref="bot", cascade="all, delete-orphan")
+    articles = db.relationship("Article", backref="bot", cascade="all, delete-orphan")
+    unwanted_articles = db.relationship("UnwantedArticle", backref="bot", cascade="all, delete-orphan")
+
+    def as_dict(self):
+        return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
 
 class Site(db.Model):
@@ -53,6 +65,9 @@ class Site(db.Model):
     created_at = db.Column(db.TIMESTAMP)
     updated_at = db.Column(db.TIMESTAMP)
 
+    def as_dict(self):
+        return {column.name: getattr(self, column.name) for column in self.__table__.columns}
+
 
 class Keyword(db.Model):
     __tablename__ = 'keyword'
@@ -64,6 +79,9 @@ class Keyword(db.Model):
     created_at = db.Column(db.TIMESTAMP)
     updated_at = db.Column(db.TIMESTAMP)
 
+    def as_dict(self):
+        return {column.name: getattr(self, column.name) for column in self.__table__.columns}
+
 
 class Blacklist(db.Model):
     __tablename__ = 'blacklist'
@@ -74,6 +92,9 @@ class Blacklist(db.Model):
     bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'))
     created_at = db.Column(db.TIMESTAMP)
     updated_at = db.Column(db.TIMESTAMP)
+
+    def as_dict(self):
+        return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
 
 class Article(db.Model):
@@ -93,6 +114,9 @@ class Article(db.Model):
     created_at = db.Column(db.TIMESTAMP)
     updated_at = db.Column(db.TIMESTAMP)
 
+    def as_dict(self):
+        return {column.name: getattr(self, column.name) for column in self.__table__.columns}
+
 
 class UnwantedArticle(db.Model):
     __tablename__ = 'unwanted_article'
@@ -106,6 +130,9 @@ class UnwantedArticle(db.Model):
     bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'))
     created_at = db.Column(db.TIMESTAMP)
     updated_at = db.Column(db.TIMESTAMP)
+
+    def as_dict(self):
+        return {column.name: getattr(self, column.name) for column in self.__table__.columns}
     
 
 class UsedKeywords(db.Model):
@@ -121,6 +148,5 @@ class UsedKeywords(db.Model):
     bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'))
     created_at = db.Column(db.TIMESTAMP, default=datetime.now)
 
-
-    def __repr__(self):
-        return f"UsedKeywords(id={self.id}, article_content={self.article_content}, article_date={self.article_date}, article_url={self.article_url}, keywords={self.keywords}, source={self.source}, article_id={self.article_id}, bot_id={self.bot_id}, created_at={self.created_at})"
+    def as_dict(self):
+        return {column.name: getattr(self, column.name) for column in self.__table__.columns}

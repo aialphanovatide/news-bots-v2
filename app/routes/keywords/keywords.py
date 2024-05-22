@@ -8,79 +8,104 @@ keyword_bp = Blueprint(
     static_folder='static'
 )
 
-# Ruta para obtener todas las filas filtradas por bot_id
-@keyword_bp.route('/get_keywords_by_bot', methods=['POST'])
+# Get all keywords filtered by bot_id
+@keyword_bp.route('/get_keywords', methods=['GET'])
 def get_keywords_by_bot():
+    response = {'data': None, 'error': None, 'success': False}
     try:
-        data = request.json
-        bot_id = data.get('bot_id')
+        bot_id = request.args.get('bot_id')
 
-        if bot_id is None:
-            return jsonify({'error': 'Bot ID missing in request data'}), 400
+        if not bot_id:
+            response['error'] = 'Bot ID missing in request parameters'
+            return jsonify(response), 400
 
         keywords = Keyword.query.filter_by(bot_id=bot_id).all()
 
-        keyword_data = []
-        for entry in keywords:
-            keyword_data.append({
-                'id': entry.id,
-                'name': entry.name,
-                'bot_id': entry.bot_id,
-                'created_at': entry.created_at,
-                'updated_at': entry.updated_at
-            })
+        if not keywords:
+            response['error'] = 'No keywords found for the provided bot ID'
+            return jsonify(response), 404
 
-        return jsonify({'message': keyword_data}), 200
+        keyword_data = [key.as_dict() for key in keywords]
+
+        response['data'] = keyword_data
+        response['success'] = True
+        return jsonify(response), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        db.session.rollback()
+        response['error'] = f'Internal server error: {str(e)}'
+        return jsonify(response), 500
 
 
 
-@keyword_bp.route('/add_keyword_to_bot', methods=['POST'])
+
+# Add keyword(s) to a bot
+@keyword_bp.route('/add_keyword', methods=['POST'])
 def add_keyword_to_bot():
+    response = {'data': None, 'error': None, 'success': False}
     try:
         data = request.json
-        name = data.get('name')
+        keyword = data.get('keyword')
         bot_id = data.get('bot_id')
 
-        if not name or not bot_id:
-            return jsonify({'error': 'Name or Bot ID missing in request data'}), 400
+        if not keyword or not bot_id:
+            response['error'] = 'Keyword or Bot ID missing in request data'
+            return jsonify(response), 400
 
-        keywords = [keyword.strip() for keyword in name.split(',')]
+        keywords = [keyword.strip() for keyword in keyword.split(',')]
+
+        # Get existing keywords for the specified bot
+        existing_keywords = Keyword.query.filter_by(bot_id=bot_id).all()
+        existing_keyword_names = [kw.name.lower() for kw in existing_keywords]
+
+        new_keywords = []
         current_time = datetime.now()
 
-        for keyword in keywords:
-            new_keyword = Keyword(
-                name=keyword,
-                bot_id=bot_id,
-                created_at=current_time,
-                updated_at=current_time
-            )
-            db.session.add(new_keyword)
-        
-        db.session.commit()
+        # Filter out duplicate keywords
+        for kw in keywords:
+            if kw.lower() not in existing_keyword_names:
+                new_keywords.append(Keyword(name=kw, bot_id=bot_id, created_at=current_time, updated_at=current_time))
 
-        return jsonify({'message': 'Keywords added to bot successfully', 'last_keyword_id': new_keyword.id}), 200
+        # Add new keywords to the database
+        if new_keywords:
+            db.session.add_all(new_keywords)
+            db.session.commit()
+            response['message'] = 'Keywords added to bot successfully'
+            response['success'] = True
+            return jsonify(response), 200
+        else:
+            response['message'] = 'No new keywords added'
+            return jsonify(response), 200
+
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        db.session.rollback()
+        response['error'] = f'Internal server error: {str(e)}'
+        return jsonify(response), 500
 
 
-# Ruta para eliminar una entrada de la blacklist por ID
-@keyword_bp.route('/delete_keyword_from_bot', methods=['DELETE'])
+
+# Delete a keyword from a bot by ID
+@keyword_bp.route('/delete_keyword', methods=['DELETE'])
 def delete_keyword_from_bot():
+    response = {'data': None, 'error': None, 'success': False}
     try:
-        data = request.json
-        keyword_id = data.get('keyword_id')
+        keyword_id = request.args.get('keyword_id')
 
         if keyword_id is None:
-            return jsonify({'error': 'Keyword ID missing in request data'}), 400
+            response['error'] = 'Keyword ID missing in request data'
+            return jsonify(response), 400
 
         keyword = Keyword.query.get(keyword_id)
         if keyword:
             db.session.delete(keyword)
             db.session.commit()
-            return jsonify({'message': 'Keyword deleted from bot successfully'}), 200
+            response['message'] = 'Keyword deleted from bot successfully'
+            response['success'] = True
+            return jsonify(response), 200
         else:
-            return jsonify({'error': 'Keyword not found'}), 404
+            response['error'] = 'Keyword not found'
+            return jsonify(response), 404
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        db.session.rollback()
+        response['error'] = f'Internal server error: {str(e)}'
+        return jsonify(response), 500
+

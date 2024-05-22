@@ -7,101 +7,85 @@ articles_bp = Blueprint(
     template_folder='templates',
     static_folder='static'
 )
+
+# Get all articles
 @articles_bp.route('/get_all_articles', methods=['GET'])
 def get_all_articles():
+
+    response = {'data': None, 'error': None, 'success': False}
     try:
-        limit = int(request.args.get('limit', 10)) 
-        articles = Article.query.limit(limit).all()  
-        article_data = []
-        for article in articles:
-            article_data.append({
-                'id': article.id,
-                'title': article.title,
-                'content': article.content,
-                'analysis': article.analysis,
-                'url': article.url,
-                'date': article.date,
-                'used_keywords': article.used_keywords,
-                'is_article_efficent': article.is_article_efficent,
-                'bot_id': article.bot_id,
-                'created_at': article.created_at,
-                'updated_at': article.updated_at
-            })
-        return jsonify({'message': article_data}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        limit = request.args.get('limit', default=10, type=int)
+        if limit < 1:
+            response['error'] = 'Limit must be a positive integer'
+            return jsonify(response), 400
 
-@articles_bp.route('/get_articles_by_bot', methods=['POST'])
-def get_articles_by_bot(): 
-    try:
-        data = request.json
-        bot_id = data.get('bot_id')
-        limit = int(data.get('limit', 10)) 
-
-        if bot_id is None:
-            return jsonify({'error': 'Missing bot ID in request data'}), 400
-
-        articles = Article.query.filter_by(bot_id=bot_id).limit(limit).all() 
+        articles = Article.query.limit(limit).all()
         if not articles:
-            return jsonify({'message': 'No articles found for the specified bot ID'}), 404
+            response['message'] = 'No articles found'
+            response['success'] = True
+            return jsonify(response), 200
 
-        article_data = []
-        for article in articles:
-            article_data.append({
-                'id': article.id,
-                'title': article.title,
-                'content': article.content,
-                'analysis': article.analysis,
-                'url': article.url,
-                'date': article.date,
-                'used_keywords': article.used_keywords,
-                'is_article_efficent': article.is_article_efficent,
-                'bot_id': article.bot_id,
-                'created_at': article.created_at,
-                'updated_at': article.updated_at
-            })
-        return jsonify({'message': article_data}), 200
+        response['data'] = [article.as_dict() for article in articles]
+        response['success'] = True
+        return jsonify(response), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        response['error'] = f'Internal server error: {str(e)}'
+        return jsonify(response), 500
 
 
-# ESTA RUTA NO ES NECESARIA
-@articles_bp.route('/create_article', methods=['POST'])
-def create_article():
+
+# Get all articles of a Bot
+@articles_bp.route('/get_articles', methods=['GET'])
+def get_articles_by_bot():
+
+    response = {'data': None, 'error': None, 'success': False}
     try:
-        data = request.json
-        new_article = Article(
-            title=data.get('title'),
-            content=data.get('content'),
-            analysis=data.get('analysis'),
-            url=data.get('url'),
-            date=data.get('date'),
-            used_keywords=data.get('used_keywords'),
-            is_article_efficent=data.get('is_article_efficent'),
-            bot_id=data.get('bot_id'),
-            created_at=datetime.now(),
-            updated_at=datetime.now()
-        )
-        db.session.add(new_article)
-        db.session.commit()
-        return jsonify({'message': 'Article created successfully', 'article_id': new_article.id}), 201
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        bot_id = request.args.get('bot_id')
+        limit = int(request.args.get('limit', 10))
 
+        if not bot_id:
+            response['error'] = 'Missing bot ID in request data'
+            return jsonify(response), 400
+
+        articles = Article.query.filter_by(bot_id=bot_id).limit(limit).all()
+        if not articles:
+            response['error'] = 'No articles found for the specified bot ID'
+            return jsonify(response), 404
+
+        response['data'] = [article.as_dict() for article in articles]
+        response['success'] = True
+        return jsonify(response), 200
+    except Exception as e:
+        response['error'] = f'Internal server error: {str(e)}'
+        return jsonify(response), 500
+
+
+
+# Delete an article by ID
 @articles_bp.route('/delete_article', methods=['DELETE'])
 def delete_article():
+
+    response = {'data': None, 'error': None, 'success': False}
     try:
-        data = request.json
-        article_id = data.get('article_id')
-        if article_id is None:
-            return jsonify({'error': 'Article ID missing in request data'}), 400
+        # Get article ID from query arguments
+        article_id = request.args.get('article_id')
+
+        if not article_id:
+            response['error'] = 'Article ID missing in request data'
+            return jsonify(response), 400
 
         article = Article.query.get(article_id)
         if article:
             db.session.delete(article)
             db.session.commit()
-            return jsonify({'message': 'Article deleted successfully'}), 200
+            response['success'] = True
+            response['message'] = 'Article deleted successfully'
+            return jsonify(response), 200
         else:
-            return jsonify({'error': 'Article not found'}), 404
+            response['error'] = 'Article not found'
+            return jsonify(response), 404
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        db.session.rollback()
+        response['error'] = f'Internal server error: {str(e)}'
+        return jsonify(response), 500
+

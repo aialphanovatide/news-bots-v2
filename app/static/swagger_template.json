@@ -2,87 +2,52 @@
   "swagger": "2.0",
   "info": {
     "title": "News Bots V2 API",
-    "description": "API for managing All routes related to news bots.",
-    "version": "1.0"
+    "description": "API for managing All routes related to News Bots",
+    "version": "2.0"
   },
+  "tags": [
+    {
+      "name": "Category",
+      "description": "Operations related to the categories"
+    },
+    {
+      "name": "Bots",
+      "description": "Operations related to the bots"
+    },
+    {
+      "name": "Articles",
+      "description": "Operations related to articles"
+    },
+    {
+      "name": "Keywords",
+      "description": "Operations related to the keywords"
+    },
+    {
+      "name": "Blacklist",
+      "description": "Operations related to the blacklist"
+    },
+    {
+      "name": "Sites",
+      "description": "Operations related to the sites"
+    },
+    {
+      "name": "Unwanted Articles",
+      "description": "Operations related to the article that are categorized as invalid"
+    }
+  ],
   "paths": {
     "/get_all_articles": {
       "get": {
         "summary": "Get all articles",
         "tags": ["Articles"],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "message": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "integer"
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "content": {
-                        "type": "string"
-                      },
-                      "analysis": {
-                        "type": "string"
-                      },
-                      "url": {
-                        "type": "string"
-                      },
-                      "date": {
-                        "type": "string"
-                      },
-                      "used_keywords": {
-                        "type": "string"
-                      },
-                      "is_article_efficent": {
-                        "type": "boolean"
-                      },
-                      "bot_id": {
-                        "type": "integer"
-                      },
-                      "created_at": {
-                        "type": "string"
-                      },
-                      "updated_at": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/get_articles_by_bot": {
-      "post": {
-        "summary": "Get articles by bot ID",
-        "tags": ["Articles"],
         "parameters": [
           {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "bot_id": {
-                  "type": "integer"
-                },
-                "limit": {
-                  "type": "integer"
-                }
-              }
-            }
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of articles to return",
+            "required": false,
+            "type": "integer",
+            "default": 10
           }
         ],
         "responses": {
@@ -91,7 +56,7 @@
             "schema": {
               "type": "object",
               "properties": {
-                "message": {
+                "data": {
                   "type": "array",
                   "items": {
                     "type": "object",
@@ -131,103 +96,248 @@
                       }
                     }
                   }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/create_article": {
-      "post": {
-        "summary": "Create an article",
-        "tags": ["Articles"],
-        "parameters": [
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "title": {
-                  "type": "string"
                 },
-                "content": {
-                  "type": "string"
-                },
-                "analysis": {
-                  "type": "string"
-                },
-                "url": {
-                  "type": "string"
-                },
-                "date": {
-                  "type": "string"
-                },
-                "used_keywords": {
-                  "type": "string"
-                },
-                "is_article_efficent": {
+                "success": {
                   "type": "boolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
                 },
-                "bot_id": {
-                  "type": "integer"
+                "success": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
                 }
               }
             }
           }
+        }
+      }
+    },
+    "/get_articles": {
+      "get": {
+        "summary": "Get all articles of a Bot",
+        "tags": ["Articles"],
+        "parameters": [
+          {
+            "name": "bot_id",
+            "in": "query",
+            "description": "ID of the bot",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of articles to return",
+            "required": false,
+            "type": "integer",
+            "default": 10
+          }
         ],
         "responses": {
-          "201": {
-            "description": "Article created successfully"
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      },
+                      "analysis": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      },
+                      "date": {
+                        "type": "string"
+                      },
+                      "used_keywords": {
+                        "type": "string"
+                      },
+                      "is_article_efficent": {
+                        "type": "boolean"
+                      },
+                      "bot_id": {
+                        "type": "integer"
+                      },
+                      "created_at": {
+                        "type": "string"
+                      },
+                      "updated_at": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "success": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No articles found for the specified bot ID",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                }
+              }
+            }
           }
         }
       }
     },
     "/delete_article": {
       "delete": {
-        "summary": "Delete an article",
+        "summary": "Delete an article by ID",
         "tags": ["Articles"],
         "parameters": [
           {
-            "in": "body",
-            "name": "body",
+            "name": "article_id",
+            "in": "query",
+            "description": "ID of the article to delete",
             "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "article_id": {
-                  "type": "integer"
-                }
-              }
-            }
+            "type": "integer"
           }
         ],
         "responses": {
           "200": {
-            "description": "Article deleted successfully"
+            "description": "Article deleted successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Article not found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/get_blacklist_by_bot": {
-      "post": {
-        "summary": "Get entries from blacklist by bot ID",
+
+    "/get_blacklist": {
+      "get": {
+        "summary": "Get blacklist of a bot",
         "tags": ["Blacklist"],
         "parameters": [
           {
-            "in": "body",
-            "name": "body",
+            "name": "bot_id",
+            "in": "query",
+            "description": "ID of the bot to retrieve blacklist for",
             "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "bot_id": {
-                  "type": "integer"
-                }
-              }
-            }
+            "type": "integer"
           }
         ],
         "responses": {
@@ -236,7 +346,7 @@
             "schema": {
               "type": "object",
               "properties": {
-                "message": {
+                "data": {
                   "type": "array",
                   "items": {
                     "type": "object",
@@ -258,30 +368,48 @@
                       }
                     }
                   }
+                },
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "404": {
+            "description": "Blacklist not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       }
     },
     "/add_to_blacklist": {
       "post": {
-        "summary": "Add an entry to the blacklist",
+        "summary": "Add an entry to the blacklist by bot_id",
         "tags": ["Blacklist"],
         "parameters": [
           {
-            "in": "body",
             "name": "body",
+            "in": "body",
+            "description": "Request body",
             "required": true,
             "schema": {
               "type": "object",
               "properties": {
-                "name": {
-                  "type": "string"
-                },
                 "bot_id": {
-                  "type": "integer"
+                  "type": "integer",
+                  "description": "ID of the bot to add the entry to its blacklist"
+                },
+                "blacklist": {
+                  "type": "string",
+                  "description": "The entry to add to the blacklist"
                 }
               }
             }
@@ -289,37 +417,97 @@
         ],
         "responses": {
           "200": {
-            "description": "Entry added to blacklist successfully"
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "bot_id": {
+                      "type": "integer"
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "success": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       }
     },
     "/delete_from_blacklist": {
       "delete": {
-        "summary": "Delete an entry from the blacklist",
+        "summary": "Delete an entry from the blacklist by ID",
         "tags": ["Blacklist"],
         "parameters": [
           {
-            "in": "body",
-            "name": "body",
+            "name": "blacklist_id",
+            "in": "query",
+            "description": "ID of the blacklist entry to delete",
             "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "blacklist_id": {
-                  "type": "integer"
-                }
-              }
-            }
+            "type": "integer"
           }
         ],
         "responses": {
           "200": {
-            "description": "Entry deleted from blacklist successfully"
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "404": {
+            "description": "Entry not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       }
-    },
+    },  
+
+
+
     "/bots": {
       "get": {
         "summary": "Get all available bots",
@@ -359,8 +547,8 @@
         "tags": ["Bots"],
         "parameters": [
           {
-            "in": "body",
             "name": "body",
+            "in": "body",
             "required": true,
             "schema": {
               "type": "object",
@@ -380,116 +568,84 @@
                 "blacklist": {
                   "type": "string"
                 }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Bot created and automated successfully"
-          }
-        }
-      }
-    },
-    "/delete_bots": {
-      "delete": {
-        "summary": "Delete a single Bot by ID",
-        "tags": ["Bots"],
-        "parameters": [
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "integer"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Bot deleted successfully"
-          }
-        }
-      }
-    },
-    "/add_new_category": {
-      "post": {
-        "summary": "Create a new category",
-        "tags": ["Category"],
-        "parameters": [
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "alias": {
-                  "type": "string"
-                },
-                "prompt": {
-                  "type": "string"
-                },
-                "time_interval": {
-                  "type": "integer"
-                },
-                "is_active": {
-                  "type": "boolean"
-                },
-                "border_color": {
-                  "type": "string"
-                },
-                "icon": {
-                  "type": "string"
-                }
               },
-              "required": ["name", "alias", "prompt", "time_interval"]
+              "required": ["name", "category_id", "url", "keywords", "blacklist"]
             }
           }
         ],
         "responses": {
-          "201": {
-            "description": "Category created successfully",
+          "200": {
+            "description": "Successful response",
             "schema": {
               "type": "object",
               "properties": {
-                "id": {
-                  "type": "integer"
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "category_id": {
+                      "type": "integer"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
                 },
-                "name": {
-                  "type": "string"
-                },
-                "alias": {
-                  "type": "string"
-                },
-                "prompt": {
-                  "type": "string"
-                },
-                "time_interval": {
-                  "type": "integer"
-                },
-                "is_active": {
+                "success": {
                   "type": "boolean"
                 },
-                "border_color": {
+                "message": {
                   "type": "string"
                 },
-                "icon": {
+                "error": {
                   "type": "string"
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid input, object invalid"
+            "description": "Bad request"
+          },
+          "404": {
+            "description": "Category ID not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/delete_bot/{bot_id}": {
+      "delete": {
+        "summary": "Delete a single Bot by ID",
+        "tags": ["Bots"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bot_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "ID of the bot to delete"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bot deleted successfully"
+          },
+          "404": {
+            "description": "Bot not found"
           },
           "500": {
             "description": "Internal server error"
@@ -507,64 +663,100 @@
             "schema": {
               "type": "object",
               "properties": {
-                "message": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "integer"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "alias": {
-                        "type": "string"
-                      },
-                      "prompt": {
-                        "type": "string"
-                      },
-                      "time_interval": {
-                        "type": "integer"
-                      },
-                      "is_active": {
-                        "type": "boolean"
-                      },
-                      "border_color": {
-                        "type": "string"
-                      },
-                      "icon": {
-                        "type": "string"
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "time_interval": {
+                            "type": "integer"
+                          },
+                          "is_active": {
+                            "type": "boolean"
+                          }
+                        }
                       }
                     }
                   }
+                },
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
                 }
               }
             }
           },
+          "404": {
+            "description": "No categories found"
+          },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal Server Error"
           }
         }
       }
     },
-    "/get_keywords_by_bot": {
+    "/activate_all_categories": {
       "post": {
-        "summary": "Get all keywords by bot ID",
-        "tags": ["Keywords"],
+        "summary": "Activate all categories",
+        "tags": ["Category"],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "null"
+                },
+                "success": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No categories found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },  
+    "/activate_category": {
+      "post": {
+        "summary": "Activate a single category",
+        "tags": ["Category"],
         "parameters": [
           {
-            "in": "body",
             "name": "body",
+            "in": "body",
             "required": true,
             "schema": {
               "type": "object",
               "properties": {
-                "bot_id": {
-                  "type": "integer"
+                "category_name": {
+                  "type": "string"
                 }
               },
-              "required": ["bot_id"]
+              "required": ["category_name"]
             }
           }
         ],
@@ -574,7 +766,280 @@
             "schema": {
               "type": "object",
               "properties": {
+                "data": {
+                  "type": "null"
+                },
+                "success": {
+                  "type": "boolean"
+                },
                 "message": {
+                  "type": "string"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "404": {
+            "description": "Category not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    }, 
+    "/deactivate_all_categories": {
+      "post": {
+        "summary": "Deactivate all categories",
+        "tags": ["Category"],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "null"
+                },
+                "success": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No categories found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },    
+    "/deactivate_category": {
+      "post": {
+        "summary": "Deactivate a single category",
+        "tags": ["Category"],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "category_name": {
+                  "type": "string"
+                }
+              },
+              "required": ["category_name"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "null"
+                },
+                "success": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "404": {
+            "description": "Category not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },         
+    "/add_new_category": {
+      "post": {
+        "summary": "Create a new category",
+        "tags": ["Category"],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "alias": {
+                  "type": "string"
+                },
+                "prompt": {
+                  "type": "string"
+                },
+                "time_interval": {
+                  "type": "integer",
+                  "default": 3
+                },
+                "border_color": {
+                  "type": "string"
+                },
+                "icon": {
+                  "type": "string"
+                }
+              },
+              "required": ["name", "alias"]
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Category created successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "alias": {
+                      "type": "string"
+                    },
+                    "prompt": {
+                      "type": "string"
+                    },
+                    "time_interval": {
+                      "type": "integer"
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "border_color": {
+                      "type": "string"
+                    },
+                    "icon": {
+                      "type": "string"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                },
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/categories/{category_id}": {
+      "delete": {
+        "summary": "Delete a category by ID",
+        "tags": ["Category"],
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "path",
+            "description": "ID of the category to delete",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category deleted successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Category not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },    
+ 
+
+    "/get_keywords": {
+      "get": {
+        "summary": "Get all keywords filtered by bot_id",
+        "tags": ["Keywords"],
+        "parameters": [
+          {
+            "name": "bot_id",
+            "in": "query",
+            "description": "ID of the bot to filter keywords",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
                   "type": "array",
                   "items": {
                     "type": "object",
@@ -596,127 +1061,50 @@
                       }
                     }
                   }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bot ID missing in request data"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/add_keyword_to_bot": {
-      "post": {
-        "summary": "Add a keyword to a bot",
-        "tags": ["Keywords"],
-        "parameters": [
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
                 },
-                "bot_id": {
-                  "type": "integer"
-                }
-              },
-              "required": ["name", "bot_id"]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Keywords added to bot successfully",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "message": {
-                  "type": "string"
+                "success": {
+                  "type": "boolean"
                 },
-                "last_keyword_id": {
-                  "type": "integer"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Name or Bot ID missing in request data"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/delete_keyword_from_bot": {
-      "delete": {
-        "summary": "Delete a keyword from a bot",
-        "tags": ["Keywords"],
-        "parameters": [
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "keyword_id": {
-                  "type": "integer"
-                }
-              },
-              "required": ["keyword_id"]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Keyword deleted from bot successfully",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "message": {
+                "error": {
                   "type": "string"
                 }
               }
             }
           },
           "400": {
-            "description": "Keyword ID missing in request data"
+            "description": "Bad request"
           },
           "404": {
-            "description": "Keyword not found"
+            "description": "No keywords found for the provided bot ID"
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal Server Error"
           }
         }
       }
-    },
-    "/get_sites_by_bot": {
+    },    
+    "/add_keyword": {
       "post": {
-        "summary": "Get all sites by bot ID",
-        "tags": ["Sites"],
+        "summary": "Add keyword(s) to a bot",
+        "tags": ["Keywords"],
         "parameters": [
           {
-            "in": "body",
             "name": "body",
+            "in": "body",
+            "description": "Request body",
             "required": true,
             "schema": {
               "type": "object",
               "properties": {
+                "keyword": {
+                  "type": "string",
+                  "description": "Comma-separated list of keywords to add"
+                },
                 "bot_id": {
-                  "type": "integer"
+                  "type": "integer",
+                  "description": "ID of the bot to which the keywords will be added"
                 }
-              },
-              "required": ["bot_id"]
+              }
             }
           }
         ],
@@ -727,15 +1115,97 @@
               "type": "object",
               "properties": {
                 "message": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/delete_keyword": {
+      "delete": {
+        "summary": "Delete a keyword from a bot by ID",
+        "tags": ["Keywords"],
+        "parameters": [
+          {
+            "name": "keyword_id",
+            "in": "query",
+            "description": "ID of the keyword to delete",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "404": {
+            "description": "Keyword not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+
+
+    "/get_sites": {
+      "get": {
+        "summary": "Get sites by bot ID",
+        "tags": ["Sites"],
+        "parameters": [
+          {
+            "name": "bot_id",
+            "in": "query",
+            "description": "ID of the bot to get sites for",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
                   "type": "array",
                   "items": {
                     "type": "object",
                     "properties": {
                       "id": {
                         "type": "integer"
-                      },
-                      "name": {
-                        "type": "string"
                       },
                       "url": {
                         "type": "string"
@@ -744,138 +1214,67 @@
                         "type": "integer"
                       },
                       "created_at": {
-                        "type": "string"
+                        "type": "string",
+                        "format": "date-time"
                       },
                       "updated_at": {
-                        "type": "string"
+                        "type": "string",
+                        "format": "date-time"
                       }
                     }
                   }
+                },
+                "error": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
                 }
               }
             }
           },
           "400": {
-            "description": "Bot ID missing in request data"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/add_site": {
-      "post": {
-        "summary": "Add a new site",
-        "tags": ["Sites"],
-        "parameters": [
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
+            "description": "Bad request",
             "schema": {
               "type": "object",
               "properties": {
-                "name": {
+                "error": {
                   "type": "string"
                 },
-                "url": {
-                  "type": "string"
-                },
-                "bot_id": {
-                  "type": "integer"
-                }
-              },
-              "required": ["name", "url", "bot_id"]
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Site added successfully",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "message": {
-                  "type": "string"
-                },
-                "site_id": {
-                  "type": "integer"
+                "success": {
+                  "type": "boolean"
                 }
               }
             }
           },
-          "400": {
-            "description": "Missing key in request data"
-          },
           "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/delete_site": {
-      "delete": {
-        "summary": "Delete a site by ID",
-        "tags": ["Sites"],
-        "parameters": [
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
+            "description": "Internal server error",
             "schema": {
               "type": "object",
               "properties": {
-                "site_id": {
-                  "type": "integer"
-                }
-              },
-              "required": ["site_id"]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Site deleted successfully",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "message": {
+                "error": {
                   "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
                 }
               }
             }
-          },
-          "400": {
-            "description": "Site ID missing in request data"
-          },
-          "404": {
-            "description": "Site not found"
-          },
-          "500": {
-            "description": "Internal server error"
           }
         }
       }
     },
-    "/get_unwanted_articles_by_bot": {
-      "post": {
-        "summary": "Get all unwanted articles by bot ID",
+    "/get_unwanted_articles": {
+      "get": {
+        "summary": "Get unwanted articles by bot ID",
         "tags": ["Unwanted Articles"],
         "parameters": [
           {
-            "in": "body",
-            "name": "body",
+            "name": "bot_id",
+            "in": "query",
+            "description": "ID of the bot to get unwanted articles for",
             "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "bot_id": {
-                  "type": "integer"
-                }
-              },
-              "required": ["bot_id"]
-            }
+            "type": "integer"
           }
         ],
         "responses": {
@@ -884,7 +1283,7 @@
             "schema": {
               "type": "object",
               "properties": {
-                "message": {
+                "data": {
                   "type": "array",
                   "items": {
                     "type": "object",
@@ -898,60 +1297,91 @@
                       "content": {
                         "type": "string"
                       },
-                      "analysis": {
-                        "type": "string"
-                      },
                       "url": {
                         "type": "string"
                       },
-                      "date": {
+                      "reason": {
                         "type": "string"
-                      },
-                      "used_keywords": {
-                        "type": "string"
-                      },
-                      "is_article_efficent": {
-                        "type": "boolean"
                       },
                       "bot_id": {
                         "type": "integer"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
                       }
                     }
                   }
+                },
+                "error": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
                 }
               }
             }
           },
           "400": {
-            "description": "Bot ID missing in request data"
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                }
+              }
+            }
           },
           "404": {
-            "description": "No unwanted articles found for the specified bot ID"
+            "description": "Not found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                }
+              }
+            }
           }
         }
       }
     },
     "/search_unwanted_articles": {
       "post": {
-        "summary": "Search unwanted articles",
+        "summary": "Search for unwanted articles by search query",
         "tags": ["Unwanted Articles"],
         "parameters": [
           {
-            "in": "body",
-            "name": "body",
+            "name": "search_query",
+            "in": "query",
+            "description": "Search query to find unwanted articles",
             "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "search_query": {
-                  "type": "string"
-                }
-              },
-              "required": ["search_query"]
-            }
+            "type": "string"
           }
         ],
         "responses": {
@@ -960,7 +1390,7 @@
             "schema": {
               "type": "object",
               "properties": {
-                "message": {
+                "data": {
                   "type": "array",
                   "items": {
                     "type": "object",
@@ -974,174 +1404,13 @@
                       "content": {
                         "type": "string"
                       },
-                      "analysis": {
-                        "type": "string"
-                      },
                       "url": {
                         "type": "string"
                       },
-                      "date": {
+                      "reason": {
                         "type": "string"
-                      },
-                      "used_keywords": {
-                        "type": "string"
-                      },
-                      "is_article_efficent": {
-                        "type": "boolean"
                       },
                       "bot_id": {
-                        "type": "integer"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Search query missing in request data"
-          },
-          "404": {
-            "description": "No matching unwanted articles found for the specified search query"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/add_unwanted_article": {
-      "post": {
-        "summary": "Add a new unwanted article",
-        "tags": ["Unwanted Articles"],
-        "parameters": [
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "title": {
-                  "type": "string"
-                },
-                "content": {
-                  "type": "string"
-                },
-                "analysis": {
-                  "type": "string"
-                },
-                "url": {
-                  "type": "string"
-                },
-                "date": {
-                  "type": "string"
-                },
-                "used_keywords": {
-                  "type": "string"
-                },
-                "is_article_efficent": {
-                  "type": "boolean"
-                },
-                "bot_id": {
-                  "type": "integer"
-                }
-              },
-              "required": ["title", "content", "analysis", "url", "date", "used_keywords", "is_article_efficent", "bot_id"]
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Unwanted article added successfully",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "message": {
-                  "type": "string"
-                },
-                "article_id": {
-                  "type": "integer"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Missing key in request data"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/api/get_used_keywords_to_download": {
-      "get": {
-        "summary": "Get used keywords to download by coin bot ID and time period",
-        "tags": ["Used Keywords"],
-        "parameters": [
-          {
-            "name": "coin_bot_id",
-            "in": "query",
-            "type": "integer",
-            "required": true,
-            "description": "ID of the coin bot"
-          },
-          {
-            "name": "time_period",
-            "in": "query",
-            "type": "string",
-            "required": true,
-            "description": "Time period for filtering (1w, 1m, 3m)",
-            "enum": ["1w", "1m", "3m"]
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "keywords": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid time period provided"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/api/get/used_keywords": {
-      "get": {
-        "summary": "Fetch all used keywords",
-        "tags": ["Used Keywords"],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "used_keywords": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "integer"
-                      },
-                      "keywords": {
-                        "type": "string"
-                      },
-                      "coin_bot_id": {
                         "type": "integer"
                       },
                       "created_at": {
@@ -1154,15 +1423,54 @@
                       }
                     }
                   }
+                },
+                "success": {
+                  "type": "boolean"
                 }
               }
             }
           },
-          "204": {
-            "description": "No used keywords found"
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                }
+              }
+            }
           }
         }
       }

@@ -8,103 +8,62 @@ unwanted_articles_bp = Blueprint(
     static_folder='static'
 )
 
-# Ruta para obtener todos los UnwantedArticles filtrados por bot_id
-@unwanted_articles_bp.route('/get_unwanted_articles_by_bot', methods=['POST'])
+# Get unwanted articles by bot ID
+@unwanted_articles_bp.route('/get_unwanted_articles', methods=['GET'])
 def get_unwanted_articles_by_bot():
+    response = {'data': None, 'error': None, 'success': False}
     try:
-        data = request.json
-        bot_id = data.get('bot_id')
+        bot_id = request.args.get('bot_id')
 
-        if bot_id is None:
-            return jsonify({'error': 'Bot ID missing in request data'}), 400
+        if not bot_id:
+            response['error'] = 'Bot ID missing in request data'
+            return jsonify(response), 400
 
         unwanted_articles = UnwantedArticle.query.filter_by(bot_id=bot_id).all()
 
         if not unwanted_articles:
-            return jsonify({'message': 'No unwanted articles found for the specified bot ID'}), 404
+            response['error'] = 'No unwanted articles found for the specified bot ID'
+            return jsonify(response), 404
 
-        unwanted_article_data = []
-        for unwanted_article in unwanted_articles:
-            unwanted_article_data.append({
-                'id': unwanted_article.id,
-                'title': unwanted_article.title,
-                'content': unwanted_article.content,
-                'analysis': unwanted_article.analysis,
-                'url': unwanted_article.url,
-                'date': unwanted_article.date,
-                'used_keywords': unwanted_article.used_keywords,
-                'is_article_efficent': unwanted_article.is_article_efficent,
-                'bot_id': unwanted_article.bot_id,
-            })
+        unwanted_article_data = [article.as_dict() for article in unwanted_articles]
 
-        return jsonify({'message': unwanted_article_data}), 200
+        response['data'] = unwanted_article_data
+        response['success'] = True
+        return jsonify(response), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        response['error'] = f'Internal server error: {str(e)}'
+        return jsonify(response), 500
 
 
 
-# Ruta de búsqueda de artículos no válidos
+# Search for unwanted articles by search query
 @unwanted_articles_bp.route('/search_unwanted_articles', methods=['POST'])
 def search_unwanted_articles():
+    response = {'data': None, 'error': None, 'success': False}
     try:
-        data = request.json
-        search_query = data.get('search_query')
+        search_query = request.args.get('search_query')
 
-
-        if search_query is None:
-            return jsonify({'error': 'Search query missing in request data'}), 400
+        if not search_query:
+            response['error'] = 'Search query missing in request data'
+            return jsonify(response), 400
 
         unwanted_articles = UnwantedArticle.query.filter(
             (UnwantedArticle.title.ilike(f'%{search_query}%')) | 
-            (UnwantedArticle.analysis.ilike(f'%{search_query}%'))
+            (UnwantedArticle.content.ilike(f'%{search_query}%'))
         ).all()
 
         if not unwanted_articles:
-            return jsonify({'message': 'No matching unwanted articles found for the specified search query'}), 404
+            response['error'] = 'No matching unwanted articles found for the specified search query'
+            return jsonify(response), 404
 
-        unwanted_article_data = []
-        for unwanted_article in unwanted_articles:
-            unwanted_article_data.append({
-                'id': unwanted_article.id,
-                'title': unwanted_article.title,
-                'content': unwanted_article.content,
-                'analysis': unwanted_article.analysis,
-                'url': unwanted_article.url,
-                'date': unwanted_article.date,
-                'used_keywords': unwanted_article.used_keywords,
-                'is_article_efficent': unwanted_article.is_article_efficent,
-                'bot_id': unwanted_article.bot_id,
-            })
+        unwanted_article_data = [article.as_dict() for article in unwanted_articles]
 
-        return jsonify({'message': unwanted_article_data}), 200
+        response['data'] = unwanted_article_data
+        response['success'] = True
+        return jsonify(response), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        response['error'] = f'Internal server error: {str(e)}'
+        return jsonify(response), 500
+
     
 
-
-
-# Review route later
-# Ruta para agregar un nuevo UnwantedArticle
-@unwanted_articles_bp.route('/add_unwanted_article', methods=['POST'])
-def add_unwanted_article():
-    try:
-        data = request.json
-        new_unwanted_article = UnwantedArticle(
-            title=data['title'],
-            content=data['content'],
-            analysis=data['analysis'],
-            url=data['url'],
-            date=data['date'],
-            used_keywords=data['used_keywords'],
-            is_article_efficent=data['is_article_efficent'],
-            bot_id=data['bot_id'],
-            created_at=datetime.now(),
-            updated_at=datetime.now()
-        )
-        db.session.add(new_unwanted_article)
-        db.session.commit()
-        return jsonify({'message': 'Unwanted article added successfully', 'article_id': new_unwanted_article.id}), 200
-    except KeyError as e:
-        return jsonify({'error': f'Missing key in request data: {str(e)}'}), 400
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500

@@ -1,9 +1,10 @@
 import re
 import asyncio
+from scheduler_config import scheduler
 from datetime import datetime
 from app.utils.index import fetch_news_links
 from flask import Blueprint, jsonify, request
-from config import Blacklist, Bot, Keyword, Site, db
+from config import Blacklist, Bot, Keyword, Site, db, Category
 
 bots_bp = Blueprint(
     'bots_bp', __name__,
@@ -11,60 +12,87 @@ bots_bp = Blueprint(
     static_folder='static'
 )
 
+
 # Get all available bots
 @bots_bp.route('/bots', methods=['GET'])
 def get_bots():
+    response = {'data': None, 'error': None, 'success': False}
     try:
         bots = Bot.query.all()
-        bot_data = [
-            {
-                'id': bot.id,
-                'name': bot.name,
-                'category_id': bot.category_id,
-            }
-        for bot in bots]
+        bot_data = [bot.as_dict() for bot in bots]
 
-        return jsonify({'bots': bot_data}), 200
+        response['data'] = bot_data
+        response['success'] = True
+
+        return jsonify(response), 200
     except Exception as e:
-        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+        response['error'] = f'Error getting all Bots: {str(e)}'
+        return jsonify(response), 500
+
+
     
 # Create and schedule a new news Bot
 @bots_bp.route('/create_bot', methods=['POST'])
 async def create_bot():
+    response = {'data': None, 'error': None, 'success': False}
     try:
         data = request.json
+        current_time = datetime.now()
 
         # Required inputs
         required_fields = ['name', 'category_id', 'url', 'keywords', 'blacklist']
         for field in required_fields:
             if field not in data:
-                return jsonify({'error': f'Missing field in request data: {field}'}), 400
-
-        # verify existing bot
+                response['error'] = f'Missing field in request data: {field}'
+                return jsonify(response), 400
+            
+        
+        category_id = data['category_id']
+        # Verify existing bot
         existing_bot = Bot.query.filter_by(name=data['name']).first()
         if existing_bot:
-            return jsonify({'error': f"A bot with the name '{data['name']}' already exists"}), 400
+            response['error'] = f"A bot with the name '{data['name']}' already exists"
+            return jsonify(response), 400
+
+        # Verify if the category exists
+        existing_category = Category.query.filter_by(id=str(category_id)).first()
+        if not existing_category:
+            response['error'] = 'Category ID not found'
+            return jsonify(response), 404
+
+        category_id = existing_category.id
+        category_interval = existing_category.time_interval
+        is_category_active = existing_category.is_active
 
         # Create new bot
-        new_bot = Bot(name=data['name'], category_id=data['category_id'])
+        new_bot = Bot(
+            name=data['name'],
+            category_id=category_id,
+            created_at=current_time,
+            updated_at=current_time
+        )
         db.session.add(new_bot)
         db.session.commit()
 
         # Create new Site
         url = data['url']
         site_name_match = re.search(r"https://www\.([^.]+)\.com", url)
+        site_name = 'Google News'
         if site_name_match:
             site_name = site_name_match.group(1)
-        else:
-            site_name = 'Google News'
-        new_site = Site(name=site_name, url=url, bot_id=new_bot.id)
+
+        new_site = Site(
+            name=site_name,
+            url=url,
+            bot_id=new_bot.id,
+            created_at=current_time,
+            updated_at=current_time
+        )
         db.session.add(new_site)
         db.session.commit()
 
         # Add keywords to the bot
         keywords = [keyword.strip() for keyword in data['keywords'].split(',')]
-        current_time = datetime.now()
-
         for keyword in keywords:
             new_keyword = Keyword(
                 name=keyword,
@@ -73,8 +101,8 @@ async def create_bot():
                 updated_at=current_time
             )
             db.session.add(new_keyword)
-        
-        # Add words to the bot Blacklist 
+
+        # Add words to the bot Blacklist
         blacklist = [keyword.strip() for keyword in data['blacklist'].split(',')]
         for word in blacklist:
             new_blacklist_entry = Blacklist(
@@ -84,46 +112,69 @@ async def create_bot():
                 updated_at=current_time
             )
             db.session.add(new_blacklist_entry)
-        
-        db.session.commit()
-        
-        # run fetch news link function after create a bot 
-        await fetch_news_links( 
-            url=data['url'],  
-            blacklist=data['blacklist'].split(','), 
-            category_id=data['category_id'],
-            bot_id=new_bot.id,
-            bot_name=new_bot.name
-        )
 
-        return jsonify({'message': 'Bot created and automated successfully', 'bot_id': new_bot.id, 'news_links': data['url']}), 200
+        db.session.commit()
+
+        # Schedule the bot if the category is active
+        if is_category_active:
+            scheduler.add_job(
+                fetch_news_links,
+                'interval',
+                hours=category_interval,
+                id=str(new_bot.id),
+                name=new_bot.name,
+                replace_existing=True,
+                args=[url, new_bot.name, blacklist, category_id, new_bot.id],
+                max_instances=2
+            )
+            response['message'] = 'Bot created and automated successfully'
+        else:
+            response['message'] = 'Bot created, but NOT automated - Activate the category'
+
+        response['data'] = new_bot.as_dict()
+        response['success'] = True
+        return jsonify(response), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        response['error'] = f"Error creating bot: {str(e)}"
+        return jsonify(response), 500
+
 
   
 # Delete a single Bot by ID
-@bots_bp.route('/delete_bots', methods=['DELETE'])
-def delete_bot():
+@bots_bp.route('/delete_bot/<int:bot_id>', methods=['DELETE'])
+def delete_bot(bot_id):
+    response = {'data': None, 'error': None, 'success': False}
     try:
-        data = request.get_json()
-
-        if not data or 'id' not in data:
-            return jsonify({'error': 'Bot ID is missing from request data'}), 400
-
-        bot_id = data['id']
         bot = Bot.query.get(bot_id)
 
         if not bot:
-            return jsonify({'error': 'Bot not found'}), 404
+            response['error'] = 'Bot not found'
+            return jsonify(response), 404
+        
+        bot = Bot.query.get(bot_id)
 
+        if not bot:
+            response['error'] = 'Bot not found'
+            return jsonify(response), 404
+        
+        # Check if there is a scheduled job for the bot
+        bot_job = scheduler.get_job(job_id=str(bot_id))
+        if bot_job:
+            scheduler.remove_job(job_id=str(bot_id))
+
+        # Delete bot and commit transaction
         db.session.delete(bot)
         db.session.commit()
 
-        return jsonify({'message': f'Bot with ID {bot_id} deleted successfully'}), 200
+        response['message'] = f'Bot with ID {bot_id} deleted successfully'
+        response['success'] = True
+        return jsonify(response), 200
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+        response['error'] = f'Internal server error: {str(e)}'
+        return jsonify(response), 500
+
     
     
