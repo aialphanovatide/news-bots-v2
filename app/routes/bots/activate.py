@@ -11,14 +11,15 @@ activate_bots_bp = Blueprint(
 )
 
 # Function to be scheduled
-def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id):
+def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, category_slack_channel):
     with scheduler.app.app_context(): 
         fetch_news_links(
             url=bot_site,
             bot_name=bot_name,
             blacklist=bot_blacklist,
             category_id=category_id,
-            bot_id=bot_id
+            bot_id=bot_id,
+            category_slack_channel=category_slack_channel
         )
 
 
@@ -36,6 +37,7 @@ async def activate_all_bots():
         for category in categories:
             category_id = category.id
             category_interval = category.time_interval
+            category_slack_channel = category.slack_channel
 
             # Fetch all bots associated with the current category
             bots = Bot.query.filter_by(category_id=category_id).all()
@@ -59,7 +61,7 @@ async def activate_all_bots():
                     func=scheduled_job,
                     name=bot_name, 
                     replace_existing=True,
-                    args=[bot_site, bot_name, bot_blacklist, category.id, bot_id],
+                    args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category_slack_channel],
                     trigger='interval', 
                     minutes=category_interval
                     )
@@ -97,6 +99,7 @@ def activate_bots_by_category():
 
         # Check if the category is already active
         category_interval = category.time_interval
+        category_slack_channel = category.slack_channel
         if category.is_active:
             response['message'] = f"{category_name} category is already active"
             return jsonify(response), 200
@@ -121,9 +124,9 @@ def activate_bots_by_category():
                 func=scheduled_job,
                 name=bot_name, 
                 replace_existing=True,
-                args=[bot_site, bot_name, bot_blacklist, category.id, bot_id],
+                args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category_slack_channel],
                 trigger='interval', 
-                minutes=1
+                minutes=2
                 )
             
         # Set category as active

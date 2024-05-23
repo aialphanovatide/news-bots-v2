@@ -12,6 +12,18 @@ bots_bp = Blueprint(
     static_folder='static'
 )
 
+# Function to be scheduled
+def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, category_slack_channel):
+    with scheduler.app.app_context(): 
+        fetch_news_links(
+            url=bot_site,
+            bot_name=bot_name,
+            blacklist=bot_blacklist,
+            category_id=category_id,
+            bot_id=bot_id,
+            category_slack_channel=category_slack_channel
+        )
+
 
 # Get all available bots
 @bots_bp.route('/bots', methods=['GET'])
@@ -63,6 +75,7 @@ async def create_bot():
         category_id = existing_category.id
         category_interval = existing_category.time_interval
         is_category_active = existing_category.is_active
+        category_slack_channel = existing_category.slack_channel
 
         # Create new bot
         new_bot = Bot(
@@ -117,16 +130,17 @@ async def create_bot():
 
         # Schedule the bot if the category is active
         if is_category_active:
+            # Schedule job for bot
             scheduler.add_job(
-                fetch_news_links,
-                'interval',
-                hours=category_interval,
-                id=str(new_bot.id),
-                name=new_bot.name,
+                id=str(new_bot.name), 
+                func=scheduled_job,
+                name=new_bot.name, 
                 replace_existing=True,
-                args=[url, new_bot.name, blacklist, category_id, new_bot.id],
-                max_instances=2
-            )
+                args=[url, new_bot.name, blacklist, existing_category.id, new_bot.id, category_slack_channel],
+                trigger='interval', 
+                minutes=category_interval
+                )
+            
             response['message'] = 'Bot created and automated successfully'
         else:
             response['message'] = 'Bot created, but NOT automated - Activate the category'

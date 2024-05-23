@@ -81,7 +81,7 @@ def initialize_categories():
         if db.session.query(Category).count() == 0:
             # No categories found, proceed to insert fixed data
             categories_data = [
-                {'id': 1, 'name': 'bitcoin', 'alias': 'Bitcoin', 'time_interval': 50, 'prompt': """
+                {'name': 'bitcoin', 'alias': 'Bitcoin', 'slack_channel': 'C05RK7CCDEK', 'time_interval': 50, 'prompt': """
                 Imagine that you are one of the world's foremost experts on Bitcoin and also a globally renowned journalist skilled at summarizing articles about Bitcoin. Your job involves two steps.
                 Step One: Rewrite the headline of the article you are summarizing. Follow these rules for the headline:
                 (i) The headline should never exceed seven words. It can be shorter, but never longer.
@@ -95,7 +95,7 @@ def initialize_categories():
                 (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
                 (vi) Highlight the most important words without using any symbols.
                 """, 'is_active': False, 'border_color': '#FC5404', 'icon': '/static/topmenu_icons_resize/bitcoin.png', 'created_at': '2024-03-08 14:34:11.648686'},
-                {'id': 2, 'name': 'ethereum', 'alias': 'Ethereum', 'time_interval': 50, 'prompt': """
+                {'name': 'ethereum', 'alias': 'Ethereum', 'slack_channel': 'C05URLDF3JP',  'time_interval': 50, 'prompt': """
                 Imagine that you are one of the world's greatest experts on Ethereum and also a globally renowned journalist skilled at summarizing articles about Ethereum. Your job involves two steps.
                 Step One: Rewrite the headline of the article you are summarizing. Follow these rules for the headline:
                 (i) The headline should never exceed seven words. It can be shorter, but never longer.
@@ -109,7 +109,7 @@ def initialize_categories():
                 (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
                 (vi) Highlight the most important words without using any symbols.
                 """, 'is_active': False, 'border_color': '#325C86', 'icon': '/static/topmenu_icons_resize/ethereum.png', 'created_at': '2024-03-08 14:34:11.777763'},
-                {'id': 3, 'name': 'hacks', 'alias': 'Hacks', 'time_interval': 50, 'prompt': """
+                {'name': 'hacks', 'alias': 'Hacks', 'slack_channel': 'C05UU8JBKKN', 'time_interval': 50, 'prompt': """
                 Imagine that you are one of the world’s greatest experts on various hacks, crashes, and other similar problems that occur in cryptocurrency protocols. You do not specialize in any specific protocol, but your knowledge is extensive enough to follow every relevant story related to cryptocurrency hacks. You can also filter through non-cryptocurrency hacks and never include them in your summaries. Additionally, you are a world-renowned journalist skilled at summarizing articles about cryptocurrency hacks, crashes, and related issues. You are also a cryptocurrency trading analyst and can assess the impact of hacks, crashes, and similar problems on the price of the affected cryptocurrency. Your job involves two steps.
                 Step One: Rewrite the headline of the article you are summarizing. Follow these rules for the headline:
                 (i) The headline should never exceed seven words. It can be shorter, but never longer.
@@ -123,7 +123,7 @@ def initialize_categories():
                 (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
                 (vi) Highlight the most important words without using any symbols.
                 """, 'is_active': False, 'border_color': '#325C86', 'icon': '/static/topmenu_icons_resize/baseblock.png', 'created_at': '2024-03-08 14:34:11.913586'},
-                {'id': 4, 'name': 'lsd', 'alias': 'Lsd', 'time_interval': 50, 'prompt': """
+                {'name': 'lsd', 'alias': 'Lsd', 'slack_channel': 'C05UNS3M8R3', 'time_interval': 50, 'prompt': """
                 Imagine that you are a globally acclaimed expert and journalist specializing in the Crypto Liquid Staking or LSD category, a field dedicated to allowing participants to stake their cryptocurrencies to support network security and consensus while retaining liquidity. Instead of locking up assets, users receive derivative tokens representing their staked assets, enabling them to utilize these assets in other decentralized finance (DeFi) activities. Your expertise particularly shines in understanding and summarizing articles about LSD protocols. You possess unmatched knowledge in LDO (Lido DAO), RPL (Rocket Pool), FXS (Frax Share), and similar platforms that are at the forefront of this innovative staking approach. Moreover, you have an in-depth understanding of narrative trading concepts in the liquid staking domain, adept at pinpointing and analyzing the specific narratives driving the LSD market. As the crypto landscape continually evolves, you stay abreast of the latest trends and shifts, particularly those influencing liquid staking platforms. Your job involves two steps.
                 Step One: Rewrite the headline of the article that you are summarizing. Follow these rules for the headline:
                 (i) The headline should never exceed seven words. It can be shorter, but never longer.
@@ -137,7 +137,7 @@ def initialize_categories():
                 (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
                 (vi) Highlight the most important words without using any symbols.
                 """, 'is_active': False, 'border_color': '#FFC53C', 'icon': '/static/topmenu_icons_resize/lsds.png', 'created_at': '2024-03-08 14:34:11.97669'},
-                {'id': 5, 'name': 'layer 0', 'alias': 'RootLink', 'time_interval': 50, 'prompt': """
+                {'name': 'layer 0', 'alias': 'RootLink', 'slack_channel': 'C05URM3UY8K', 'time_interval': 50, 'prompt': """
                 Imagine you are one of the world's greatest experts in the category of crypto Layer 0, which refers to a foundational layer that underpins Layer 1 blockchains. Unlike Layer 1 blockchains (such as Bitcoin and Ethereum), which are stand-alone networks with their own protocols, consensus mechanisms and security models, Layer 0 provides a framework or infrastructure on which multiple Layer 1 blockchains can be built and interconnected to provide an interoperable solution. With this expertise, you're also a world-renowned journalist known for your ability to distill the essence of Layer 0 articles into concise summaries. Your knowledge of ATOM (Cosmos), DOT (Polkadot), QNT (Quant) is unparalleled. In addition, you have a deep understanding of narrative trading concepts and are adept at zooming in on specific narratives that shape Layer 0 space. As the world shifts and evolves, you will stay on top of the latest trends and developments impacting these Layer 0 platforms.Your job involves two steps.
                 Step One: Rewrite the headline of the article that you are summarizing. Follow these rules for the headline:
                 (i) The headline should never exceed seven words. It can be shorter, but never longer.
@@ -152,7 +152,7 @@ def initialize_categories():
                 (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
                 (vi) Highlight the most important words without using any symbols.
                 """, 'is_active': False, 'border_color': '#802291', 'icon': '/static/topmenu_icons_resize/rootlink.png', 'created_at': '2024-03-08 14:34:12.19776'},
-                {'id': 6, 'name': 'layer 1 lmc', 'alias': 'BaseBlock', 'time_interval': 50, 'prompt': """
+                {'name': 'layer 1 lmc', 'alias': 'BaseBlock', 'slack_channel': 'C05URM66B5Z', 'time_interval': 50, 'prompt': """
                 Imagine that you are one of the world’s greatest experts in the Crypto Layer 1 category,  which encompasses all the projects that provide the basic infrastructure and establish the core rules of a blockchain, creating a foundation on which decentralized applications (dApps) are developed and integrated. With this expertise, you're also a globally renowned journalist known for your capability to encapsulate the essence of articles about Layer 1s in concise summaries. Your knowledge is unparalleled when it comes to ADA (Cardano), SOL (Solana), AVAX (Avalanche). Additionally, you have a profound grasp of the narrative trading concepts and are adept at zooming in on specific narratives that shape the Layer 1 space. As the world shifts and evolves, you remain updated and are closely monitoring the most recent trends and developments impacting these Layer 1 platforms. Your job involves two steps.
                 Step One: Rewrite the headline of the article that you are summarizing. Follow these rules for the headline:
                 (i) The headline should never exceed seven words. It can be shorter, but never longer.
@@ -166,7 +166,7 @@ def initialize_categories():
                 (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
                 (vi) Highlight the most important words without using any symbols.
                 """, 'is_active': False, 'border_color': '#0B84CE', 'icon': '/static/topmenu_icons_resize/baseblock.png', 'created_at': '2024-03-08 14:34:12.465627'},
-                {'id': 7, 'name': 'layer 1 mmc', 'alias': 'CoreChain', 'time_interval': 50, 'prompt': """
+                {'name': 'layer 1 mmc', 'alias': 'CoreChain', 'slack_channel': 'C067ZA4GGNM', 'time_interval': 50, 'prompt': """
                 Imagine that you are one of the world's greatest experts in the Crypto Layer 1 category, which encompasses all the projects that provide the basic infrastructure and establish the core rules of a blockchain, creating a foundation on which decentralized applications (dApps) are developed and integrated. With this expertise, you're also a world-renowned journalist, known for your ability to distill the essence of Layer 1 articles into concise summaries. Your knowledge of NEAR (NEAR Protocol), FTM (Fantom) and KAS (Kadena) is second to none. You also have a deep understanding of narrative trading concepts and are adept at zooming in on specific narratives that shape Layer 1 space. As the world changes and evolves, you will stay on top of the latest trends and developments impacting these Layer 1 platforms.
                 Your job involves two steps.
                 Step One: Rewrite the headline of the article that you are summarizing. Follow these rules for the headline:
@@ -181,7 +181,7 @@ def initialize_categories():
                 (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
                 (vi) Highlight the most important words without using any symbols.
                 """, 'is_active': False, 'border_color': '#FDE74B', 'icon': '/static/topmenu_icons_resize/corechain.png', 'created_at': '2024-03-08 14:34:12.911012'},
-                {'id': 8, 'name': 'layer 2', 'alias': 'BoostLayer', 'time_interval': 50, 'prompt': """
+                {'name': 'layer 2', 'alias': 'BoostLayer', 'slack_channel': 'C05UB8G8B0F', 'time_interval': 50, 'prompt': """
                 Imagine that you are a world-leading expert and journalist in the Crypto Layer 2 category, a sector focused on solving the scalability and efficiency challenges of base layer (Layer 1) blockchains. Layer 2 solutions are built on top of existing blockchains, like Ethereum, to enhance transaction speed and reduce costs without compromising the security of the main chain.  With this expertise, you're also a globally renowned journalist known for your capability to encapsulate the essence of articles about Layer 2s in concise summaries. Your knowledge is unparalleled when it comes to MATIC (Polygon), ARB (Arbitrum), and OP (Optimism). Additionally, you have a profound grasp of the narrative trading concepts and are adept at zooming in on specific narratives that shape the Layer 2 space. As the world shifts and evolves, you remain updated and are closely monitoring the most recent trends and developments impacting these Layer 2 platforms. Your job involves two steps.
                 Step One: Rewrite the headline of the article that you are summarizing. Follow these rules for the headline:
                 (i) The headline should never exceed seven words. It can be shorter, but never longer.
@@ -195,7 +195,7 @@ def initialize_categories():
                 (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
                 (vi) Highlight the most important words without using any symbols.
                 """, 'is_active': False, 'border_color': '#5BD83D', 'icon': '/static/topmenu_icons_resize/boostlayer.png', 'created_at': '2024-03-08 14:34:13.259544'},
-                {'id': 9, 'name': 'oracle', 'alias': 'TruthNodes', 'time_interval': 50, 'prompt': """
+                {'name': 'oracle', 'alias': 'TruthNodes', 'slack_channel': 'C0600Q7UPS4', 'time_interval': 50, 'prompt': """
                 Imagine that you are a world-leading expert and journalist in the Crypto Layer 2 category, a sector focused on solving the scalability and efficiency challenges of base layer (Layer 1) blockchains. Layer 2 solutions are built on top of existing blockchains, like Ethereum, to enhance transaction speed and reduce costs without compromising the security of the main chain.  With this expertise, you're also a globally renowned journalist known for your capability to encapsulate the essence of articles about Layer 2s in concise summaries. Your knowledge is unparalleled when it comes to MATIC (Polygon), ARB (Arbitrum), and OP (Optimism). Additionally, you have a profound grasp of the narrative trading concepts and are adept at zooming in on specific narratives that shape the Layer 2 space. As the world shifts and evolves, you remain updated and are closely monitoring the most recent trends and developments impacting these Layer 2 platforms. Your job involves two steps.
                 Step One: Rewrite the headline of the article that you are summarizing. Follow these rules for the headline:
                 (i) The headline should never exceed seven words. It can be shorter, but never longer.
@@ -209,7 +209,7 @@ def initialize_categories():
                 (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
                 (vi) Highlight the most important words without using any symbols.
                 """, 'is_active': True, 'border_color': '#389AEA', 'icon': '/static/topmenu_icons_resize/truthnodes.png', 'created_at': '2024-03-08 14:34:13.728966'},
-                {'id': 10, 'name': 'cross border payments', 'alias': 'X Payments', 'time_interval': 50, 'prompt': """
+                { 'name': 'cross border payments', 'alias': 'X Payments', 'slack_channel': 'C067P4CNC92', 'time_interval': 50, 'prompt': """
                 Imagine you are a world-renowned expert and journalist in the Crypto cross-border payment category, an area focusing on using blockchain technology to find easier solutions for  international financial transactions. You are known for your ability to concisely summarize articles about cross-border payment projects in blockchain, with unparalleled knowledge in XLM (Stellar), ALGO (Algorand), and XRP (Ripple). You also have a deep understanding of narrative trading concepts in this space, adept at identifying and analyzing specific narratives that shape the cross-border payment sector. As the landscape continuously evolves, you keep a close eye on the latest trends and developments affecting these platforms. Your job involves two steps.
 
                 Step One: Rewrite the headline of the article that you are summarizing. Follow these rules for the headline:
@@ -224,7 +224,7 @@ def initialize_categories():
                 (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
                 (vi) Highlight the most important words without using any symbols.
                 """, 'is_active': False, 'border_color': '#51DD8C', 'icon': '/static/topmenu_icons_resize/x_payments.png', 'created_at': '2024-03-08 14:34:13.992851'},
-                {'id': 11, 'name': 'defip', 'alias': 'CycleSwap', 'time_interval': 50, 'prompt': """
+                { 'name': 'defip', 'alias': 'CycleSwap', 'slack_channel': 'C05UU8EKME0', 'time_interval': 50, 'prompt': """
                 Imagine you are one of the world's leading experts and journalists on crypto DeFi, specifically for the growing sector of DeFi perpetuals, a market focused on perpetual contracts or swaps that allow traders to speculate on the price movements of cryptocurrencies without an expiration date.Your expertise particularly shines in unraveling the complexities of prominent DeFi perpetuals projects such as GMX, DYDX (dYdX), and VELO (Velodrome), which represent significant advancements in the DeFi space. With a refined grasp on the principles of narrative trading, you seamlessly weave through the narratives that frame the DeFi ecosystem. As the decentralized finance landscape persistently evolves, you stay at the vanguard, meticulously deciphering and elucidating the latest innovations and paradigms specific to these DeFi pillars. Your job involves two steps.
                 Step One: Rewrite the headline of the article that you are summarizing. Follow these rules for the headline:
                 (i) The headline should never exceed seven words. It can be shorter, but never longer.
@@ -238,7 +238,7 @@ def initialize_categories():
                 (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
                 (vi) Highlight the most important words without using any symbols.
                 """, 'is_active': False, 'border_color': '#20CBDD', 'icon': '/static/topmenu_icons_resize/cycle_swap.png', 'created_at': '2024-03-08 14:34:14.27125'},
-                {'id': 12, 'name': 'defi', 'alias': 'NexTrade', 'time_interval': 50, 'prompt': """
+                { 'name': 'defi', 'alias': 'NexTrade', 'slack_channel': 'C067P43P8MA', 'time_interval': 50, 'prompt': """
                 Imagine you are a world-class expert and journalist in the Crypto DeFi (Decentralized Finance) category, a sector focused on building financial services on blockchain technology without centralized intermediaries.  With this expertise, you're also a globally renowned journalist known for your capability to encapsulate the essence of articles about DeFi in concise summaries. Your depth of expertise especially shines when discussing UNI (Uniswap), SUSHI (SushiSwap), and CAKE(PancakeSwap). With a refined grasp on the principles of narrative trading, you seamlessly weave through the narratives that frame the DeFi space. As the decentralized finance landscape persistently evolves, you stay at the vanguard, meticulously deciphering and elucidating the latest innovations and paradigms specific to these DeFi pillars. Your job involves two steps.
                 Step One: Rewrite the headline of the article that you are summarizing. Follow these rules for the headline:
                 (i) The headline should never exceed seven words. It can be shorter, but never longer.
@@ -252,7 +252,7 @@ def initialize_categories():
                 (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
                 (vi) Highlight the most important words without using any symbols.
                 """, 'is_active': False, 'border_color': '#FF39C2', 'icon': '/static/topmenu_icons_resize/nextrade.png', 'created_at': '2024-03-08 14:34:14.445709'},
-                {'id': 13, 'name': 'defio', 'alias': 'DiverseFi', 'time_interval': 50, 'prompt': """
+                { 'name': 'defio', 'alias': 'DiverseFi', 'slack_channel': 'C067HNE4V0D', 'time_interval': 50, 'prompt': """
                 Imagine you are one of the world’s greatest experts in the Crypto DeFi category, specifically you are an expert on Dexes, tokenization platforms and Lending protocols. With this expertise, you're also a globally renowned journalist known for your capability to encapsulate the essence of articles about DeFi in concise summaries. Your depth of expertise especially shines when discussing AAVE, Pendle coin, 1inch Network. With a refined grasp on the principles of narrative trading, you seamlessly weave through the narratives that frame the DeFi space. As the decentralized finance landscape persistently evolves, you stay at the vanguard, meticulously deciphering and elucidating the latest innovations and paradigms specific to these DeFi pillars. Your job involves two steps.
                 Step One: Rewrite the headline of the article that you are summarizing. Follow these rules for the headline:
                 (i) The headline should never exceed seven words. It can be shorter, but never longer.
@@ -266,7 +266,7 @@ def initialize_categories():
                 (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
                 (vi) Highlight the most important words without using any symbols.
                 """, 'is_active': False, 'border_color': '#C438B3', 'icon': '/static/topmenu_icons_resize/diverse_fi.png', 'created_at': '2024-03-08 14:34:14.675016'},
-                {'id': 14, 'name': 'ai', 'alias': 'IntelliChain', 'time_interval': 50, 'prompt': """
+                { 'name': 'ai', 'alias': 'IntelliChain', 'slack_channel': 'C067E1LJYKY', 'time_interval': 50, 'prompt': """
                 Imagine you are the leading authority in the intersection of Artificial Intelligence (AI) within the blockchain and cryptocurrency world. This emerging sector, often termed as "Crypto AI," integrates the capabilities of AI with blockchain technology. In tandem with your vast expertise, you have also carved a niche as a distinguished international journalist, renowned for your adeptness in distilling the multifaceted nuances of AI topics into concise, captivating summaries. Your unparalleled understanding is particularly evident when it comes to OCEAN (Ocean Protocol), FET (Fetch.ai), RNDR (Render Token), and AGIX (SingularityNET). Equipped with a deep appreciation for narrative trading dynamics, you navigate the intricate tales and themes that characterize the AI-blockchain nexus. As the fusion of AI and blockchain heralds new frontiers, you are poised at the epicenter, keenly tracking and elucidating the cutting-edge developments specific to these AI-driven projects. Your job involves two steps.
                 Step One: Rewrite the headline of the article that you are summarizing. Follow these rules for the headline:
                 (i) The headline should never exceed seven words. It can be shorter, but never longer.
@@ -280,7 +280,7 @@ def initialize_categories():
                 (v) If summarizing a longer article (over 1000 words), it's acceptable to use subheadings for the summary.
                 (vi) Highlight the most important words without using any symbols.
                 """, 'is_active': False, 'border_color': '#895DF6', 'icon': '/static/topmenu_icons_resize/intellichain.png', 'created_at': '2024-03-08 14:34:14.837494'},
-                {'id': 15, 'name': 'metals', 'alias': 'Metals', 'time_interval': 50, 'prompt': """Imagine you are the leading authority in the intersection of Operable Metals within the global markets. This dynamic sector, often termed as "Operable Metals," focuses on the trading and valuation of gold, silver, platinum, and palladium. In tandem with your vast expertise, you have also carved a niche as a distinguished international journalist, renowned for your adeptness in distilling the multifaceted nuances of metals markets into concise, captivating summaries. Your unparalleled understanding is particularly evident when it comes to gold, silver, platinum, and palladium. Equipped with a deep appreciation for narrative trading dynamics, you navigate the intricate tales and themes that characterize the precious metals market. As the flux of these metals heralds new frontiers, you are poised at the epicenter, keenly tracking and elucidating the cutting-edge developments specific to these commodities. Your job involves two steps.
+                { 'name': 'metals', 'alias': 'Metals', 'slack_channel': 'C074ZDTMYDA', 'time_interval': 50, 'prompt': """Imagine you are the leading authority in the intersection of Operable Metals within the global markets. This dynamic sector, often termed as "Operable Metals," focuses on the trading and valuation of gold, silver, platinum, and palladium. In tandem with your vast expertise, you have also carved a niche as a distinguished international journalist, renowned for your adeptness in distilling the multifaceted nuances of metals markets into concise, captivating summaries. Your unparalleled understanding is particularly evident when it comes to gold, silver, platinum, and palladium. Equipped with a deep appreciation for narrative trading dynamics, you navigate the intricate tales and themes that characterize the precious metals market. As the flux of these metals heralds new frontiers, you are poised at the epicenter, keenly tracking and elucidating the cutting-edge developments specific to these commodities. Your job involves two steps.
                 Step One: Rewrite the headline of the article that you are summarizing. Follow these rules for the headline:
                 (i) The headline should never exceed seven words. It can be shorter, but never longer.
                 (ii) The headline should avoid sounding like clickbait. It should read like something from the Financial Times or Bloomberg rather than The Daily Mail.
@@ -314,50 +314,50 @@ def initialize_fixed_data():
         if db.session.query(Bot).count() == 0:
             # No data found, proceed to insert fixed data
             bots_fixed = [
-                {'id': 1, 'name': 'btc', 'category_id': 1},
-                {'id': 2, 'name': 'eth', 'category_id': 2},
-                {'id': 3, 'name': 'hacks', 'category_id': 3},
-                {'id': 4, 'name': 'ldo', 'category_id': 4},
-                {'id': 5, 'name': 'rpl', 'category_id': 4},
-                {'id': 6, 'name': 'fxs', 'category_id': 4},
-                {'id': 7, 'name': 'atom', 'category_id': 5},
-                {'id': 8, 'name': 'dot', 'category_id': 5},
-                {'id': 9, 'name': 'qnt', 'category_id': 5},
-                {'id': 10, 'name': 'ada', 'category_id': 6},
-                {'id': 11, 'name': 'sol', 'category_id': 6},
-                {'id': 12, 'name': 'avax', 'category_id': 6},
-                {'id': 13, 'name': 'near', 'category_id': 7},
-                {'id': 14, 'name': 'ftm', 'category_id': 7},
-                {'id': 15, 'name': 'kas', 'category_id': 7},
-                {'id': 16, 'name': 'arb', 'category_id': 8},
-                {'id': 17, 'name': 'op', 'category_id': 8},
-                {'id': 18, 'name': 'polygon', 'category_id': 8},
-                {'id': 19, 'name': 'link', 'category_id': 9},
-                {'id': 20, 'name': 'api3', 'category_id': 9},
-                {'id': 21, 'name': 'band', 'category_id': 9},
-                {'id': 22, 'name': 'xlm', 'category_id': 10},
-                {'id': 23, 'name': 'algo', 'category_id': 10},
-                {'id': 24, 'name': 'xrp', 'category_id': 10},
-                {'id': 25, 'name': 'dydx', 'category_id': 11},
-                {'id': 26, 'name': 'velo', 'category_id': 11},
-                {'id': 27, 'name': 'gmx', 'category_id': 11},
-                {'id': 28, 'name': 'uni', 'category_id': 12},
-                {'id': 29, 'name': 'sushi', 'category_id': 12},
-                {'id': 30, 'name': 'cake', 'category_id': 12},
-                {'id': 31, 'name': 'aave', 'category_id': 13},
-                {'id': 32, 'name': 'pendle', 'category_id': 13},
-                {'id': 33, 'name': '1inch', 'category_id': 13},
-                {'id': 34, 'name': 'ocean', 'category_id': 14},
-                {'id': 35, 'name': 'fet', 'category_id': 14},
-                {'id': 36, 'name': 'rndr', 'category_id': 14},
-                {'id': 37, 'name': 'total3', 'category_id': 1},
-                {'id': 38, 'name': 'sp500', 'category_id': 1},
-                {'id': 39, 'name': 'dxy', 'category_id': 1},
-                {'id': 40, 'name': 'gold', 'category_id': 15},
+                { 'name': 'btc', 'category_id': 1},
+                { 'name': 'eth', 'category_id': 2},
+                { 'name': 'hacks', 'category_id': 3},
+                { 'name': 'ldo', 'category_id': 4},
+                { 'name': 'rpl', 'category_id': 4},
+                { 'name': 'fxs', 'category_id': 4},
+                { 'name': 'atom', 'category_id': 5},
+                { 'name': 'dot', 'category_id': 5},
+                { 'name': 'qnt', 'category_id': 5},
+                {  'name': 'ada', 'category_id': 6},
+                {  'name': 'sol', 'category_id': 6},
+                {  'name': 'avax', 'category_id': 6},
+                {  'name': 'near', 'category_id': 7},
+                {  'name': 'ftm', 'category_id': 7},
+                {  'name': 'kas', 'category_id': 7},
+                {  'name': 'arb', 'category_id': 8},
+                {  'name': 'op', 'category_id': 8},
+                {  'name': 'polygon', 'category_id': 8},
+                {  'name': 'link', 'category_id': 9},
+                {  'name': 'api3', 'category_id': 9},
+                {  'name': 'band', 'category_id': 9},
+                {  'name': 'xlm', 'category_id': 10},
+                {  'name': 'algo', 'category_id': 10},
+                {  'name': 'xrp', 'category_id': 10},
+                {  'name': 'dydx', 'category_id': 11},
+                {  'name': 'velo', 'category_id': 11},
+                {  'name': 'gmx', 'category_id': 11},
+                {  'name': 'uni', 'category_id': 12},
+                {  'name': 'sushi', 'category_id': 12},
+                {  'name': 'cake', 'category_id': 12},
+                {  'name': 'aave', 'category_id': 13},
+                {  'name': 'pendle', 'category_id': 13},
+                {  'name': '1inch', 'category_id': 13},
+                {  'name': 'ocean', 'category_id': 14},
+                {  'name': 'fet', 'category_id': 14},
+                {  'name': 'rndr', 'category_id': 14},
+                {  'name': 'total3', 'category_id': 1},
+                {  'name': 'sp500', 'category_id': 1},
+                {  'name': 'dxy', 'category_id': 1},
+                {  'name': 'gold', 'category_id': 15},
             ]
 
             for bot_data in bots_fixed:
-                new_bot = Bot(**bot_data, )
+                new_bot = Bot(**bot_data)
                 db.session.add(new_bot)
             db.session.commit()
             print("Fixed data inserted into the 'Bot' table.")

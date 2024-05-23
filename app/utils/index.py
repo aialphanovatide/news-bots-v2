@@ -9,7 +9,7 @@ from app.utils.analyze_links import fetch_article_content
 def fetch_urls(url: str) -> Dict:
     base_url = "https://news.google.com"
     result = {'success': False, 'data': [], 'errors': [], 'title': None}
-    max_links = 10
+    max_links = 6
 
     try:
         with sync_playwright() as p:
@@ -52,7 +52,7 @@ def fetch_urls(url: str) -> Dict:
 
 
 # Process URLs, validate, save to DB and send notififcations
-def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id: int, bot_id: int) -> dict:
+def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id: int, bot_id: int, category_slack_channel) -> dict:
    
     max_links = 30
     result = {'success': False, 'links_fetched': 0, 'errors': []}
@@ -73,7 +73,9 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
                                                 category_id=category_id,
                                                     bot_id=bot_id,
                                                     bot_name=bot_name,
-                                                    title=title)
+                                                    title=title,
+                                                    category_slack_channel=category_slack_channel
+                                                    )
 
         if 'error' in article_info:
             result['errors'].append(f"Error fetching content for {article_info['url']}, Reason: {article_info['error']}")

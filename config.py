@@ -20,6 +20,7 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String)
     alias = db.Column(db.String)
+    slack_channel = db.Column(db.String)
     time_interval = db.Column(db.Integer)  
     icon = db.Column(db.String) 
     prompt = db.Column(db.String)

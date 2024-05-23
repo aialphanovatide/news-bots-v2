@@ -10,12 +10,30 @@ from app.services.slack.actions import send_NEWS_message_to_slack_channel
 from app.services.perplexity.article_convert import article_perplexity_remaker
 from app.services.d3.dalle3 import generate_poster_prompt, resize_and_upload_image_to_s3
 
+btc_slack_channel_id = 'C05RK7CCDEK'
+eth_slack_channel_id = 'C05URLDF3JP'
+hacks_slack_channel_id = 'C05UU8JBKKN'
+layer_1_lmc_slack_channel_id = 'C05URM66B5Z'
+layer_0_slack_channel_id = 'C05URM3UY8K'
+layer_2_slack_channel = 'C05UB8G8B0F'
+layer_1_mmc_slack_channel_id = 'C067ZA4GGNM'
+cross_border_payment_slack_channel = 'C067P4CNC92'
+lsd_slack_channel_id = 'C05UNS3M8R3'
+oracles_slack_channel = 'C0600Q7UPS4'
+defi_slack_channel = 'C067P43P8MA'
+defi_perpetual_slack_channel = 'C05UU8EKME0'
+defi_others_slack_channel = 'C067HNE4V0D'
+ai_slack_channel = 'C067E1LJYKY'
+gold_slack_channel = 'C074ZDTMYDA'
+test_slack_channel = 'C071142J72R'
+
 
 # validate a link against a list of keyword and then saves it to the DB
-def validate_and_save_article(news_link, article_title, article_content, category_id, bot_id):
+def validate_and_save_article(news_link, article_title, article_content, category_id, bot_id, bot_name, category_slack_channel):
 
         articles_saved = 0
         unwanted_articles_saved = 0
+        print('category_slack_channel: ', category_slack_channel)
         try:    
                 # Check if the URL has already been analyzed
                 existing_unwanted_article = UnwantedArticle.query.filter_by(bot_id=bot_id, url=news_link).first()
@@ -118,14 +136,18 @@ def validate_and_save_article(news_link, article_title, article_content, categor
                 db.session.add(new_article)
                 db.session.commit()
                 articles_saved += 1
-                        
-                # Notify on Slack about the article
-                send_NEWS_message_to_slack_channel(channel_id='C071142J72R', 
-                                                title=new_article_title,
-                                                article_url=news_link,
-                                                content=new_article_summary, 
-                                                used_keywords=used_keywords, 
-                                                image=image_url)
+
+                channel_id = 'C071142J72R'
+                if str(bot_name).casefold() == 'gold':
+                    channel_id = 'C074ZDTMYDA'
+                 
+                    # Notify on Slack about the article
+                    send_NEWS_message_to_slack_channel(channel_id=channel_id, 
+                                                    title=new_article_title,
+                                                    article_url=news_link,
+                                                    content=new_article_summary, 
+                                                    used_keywords=used_keywords, 
+                                                    image=image_url)
                 
                 return {'message': f'article {new_article_title} validated and saved', 
                         'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
@@ -137,7 +159,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
 
 
 
-def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: int, bot_name: str) -> Dict[str, Any]:
+def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: int, bot_name: str, category_slack_channel) -> Dict[str, Any]:
     try:
         # Initialize SSL context
         ssl_context = ssl.SSLContext()
@@ -175,7 +197,8 @@ def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: 
         article_content = [p.text.strip() for p in paragraphs]
 
         # Validate and process the content
-        result = validate_and_save_article(news_link, article_title, article_content, category_id, bot_id)
+        result = validate_and_save_article(news_link, article_title, article_content, 
+                                           category_id, bot_id, bot_name, category_slack_channel)
         if 'error' in result:
             return {'success': False, 'url': news_link, 'title': article_title, 
                     'paragraphs': article_content, 'error': result['error']}
