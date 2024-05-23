@@ -10,7 +10,7 @@ from app.utils.analyze_links import fetch_article_content
 def fetch_urls(url: str) -> Dict:
     base_url = "https://news.google.com"
     result = {'success': False, 'data': [], 'errors': [], 'title': None}
-    max_links = 3
+    max_links = 30
 
     try:
         with sync_playwright() as p:

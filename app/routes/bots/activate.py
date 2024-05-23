@@ -117,23 +117,23 @@ def activate_bots_by_category():
             #         )
         
             
-            scheduler.add_job(fetch_news_links, 'interval',
-                            minutes=2,
-                            id=str(bot_id),
-                            name=bot_name,
-                            replace_existing=True,
-                            args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, ],
-                            max_instances=2
-                            )
+            # scheduler.add_job(fetch_news_links, 'interval',
+            #                 minutes=2,
+            #                 id=str(bot_id),
+            #                 name=bot_name,
+            #                 replace_existing=True,
+            #                 args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, ],
+            #                 max_instances=2
+            #                 )
 
             # # Perform fetch news links
-            # fetch_news_links(
-            #     url=bot_site,
-            #     blacklist=bot_blacklist,
-            #     bot_name=bot_name,
-            #     category_id=category.id,
-            #     bot_id=bot_id
-            # )
+            fetch_news_links(
+                url=bot_site,
+                blacklist=bot_blacklist,
+                bot_name=bot_name,
+                category_id=category.id,
+                bot_id=bot_id
+            )
             
         # Set category as active
         # category.is_active = True
