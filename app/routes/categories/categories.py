@@ -20,7 +20,7 @@ def create_category():
         data = request.get_json()
 
         # Input validation for required fields
-        required_fields = ['name', 'alias', 'prompt', 'time_interval']
+        required_fields = ['name', 'alias', 'prompt', 'time_interval', 'slack_channel']
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
             response['error'] = f'Missing required fields: {", ".join(missing_fields)}'
@@ -38,6 +38,7 @@ def create_category():
         new_category = Category(
             name=data['name'],
             alias=data['alias'],
+            slack_channel=data['slack_channel'],
             prompt=data.get('prompt', ''),
             time_interval=data.get('time_interval', 3),
             is_active=data.get('is_active', False),

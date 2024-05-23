@@ -53,7 +53,8 @@ def fetch_urls(url: str) -> Dict:
 
 # Process URLs, validate, save to DB and send notififcations
 def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id: int, bot_id: int, category_slack_channel) -> dict:
-   
+    
+    print('--Execution started--')
     max_links = 30
     result = {'success': False, 'links_fetched': 0, 'errors': []}
     fetch_result =  fetch_urls(url)

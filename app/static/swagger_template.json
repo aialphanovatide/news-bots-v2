@@ -905,14 +905,21 @@
                   "type": "integer",
                   "default": 3
                 },
+                "slack_channel": {
+                  "type": "string"
+                },
                 "border_color": {
                   "type": "string"
                 },
                 "icon": {
                   "type": "string"
+                },
+                "is_active": {
+                  "type": "boolean",
+                  "default": false
                 }
               },
-              "required": ["name", "alias"]
+              "required": ["name", "alias", "prompt", "time_interval", "slack_channel"]
             }
           }
         ],
@@ -965,10 +972,26 @@
             }
           },
           "400": {
-            "description": "Bad request"
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
           }
         }
       }
@@ -1018,7 +1041,46 @@
         }
       }
     },    
- 
+    "/jobs": {
+      "get": {
+        "summary": "List all scheduled jobs",
+        "tags": ["Jobs"],
+        "responses": {
+          "200": {
+            "description": "A list of all scheduled jobs",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "next_run_time": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
 
     "/get_keywords": {
       "get": {
