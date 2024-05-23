@@ -1,16 +1,15 @@
 from typing import List, Dict
-from app.utils.helpers import resolve_redirects
+from app.utils.helpers import resolve_redirects, resolve_redirects_v2
 from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright
 from app.utils.analyze_links import fetch_article_content
-
 
 
 # Get all urls from a source
 def fetch_urls(url: str) -> Dict:
     base_url = "https://news.google.com"
     result = {'success': False, 'data': [], 'errors': [], 'title': None}
-    max_links = 30
+    max_links = 10
 
     try:
         with sync_playwright() as p:
@@ -34,7 +33,7 @@ def fetch_urls(url: str) -> Dict:
                     full_link = base_url + href
                     result['title'] = title
                     try:
-                        resolved_link = resolve_redirects(full_link)
+                        resolved_link = resolve_redirects_v2(url=full_link)
                         if resolved_link:
                             news_links.add(resolved_link)
                             if len(news_links) >= max_links:
@@ -54,9 +53,9 @@ def fetch_urls(url: str) -> Dict:
 
 # Process URLs, validate, save to DB and send notififcations
 def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id: int, bot_id: int) -> dict:
+   
     max_links = 30
     result = {'success': False, 'links_fetched': 0, 'errors': []}
-    # with current_app.app_context():
     fetch_result =  fetch_urls(url)
     
     if not fetch_result['success']:
@@ -88,7 +87,7 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
     if len(result['errors']) == 0:
         result['success'] = True
     else:
-        print(f'Length errors found during {str(bot_name).upper()} execution', len(result['errors']))
+        print(f'Length errors found during {str(bot_name).upper()} execution', result['errors'])
 
     return result
 

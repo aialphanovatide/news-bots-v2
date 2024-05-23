@@ -29,7 +29,36 @@ def resolve_redirects(url):
         return None
 
 
+def resolve_redirects_v2(url, timeout=10, max_redirects=10):
+    try:
+        visited_urls = set()
+        current_url = url
 
+        for _ in range(max_redirects):
+            if current_url in visited_urls:
+                print(f"Detected loop in redirects at {current_url}")
+                return None
+            visited_urls.add(current_url)
+
+            response = requests.get(current_url, allow_redirects=False, timeout=timeout)
+            
+            if response.status_code in (300, 301, 302, 303):
+                current_url = response.headers.get('location')
+                if not current_url:
+                    print("Redirect location header missing.")
+                    return None
+            else:
+                return response.url
+
+        print(f"Max redirects ({max_redirects}) exceeded.")
+        return None
+
+    except requests.exceptions.ConnectTimeout:
+        print(f"Connection to {url} timed out.")
+        return None
+    except requests.exceptions.RequestException as e:
+        print(f"Error while resolving redirect: {e}")
+        return None
 
 # Saves a Dict of elements into a JSON file
 async def save_dict_to_json(data_dict, filename='data.json'):

@@ -1,9 +1,9 @@
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
-db = SQLAlchemy()
 from dotenv import load_dotenv
 import os
 
+db = SQLAlchemy()
 load_dotenv()
 
 DB_PORT = os.getenv('DB_PORT')

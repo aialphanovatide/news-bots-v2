@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from scheduler_config import scheduler
+from scheduler_config_1 import scheduler
 from config import Category, db, Bot
 
 deactivate_bots_bp = Blueprint(
@@ -63,10 +63,12 @@ def deactivate_category():
             return jsonify(response), 404
         
         # Remove bots from scheduler
-        bot_ids = [bot.id for bot in Bot.query.filter_by(category_id=category.id).all()]
+        bot_names = [bot.name for bot in Bot.query.filter_by(category_id=category.id).all()]
 
-        for bot_id in bot_ids:
-            scheduler.remove_job(job_id=str(bot_id))
+        for name in bot_names:
+            schedule_job = scheduler.get_job(id=str(name))
+            if schedule_job:
+                scheduler.remove_job(id=str(name))
 
         # Check if the category is already inactive
         if not category.is_active:

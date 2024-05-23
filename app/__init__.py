@@ -3,6 +3,7 @@ import os
 from config import db
 from flask import Flask
 from dotenv import load_dotenv
+from scheduler_config_1 import scheduler
 from app.routes.bots.bots import bots_bp
 from app.routes.sites.sites import sites_bp
 from app.routes.slack.slack import slack_action_bp
@@ -31,9 +32,12 @@ def create_app():
 
     app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
     db.init_app(app)
+    scheduler.init_app(app)
+    scheduler.start()
+
 
     with app.app_context():
-        db.create_all()  # Create tables if they doccccn't exist
+        db.create_all()  # Create tables if they don't exist
         initialize_categories()
         initialize_fixed_data()
         initialize_sites_data()

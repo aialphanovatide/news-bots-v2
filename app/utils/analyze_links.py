@@ -1,13 +1,11 @@
 import re
 import ssl
-import aiohttp
 import requests
-from flask import app, current_app
 from datetime import datetime
 from bs4 import BeautifulSoup
 from typing import Dict, Any, List
 from app.utils.helpers import transform_string
-from config import Keyword, UnwantedArticle, Article, UsedKeywords, db
+from config import Keyword, UnwantedArticle, Article, db
 from app.services.slack.actions import send_NEWS_message_to_slack_channel
 from app.services.perplexity.article_convert import article_perplexity_remaker
 from app.services.d3.dalle3 import generate_poster_prompt, resize_and_upload_image_to_s3
@@ -15,15 +13,14 @@ from app.services.d3.dalle3 import generate_poster_prompt, resize_and_upload_ima
 
 # validate a link against a list of keyword and then saves it to the DB
 def validate_and_save_article(news_link, article_title, article_content, category_id, bot_id):
-    with current_app.app_context():
+
         articles_saved = 0
         unwanted_articles_saved = 0
-        try:
+        try:    
                 # Check if the URL has already been analyzed
-                print('here')
                 existing_unwanted_article = UnwantedArticle.query.filter_by(bot_id=bot_id, url=news_link).first()
                 existing_article = Article.query.filter_by(bot_id=bot_id, url=news_link).first()
-                print('here 2')
+    
                 if existing_unwanted_article or existing_article:
                     return {'error': 'article already analyzed', 
                             'articles_saved': articles_saved,
@@ -35,7 +32,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
 
                     # Check for used keywords within the article content
                     used_keywords = [keyword for keyword in bot_keyword_names if any(keyword.lower() in paragraph.lower() for paragraph in article_content)]
-                    
+             
                 if not used_keywords:
      
                     # Save article right away because there was no matched keywords
@@ -178,14 +175,13 @@ def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: 
         article_content = [p.text.strip() for p in paragraphs]
 
         # Validate and process the content
-        with current_app.app_context():
-            result = validate_and_save_article(news_link, article_title, article_content, category_id, bot_id)
-            if 'error' in result:
-                return {'success': False, 'url': news_link, 'title': article_title, 
-                        'paragraphs': article_content, 'error': result['error']}
+        result = validate_and_save_article(news_link, article_title, article_content, category_id, bot_id)
+        if 'error' in result:
+            return {'success': False, 'url': news_link, 'title': article_title, 
+                    'paragraphs': article_content, 'error': result['error']}
 
-            return {'success': True, 'url': news_link, 'title': article_title, 
-                    'paragraphs': article_content, 'message': result['message']}
+        return {'success': True, 'url': news_link, 'title': article_title, 
+                'paragraphs': article_content, 'message': result['message']}
 
     except requests.RequestException as e:
         return {'success': False, 'url': news_link, 'title': None, 

@@ -1,6 +1,6 @@
 import re
 import asyncio
-from scheduler_config import scheduler
+from scheduler_config_1 import scheduler
 from datetime import datetime
 from app.utils.index import fetch_news_links
 from flask import Blueprint, jsonify, request
