@@ -3,17 +3,23 @@ from app.utils.helpers import resolve_redirects, resolve_redirects_v2
 from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright
 from app.utils.analyze_links import fetch_article_content
-
+import os
 
 # Get all urls from a source
 def fetch_urls(url: str) -> Dict:
     base_url = "https://news.google.com"
     result = {'success': False, 'data': [], 'errors': [], 'title': None}
-    max_links = 6
+    max_links = 30
+
+    user_dir = '/tmp/playwright'
+    
+    if not os.path.exists(user_dir):
+        os.makedirs(user_dir)
 
     try:
         with sync_playwright() as p:
-            browser =  p.chromium.launch(headless=False, slow_mo=20)
+            # browser =  p.chromium.launch(headless=False, slow_mo=20)
+            browser = p.chromium.launch_persistent_context(user_dir, headless=False, slow_mo=2000)
             page =  browser.new_page()
             page.goto(url)
             page.wait_for_load_state("domcontentloaded", timeout=70000)
