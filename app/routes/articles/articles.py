@@ -33,6 +33,31 @@ def get_all_articles():
         return jsonify(response), 500
 
 
+@articles_bp.route('/get_article_by_id', methods=['GET'])
+def get_article_by_id():
+    response = {'data': None, 'error': None, 'success': False}
+    try:
+        article_id = request.args.get('article_id')
+
+        if not article_id:
+            response['error'] = 'Missing article ID in request data'
+            return jsonify(response), 400
+
+        article = Article.query.filter_by(id=article_id).first()
+        
+        if not article:
+            response['error'] = 'No article found for the specified article ID'
+            return jsonify(response), 404
+
+        response['data'] = article.as_dict()  # Make sure Article has an as_dict() method
+        response['success'] = True
+        return jsonify(response), 200
+
+    except Exception as e:
+        response['error'] = f'Internal server error: {str(e)}'
+        return jsonify(response), 500
+
+
 
 # Get all articles of a Bot
 @articles_bp.route('/get_articles', methods=['GET'])
