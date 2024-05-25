@@ -107,11 +107,11 @@ def validate_and_save_article(news_link, article_title, article_content, categor
                 image = image['response']
                 article_id = transform_string(new_article_title)
                 image_filename = f"{article_id}.jpg"
-                image_url=f'https://apparticleimages.s3.us-east-2.amazonaws.com/{image_filename}'     
+                image_url=f'https://appnewsposters.s3.us-east-2.amazonaws.com/{image_filename}'     
                             
                 try:
                     # Resize and upload the image to S3
-                    resized_image_url = resize_and_upload_image_to_s3(image, 'apparticleimages', image_filename)
+                    resized_image_url = resize_and_upload_image_to_s3(image, 'appnewsposters', image_filename)
                     if resized_image_url['success'] == False:
                         return {'error': f'Image couldnt be upload to AWS: {resized_image_url["error"]}', 
                         'articles_saved': articles_saved,
