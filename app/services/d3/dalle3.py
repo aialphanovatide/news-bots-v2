@@ -83,8 +83,9 @@ def resize_and_upload_image_to_s3(image_data, bucket_name, image_filename, targe
             aws_secret_access_key=AWS_SECRET_KEY
         )
 
-        # Uploads the same image to the mktnewsposters AWS Bucket for the Marketing sites
+        # Uploads the same image to the sitesnewsposters AWS Bucket for the Marketing sites
         s3.upload_fileobj(BytesIO(image_binary), 'sitesnewsposters', image_key)
+        print("Mkt sites image generated and saved")
 
         # Uploads the same image to the specified Bucket for the APP
         resized_image = image.resize(target_size)

@@ -107,7 +107,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
                 image = image['response']
                 article_id = transform_string(new_article_title)
                 image_filename = f"{article_id}.jpg"
-                image_url=f'https://appnewsposters.s3.us-east-2.amazonaws.com/{image_filename}'     
+                image_url=f'https://sitesnewsposters.s3.us-east-2.amazonaws.com/{image_filename}'     
                             
                 try:
                     # Resize and upload the image to S3
@@ -125,7 +125,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
                 new_article = Article(
                     title=new_article_title,
                     content=new_article_summary,
-                    image=image_url,
+                    image=image_filename,
                     date=datetime.now(),
                     url=news_link,
                     used_keywords=', '.join(used_keywords),

@@ -18,8 +18,10 @@ def fetch_urls(url: str) -> Dict:
 
     try:
         with sync_playwright() as p:
-            # browser =  p.chromium.launch(headless=False, slow_mo=20)
-            browser = p.chromium.launch_persistent_context(user_dir, headless=False, slow_mo=2000)
+            # Configurar el contexto del navegador para mantener la información de cookies y cache
+            browser = p.chromium.launch_persistent_context(user_dir, headless=False, slow_mo=2000, 
+                                                           args=['--disable-features=IsolateOrigins,site-per-process'],
+                                                           user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3')
             page =  browser.new_page()
             page.goto(url)
             page.wait_for_load_state("domcontentloaded", timeout=70000)
