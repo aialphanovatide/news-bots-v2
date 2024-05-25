@@ -49,7 +49,7 @@ def get_article_by_id():
             response['error'] = 'No article found for the specified article ID'
             return jsonify(response), 404
 
-        response['data'] = article.as_dict()  # Make sure Article has an as_dict() method
+        response['data'] = article.as_dict()  
         response['success'] = True
         return jsonify(response), 200
 
