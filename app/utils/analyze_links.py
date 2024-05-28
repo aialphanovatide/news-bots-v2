@@ -107,11 +107,11 @@ def validate_and_save_article(news_link, article_title, article_content, categor
                 image = image['response']
                 article_id = transform_string(new_article_title)
                 image_filename = f"{article_id}.jpg"
-                image_url=f'https://apparticleimages.s3.us-east-2.amazonaws.com/{image_filename}'     
+                image_url=f'https://sitesnewsposters.s3.us-east-2.amazonaws.com/{image_filename}'     
                             
                 try:
                     # Resize and upload the image to S3
-                    resized_image_url = resize_and_upload_image_to_s3(image, 'apparticleimages', image_filename)
+                    resized_image_url = resize_and_upload_image_to_s3(image, 'appnewsposters', image_filename)
                     if resized_image_url['success'] == False:
                         return {'error': f'Image couldnt be upload to AWS: {resized_image_url["error"]}', 
                         'articles_saved': articles_saved,
@@ -125,7 +125,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
                 new_article = Article(
                     title=new_article_title,
                     content=new_article_summary,
-                    image=image_url,
+                    image=image_filename,
                     date=datetime.now(),
                     url=news_link,
                     used_keywords=', '.join(used_keywords),
@@ -142,6 +142,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
                     channel_id = 'C074ZDTMYDA'
                  
                     # Notify on Slack about the article
+                    print('channel_id TESTS:', channel_id)
                     send_NEWS_message_to_slack_channel(channel_id=channel_id, 
                                                     title=new_article_title,
                                                     article_url=news_link,
