@@ -11,20 +11,27 @@ def fetch_urls(url: str) -> Dict:
     result = {'success': False, 'data': [], 'errors': [], 'title': None}
     max_links = 30
 
-    user_dir = '/tmp/playwright'
+    root_dir = os.path.abspath(os.path.dirname(__file__))
+    user_data_dir = os.path.join(root_dir, 'userDataDir')   
     
-    if not os.path.exists(user_dir):
-        os.makedirs(user_dir)
 
     try:
         with sync_playwright() as p:
-            # Configurar el contexto del navegador para mantener la información de cookies y cache
-            browser = p.chromium.launch_persistent_context(user_dir, headless=False, slow_mo=2000, 
-                                                           args=['--disable-features=IsolateOrigins,site-per-process'],
-                                                           user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3')
+            browser = p.chromium.launch_persistent_context(
+                user_data_dir=user_data_dir,
+                headless=False,
+                bypass_csp=True, 
+                ignore_https_errors=True, 
+                accept_downloads=True,
+                slow_mo=20000,
+                args=['--disable-features=IsolateOrigins,site-per-process', '--no-first-run'], 
+                )
+            page = browser.pages[0] if browser.pages else browser.new_page()
+
             page =  browser.new_page()
-            page.goto(url)
-            page.wait_for_load_state("domcontentloaded", timeout=70000)
+            page.goto(url, timeout=7000000)
+            page.wait_for_load_state("domcontentloaded", timeout=7000000)
+            
             
             news_links = set()
             

@@ -1,8 +1,9 @@
+import random
+from datetime import datetime, timedelta
 from flask import Blueprint, jsonify, request
 from config import Blacklist, Category, Bot, Site, db
 from app.utils.index import fetch_news_links
 from scheduler_config_1 import scheduler
-
 
 activate_bots_bp = Blueprint(
     'activate_bots_bp', __name__,
@@ -23,52 +24,53 @@ def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, catego
         )
 
 
-# Activate all categories
 @activate_bots_bp.route('/activate_all_categories', methods=['POST'])
 async def activate_all_bots():
     response = {'data': None, 'error': None, 'success': False}
     try:
-        # Fetch all categories from the database
         categories = Category.query.all()
         if not categories:
             response['error'] = 'No categories found'
             return jsonify(response), 404
 
+        global_minutes = 10
+        interval_base = 23  # Changed to 23 min to keep intervals between bots activation
+
         for category in categories:
             category_id = category.id
-            category_interval = category.time_interval
             category_slack_channel = category.slack_channel
 
-            # Fetch all bots associated with the current category
             bots = Bot.query.filter_by(category_id=category_id).all()
+            if not bots:
+                continue
 
             for bot in bots:
-                # Fetch the associated site for the bot
                 site = Site.query.filter_by(bot_id=bot.id).first()
                 if not site or not site.url:
-                    continue  # Skip if no site or site URL is found
+                    continue
 
-                # Prepare the necessary data for the bot
                 bot_site = site.url
                 bot_blacklist = [bl.name for bl in Blacklist.query.filter_by(bot_id=bot.id).all()]
                 bot_id = bot.id
                 bot_name = bot.name
 
-
-                # Schedule job for bot
+                # Ensure a unique interval for each bot
+                minutes = global_minutes
                 scheduler.add_job(
-                    id=str(bot_name), 
+                    id=str(bot_name),
                     func=scheduled_job,
-                    name=bot_name, 
+                    name=bot_name,
                     replace_existing=True,
                     args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category_slack_channel],
-                    trigger='interval', 
-                    minutes=category_interval
-                    )
+                    trigger='interval',
+                    minutes=minutes
+                )
 
-            # Set category as active
-            category.is_active = True
-            db.session.commit()
+                # Increment global minutes for next bot
+                global_minutes += interval_base
+
+                category.is_active = True
+                db.session.commit()
 
         response['message'] = 'All categories activated'
         response['success'] = True
@@ -78,6 +80,8 @@ async def activate_all_bots():
         db.session.rollback()
         response['error'] = f"Error activating all bots: {e}"
         return jsonify(response), 500
+
+    
 
 # Activate a single category
 @activate_bots_bp.route('/activate_category', methods=['POST'])
@@ -107,7 +111,9 @@ def activate_bots_by_category():
         # Fetch all bots associated with the category
         bots = Bot.query.filter_by(category_id=category.id).all()
 
-        for bot in bots:
+        interval_base = 20  # Base interval in minutes
+
+        for index, bot in enumerate(bots):
             # Fetch the associated site for the bot
             site = Site.query.filter_by(bot_id=bot.id).first()
             if not site or not site.url:
@@ -119,15 +125,18 @@ def activate_bots_by_category():
             bot_id = bot.id
             bot_name = bot.name
 
+            # Calculate interval based on the index of the bot
+            minutes = interval_base + 10 * index
+
             scheduler.add_job(
-                id=str(bot_name), 
+                id=str(bot_name),
                 func=scheduled_job,
-                name=bot_name, 
+                name=bot_name,
                 replace_existing=True,
                 args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category_slack_channel],
-                trigger='interval', 
-                minutes=category_interval
-                )
+                trigger='interval',
+                minutes=minutes
+            )
             
         # Set category as active
         category.is_active = True

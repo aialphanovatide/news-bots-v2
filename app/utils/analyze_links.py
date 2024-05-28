@@ -142,6 +142,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
                     channel_id = 'C074ZDTMYDA'
                  
                     # Notify on Slack about the article
+                    print('channel_id TESTS:', channel_id)
                     send_NEWS_message_to_slack_channel(channel_id=channel_id, 
                                                     title=new_article_title,
                                                     article_url=news_link,

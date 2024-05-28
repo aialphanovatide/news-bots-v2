@@ -3,6 +3,7 @@ from config import Article, db
 from datetime import datetime
 from app.services.slack.actions import send_WARNING_message_to_slack_channel
 import json
+import re
 
 slack_action_bp = Blueprint(
     'slack_action_bp', __name__,
@@ -10,9 +11,19 @@ slack_action_bp = Blueprint(
     static_folder='static'
 )
 
+
+
+def extract_url_from_text(text):
+    url_pattern = r'<(https?://[^\s]+)>'
+    match = re.search(url_pattern, text)
+    if match:
+        return match.group(1)
+    return None
+
 # Handles the DB modification of the article
 def handle_block_actions(data):
     actions = data.get('actions', [])
+
     response = {'success': False, 'error': None, 'message': None}
 
     if not actions:
@@ -29,23 +40,23 @@ def handle_block_actions(data):
             article_data['action_id'] = action_id
             article_data['value'] = value
 
-    # Find the article link to use for querying the DB
-    message = data.get('message', {})
-    attachments = message.get('attachments', [])
-    if attachments:
-        for attachment in attachments:
-            title_link = attachment.get('title_link')
-            title = attachment.get('title')
-            if title_link and title:
-                article_data['article_link'] = title_link
-                article_data['title'] = title
+    # Extract the URL from the message blocks
+    fields = data['message']['blocks'][2].get('fields', [])
+    url = None
 
-    if not article_data.keys():
-        response['error'] = 'No data found in the slack message for querying the database'
+    for field in fields:
+        if 'text' in field:
+            url = extract_url_from_text(field['text'])
+            if url:
+                break  # Exit the loop once the URL is found
+
+    if not url:
+        response['error'] = 'No valid URL found in the slack message'
         return response
-    
 
-    existing_article = Article.query.filter_by(url=article_data['article_link']).first()
+
+    # Find the article in the database using the extracted URL
+    existing_article = Article.query.filter_by(url=url).first()
     if existing_article:
         if article_data['action_id'] == 'add_to_top_story':
             existing_article.is_top_story = True
@@ -61,9 +72,9 @@ def handle_block_actions(data):
             response['message'] = f'Article updated with: {article_data["value"]} AS feedback'
         else:
             # Handle the case when action ID doesn't match any expected value
-            response['error'] = f'Unknown action ID: {article_data["action_id"]} while updating {article_data["title"]}'
+            response['error'] = f'Unknown action ID: {article_data["action_id"]} while updating the article'
     else:
-        response['error'] = f'Article {article_data["title"]} - not found in the database'
+        response['error'] = f'Article not found in the database'
 
     return response
 
