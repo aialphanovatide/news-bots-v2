@@ -29,6 +29,13 @@ def handle_block_actions(data):
             article_data['action_id'] = action_id
             article_data['value'] = value
 
+    # Extract additional comments
+    state = data.get('state', {}).get('values', {})
+    for block_id, block in state.items():
+        for action_id, action in block.items():
+            if action_id == 'additional_comments':
+                article_data['additional_comments'] = action.get('value', '')
+
     # Find the article link to use for querying the DB
     message = data.get('message', {})
     attachments = message.get('attachments', [])
@@ -43,7 +50,6 @@ def handle_block_actions(data):
     if not article_data.keys():
         response['error'] = 'No data found in the slack message for querying the database'
         return response
-    
 
     existing_article = Article.query.filter_by(url=article_data['article_link']).first()
     if existing_article:
@@ -56,9 +62,10 @@ def handle_block_actions(data):
         elif article_data['action_id'] in ['green', 'red', 'yellow']:
             existing_article.updated_at = datetime.now()
             existing_article.is_article_efficent = f"{article_data['action_id']} - {article_data['value']}"
+            existing_article.additional_comments = article_data.get('additional_comments', '')
             db.session.commit()
             response['success'] = True
-            response['message'] = f'Article updated with: {article_data["value"]} AS feedback'
+            response['message'] = f'Article updated with: {article_data["value"]} AS feedback and additional comments'
         else:
             # Handle the case when action ID doesn't match any expected value
             response['error'] = f'Unknown action ID: {article_data["action_id"]} while updating {article_data["title"]}'
@@ -66,8 +73,6 @@ def handle_block_actions(data):
         response['error'] = f'Article {article_data["title"]} - not found in the database'
 
     return response
-
-
 
 # RESERVED ROUTE - DO NOT USE
 # This route receives all relevant articles that needs to go to the Top Stories as well as feedback
