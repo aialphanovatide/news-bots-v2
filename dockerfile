@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # RUN pip install -r requirements.txt
 
 # Install playwright after installing Python dependencies
-RUN npx -y playwright@1.44.1 install --with-deps
+RUN python -m playwright install
 
 # Make port 5000, 5432 available to the world outside this container
 EXPOSE 5000
