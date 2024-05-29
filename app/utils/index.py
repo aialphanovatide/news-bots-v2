@@ -12,7 +12,10 @@ def fetch_urls(url: str) -> Dict:
     max_links = 30
 
     root_dir = os.path.abspath(os.path.dirname(__file__))
-    user_data_dir = os.path.join(root_dir, 'userDataDir')   
+    user_data_dir = os.path.join(root_dir, 'tmp/playwright')
+
+    if not os.path.exists(user_data_dir):
+        os.makedirs(user_data_dir, exist_ok=True)  
     
 
     try:
@@ -73,7 +76,7 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
     max_links = 30
     result = {'success': False, 'links_fetched': 0, 'errors': []}
     fetch_result =  fetch_urls(url)
-    
+
     if not fetch_result['success']:
         return fetch_result
 
@@ -95,9 +98,11 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
 
         if 'error' in article_info:
             result['errors'].append(f"Error fetching content for {article_info['url']}, Reason: {article_info['error']}")
+            continue
         
         if 'message' in article_info:
             print(f'SUCCEED: {article_info["message"]}')
+            continue
         
         if len(news_links) >= max_links:
             break

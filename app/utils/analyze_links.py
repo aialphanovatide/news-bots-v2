@@ -27,6 +27,15 @@ ai_slack_channel = 'C067E1LJYKY'
 gold_slack_channel = 'C074ZDTMYDA'
 test_slack_channel = 'C071142J72R'
 
+def clean_text(text):
+    text = re.sub(r'Headline:\n', '', text)
+    text = re.sub(r'Summary:\n', '', text)
+    text = re.sub(r'Summary:', '', text)
+    text = re.sub(r'\*\*', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\*\*\s*\*\*', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\#\#\#', '', text, flags=re.MULTILINE)
+    return text
+
 
 # validate a link against a list of keyword and then saves it to the DB
 def validate_and_save_article(news_link, article_title, article_content, category_id, bot_id, bot_name, category_slack_channel):
@@ -83,8 +92,9 @@ def validate_and_save_article(news_link, article_title, article_content, categor
                             'unwanted_articles_saved': unwanted_articles_saved}
 
                 new_article_summary = perplexity_result['response']
+                final_summary=clean_text(new_article_summary)
                 # Extract title from perplexity results, if present
-                title_match = re.search(r"\*\*(.*?)\*\*", new_article_summary)
+                title_match = re.search(r"\*\*(.*?)\*\*", final_summary)
                 new_article_title = article_title
                 if title_match and new_article_summary:
                     new_article_title = title_match.group(1)
@@ -92,7 +102,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
                     
                 # Log analysis and title results
                 print("\nPerplexity new_article_title:", new_article_title)
-                print("\nPerplexity Result:", new_article_summary)
+                print("\nPerplexity Result:", final_summary)
                 print(f"\nMatched Keywords: {', '.join(used_keywords)}")
                 print("BOT ID: ", bot_id)
 
@@ -124,7 +134,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
                 # Save the article to the database
                 new_article = Article(
                     title=new_article_title,
-                    content=new_article_summary,
+                    content=final_summary,
                     image=image_filename,
                     date=datetime.now(),
                     url=news_link,
