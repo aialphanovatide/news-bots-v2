@@ -22,6 +22,8 @@ env/
 *.pyo
 *.pyd
 
+app/utils/userDataDir/
+
 # Database
 *.sqlite
 

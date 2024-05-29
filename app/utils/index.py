@@ -73,7 +73,6 @@ def fetch_urls(url: str) -> Dict:
 def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id: int, bot_id: int, category_slack_channel) -> dict:
     
     print('--Execution started--')
-    max_links = 30
     result = {'success': False, 'links_fetched': 0, 'errors': []}
     fetch_result =  fetch_urls(url)
 
@@ -104,13 +103,13 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
             print(f'SUCCEED: {article_info["message"]}')
             continue
         
-        if len(news_links) >= max_links:
+        if len(news_links) >= 30:
             break
     
     if len(result['errors']) == 0:
         result['success'] = True
     else:
-        print(f'Length errors found during {str(bot_name).upper()} execution', result['errors'])
+        print(f'Errors found during {str(bot_name).upper()} execution', result['errors'])
 
     return result
 
