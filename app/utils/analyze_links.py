@@ -33,7 +33,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
 
         articles_saved = 0
         unwanted_articles_saved = 0
-        print('category_slack_channel: ', category_slack_channel)
+
         try:    
                 # Check if the URL has already been analyzed
                 existing_unwanted_article = UnwantedArticle.query.filter_by(bot_id=bot_id, url=news_link).first()
@@ -91,11 +91,9 @@ def validate_and_save_article(news_link, article_title, article_content, categor
                     new_article_summary = re.sub(r"\*\*.*?\*\*", "", new_article_summary, count=1).strip()
                     
                 # Log analysis and title results
-                print("\nPerplexity new_article_title:", new_article_title)
-                print("\nPerplexity Result:", new_article_summary)
-                print(f"\nMatched Keywords: {', '.join(used_keywords)}")
-                print("BOT ID: ", bot_id)
-
+                # print("\nPerplexity new_article_title:", new_article_title)
+                # print("\nPerplexity Result:", new_article_summary)
+                # print(f"\nMatched Keywords: {', '.join(used_keywords)}")
 
                 image = generate_poster_prompt(article=new_article_summary, bot_id=bot_id)
                 # if image generation fails, then return so the bot tries in the next execution
@@ -141,14 +139,13 @@ def validate_and_save_article(news_link, article_title, article_content, categor
                 if str(bot_name).casefold() == 'gold':
                     channel_id = 'C074ZDTMYDA'
                  
-                    # Notify on Slack about the article
-                    print('channel_id TESTS:', channel_id)
-                    send_NEWS_message_to_slack_channel(channel_id=channel_id, 
-                                                    title=new_article_title,
-                                                    article_url=news_link,
-                                                    content=new_article_summary, 
-                                                    used_keywords=used_keywords, 
-                                                    image=image_url)
+                # Notify on Slack about the article
+                send_NEWS_message_to_slack_channel(channel_id=channel_id, 
+                                                title=new_article_title,
+                                                article_url=news_link,
+                                                content=new_article_summary, 
+                                                used_keywords=used_keywords, 
+                                                image=image_url)
                 
                 return {'message': f'article {new_article_title} validated and saved', 
                         'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
