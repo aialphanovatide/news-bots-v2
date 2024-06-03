@@ -27,6 +27,15 @@ ai_slack_channel = 'C067E1LJYKY'
 gold_slack_channel = 'C074ZDTMYDA'
 test_slack_channel = 'C071142J72R'
 
+def clean_text(text):
+    text = re.sub(r'Headline:\n', '', text)
+    text = re.sub(r'Summary:\n', '', text)
+    text = re.sub(r'Summary:', '', text)
+    text = re.sub(r'\*\*', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\*\*\s*\*\*', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\#\#\#', '', text, flags=re.MULTILINE)
+    return text
+
 
 # validate a link against a list of keyword and then saves it to the DB
 def validate_and_save_article(news_link, article_title, article_content, category_id, bot_id, bot_name, category_slack_channel):
@@ -83,72 +92,79 @@ def validate_and_save_article(news_link, article_title, article_content, categor
                             'unwanted_articles_saved': unwanted_articles_saved}
 
                 new_article_summary = perplexity_result['response']
+                final_summary=clean_text(new_article_summary)
                 # Extract title from perplexity results, if present
-                title_match = re.search(r"\*\*(.*?)\*\*", new_article_summary)
+                title_match = re.search(r"\*\*(.*?)\*\*", final_summary)
                 new_article_title = article_title
                 if title_match and new_article_summary:
                     new_article_title = title_match.group(1)
                     new_article_summary = re.sub(r"\*\*.*?\*\*", "", new_article_summary, count=1).strip()
                     
-                # Log analysis and title results
-                # print("\nPerplexity new_article_title:", new_article_title)
-                # print("\nPerplexity Result:", new_article_summary)
-                # print(f"\nMatched Keywords: {', '.join(used_keywords)}")
+                
+                # Check if the Content has already been analyzed
+                old_unwanted_article = UnwantedArticle.query.filter_by(bot_id=bot_id, title=new_article_title).first()
+                old_article = Article.query.filter_by(bot_id=bot_id, title=new_article_title).first()
+    
+                if old_unwanted_article or old_article:
+                    print("Article already Analyzed - - skipping")
+                    return {'error': 'article already analyzed', 
+                            'articles_saved': articles_saved,
+                            'unwanted_articles_saved': unwanted_articles_saved}
+                else:
+                    image = generate_poster_prompt(article=new_article_summary, bot_id=bot_id)
+                    # if image generation fails, then return so the bot tries in the next execution
+                    if image['success'] == False:
+                        return {'error': f'Image couldnt be generated: {image["error"]}', 
+                            'articles_saved': articles_saved,           
+                            'unwanted_articles_saved': unwanted_articles_saved}
+                    
+                    image = image['response']
+                    article_id = transform_string(new_article_title)
+                    image_filename = f"{article_id}.jpg"
+                    image_url=f'https://sitesnewsposters.s3.us-east-2.amazonaws.com/{image_filename}'     
+                                
+                    try:
+                        # Resize and upload the image to S3
+                        resized_image_url = resize_and_upload_image_to_s3(image, 'appnewsposters', image_filename)
+                        if resized_image_url['success'] == False:
+                            return {'error': f'Image couldnt be upload to AWS: {resized_image_url["error"]}', 
+                            'articles_saved': articles_saved,
+                            'unwanted_articles_saved': unwanted_articles_saved}
+                    except Exception as e:
+                        return {'error': 'Unexpected error while uploading image to AWS', 
+                            'articles_saved': articles_saved,
+                            'unwanted_articles_saved': unwanted_articles_saved}
+                    
+                    # Save the article to the database
+                    new_article = Article(
+                        title=new_article_title,
+                        content=final_summary,
+                        image=image_filename,
+                        date=datetime.now(),
+                        url=news_link,
+                        used_keywords=', '.join(used_keywords),
+                        bot_id=bot_id,
+                        created_at=datetime.now(),
+                        updated_at=datetime.now()
+                    )
+                    db.session.add(new_article)
+                    db.session.commit()
+                    articles_saved += 1
 
-                image = generate_poster_prompt(article=new_article_summary, bot_id=bot_id)
-                # if image generation fails, then return so the bot tries in the next execution
-                if image['success'] == False:
-                    return {'error': f'Image couldnt be generated: {image["error"]}', 
-                        'articles_saved': articles_saved,
-                        'unwanted_articles_saved': unwanted_articles_saved}
-                
-                image = image['response']
-                article_id = transform_string(new_article_title)
-                image_filename = f"{article_id}.jpg"
-                image_url=f'https://sitesnewsposters.s3.us-east-2.amazonaws.com/{image_filename}'     
-                            
-                try:
-                    # Resize and upload the image to S3
-                    resized_image_url = resize_and_upload_image_to_s3(image, 'appnewsposters', image_filename)
-                    if resized_image_url['success'] == False:
-                        return {'error': f'Image couldnt be upload to AWS: {resized_image_url["error"]}', 
-                        'articles_saved': articles_saved,
-                        'unwanted_articles_saved': unwanted_articles_saved}
-                except Exception as e:
-                    return {'error': 'Unexpected error while uploading image to AWS', 
-                        'articles_saved': articles_saved,
-                        'unwanted_articles_saved': unwanted_articles_saved}
-                
-                # Save the article to the database
-                new_article = Article(
-                    title=new_article_title,
-                    content=new_article_summary,
-                    image=image_filename,
-                    date=datetime.now(),
-                    url=news_link,
-                    used_keywords=', '.join(used_keywords),
-                    bot_id=bot_id,
-                    created_at=datetime.now(),
-                    updated_at=datetime.now()
-                )
-                db.session.add(new_article)
-                db.session.commit()
-                articles_saved += 1
-
-                channel_id = 'C071142J72R'
-                if str(bot_name).casefold() == 'gold':
-                    channel_id = 'C074ZDTMYDA'
-                 
-                # Notify on Slack about the article
-                send_NEWS_message_to_slack_channel(channel_id=channel_id, 
-                                                title=new_article_title,
-                                                article_url=news_link,
-                                                content=new_article_summary, 
-                                                used_keywords=used_keywords, 
-                                                image=image_url)
-                
-                return {'message': f'article {new_article_title} validated and saved', 
-                        'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
+                    channel_id = 'C071142J72R'
+                    if str(bot_name).casefold() == 'gold':
+                        channel_id = 'C074ZDTMYDA'
+                    
+                    # Notify on Slack about the article
+                    send_NEWS_message_to_slack_channel(channel_id=channel_id, 
+                                                    title=new_article_title,
+                                                    article_url=news_link,
+                                                    content=new_article_summary, 
+                                                    used_keywords=used_keywords, 
+                                                    image=image_url)
+                    
+                    return {'message': f'article {new_article_title} validated and saved', 
+                            'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
                     
         
         except Exception as e:

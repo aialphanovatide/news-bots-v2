@@ -18,11 +18,11 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
     
     formatted_keywords = ', '.join(used_keywords)
  
-    print('trimmed_content: ', trimmed_content)
-    print('trimmed_title: ', trimmed_title)
-    print('used_keywords: ', used_keywords)
-    print('image: ', image)
-    print('article_url: ', article_url)
+    # print('trimmed_content: ', trimmed_content)
+    # print('trimmed_title: ', trimmed_title)
+    # print('used_keywords: ', used_keywords)
+    # print('image: ', image)
+    # print('article_url: ', article_url)
     
     blocks = [
         {

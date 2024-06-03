@@ -11,15 +11,19 @@ def fetch_urls(url: str) -> Dict:
     result = {'success': False, 'data': [], 'errors': [], 'title': None}
     max_links = 30
 
-    user_dir = '/tmp/playwright'
+    root_dir = os.path.abspath(os.path.dirname(__file__))
+    user_data_dir = os.path.join(root_dir, 'tmp/playwright')
+
+    if not os.path.exists(user_data_dir):
+        os.makedirs(user_data_dir, exist_ok=True)  
     
-    if not os.path.exists(user_dir):
-        os.makedirs(user_dir)
+    if not os.path.exists(user_data_dir):
+        os.makedirs(user_data_dir)
 
     try:
         with sync_playwright() as p:
             # browser =  p.chromium.launch(headless=False, slow_mo=20)
-            browser = p.chromium.launch_persistent_context(user_dir, headless=False, slow_mo=2000)
+            browser = p.chromium.launch_persistent_context(user_data_dir, headless=False, slow_mo=2000)
             page =  browser.new_page()
             page.goto(url)
             page.wait_for_load_state("domcontentloaded", timeout=70000)
@@ -40,10 +44,12 @@ def fetch_urls(url: str) -> Dict:
                     result['title'] = title
                     try:
                         resolved_link = resolve_redirects_v2(url=full_link)
+                        print("resolved_link", resolved_link)
                         if resolved_link:
                             news_links.add(resolved_link)
                             if len(news_links) >= max_links:
                                 break
+                            print("news_links", news_links)
                     except Exception as e:
                         result['errors'].append(f"Error resolving redirects for {full_link}: {str(e)}")
             
@@ -64,7 +70,7 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
     max_links = 30
     result = {'success': False, 'links_fetched': 0, 'errors': []}
     fetch_result =  fetch_urls(url)
-    
+
     if not fetch_result['success']:
         return fetch_result
 
@@ -86,11 +92,13 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
 
         if 'error' in article_info:
             result['errors'].append(f"Error fetching content for {article_info['url']}, Reason: {article_info['error']}")
+            continue
         
         if 'message' in article_info:
             print(f'SUCCEED: {article_info["message"]}')
+            continue
         
-        if len(news_links) >= max_links:
+        if len(news_links) >= 30:
             break
     
     if len(result['errors']) == 0:
