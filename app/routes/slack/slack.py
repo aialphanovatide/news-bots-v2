@@ -40,6 +40,28 @@ def handle_block_actions(data):
             article_data['action_id'] = action_id
             article_data['value'] = value
 
+<<<<<<< HEAD
+    # Extract additional comments
+    state = data.get('state', {}).get('values', {})
+    for block_id, block in state.items():
+        for action_id, action in block.items():
+            if action_id == 'additional_comments':
+                article_data['additional_comments'] = action.get('value', '')
+
+    # Find the article link to use for querying the DB
+    message = data.get('message', {})
+    attachments = message.get('attachments', [])
+    if attachments:
+        for attachment in attachments:
+            title_link = attachment.get('title_link')
+            title = attachment.get('title')
+            if title_link and title:
+                article_data['article_link'] = title_link
+                article_data['title'] = title
+
+    if not article_data.keys():
+        response['error'] = 'No data found in the slack message for querying the database'
+=======
     # Extract the URL from the message blocks
     fields = data['message']['blocks'][2].get('fields', [])
     url = None
@@ -52,6 +74,7 @@ def handle_block_actions(data):
 
     if not url:
         response['error'] = 'No valid URL found in the slack message'
+>>>>>>> d5bfca3f647fc2a139f0cb8bd36cd18ac12aea35
         return response
 
 
@@ -67,9 +90,10 @@ def handle_block_actions(data):
         elif article_data['action_id'] in ['green', 'red', 'yellow']:
             existing_article.updated_at = datetime.now()
             existing_article.is_article_efficent = f"{article_data['action_id']} - {article_data['value']}"
+            existing_article.additional_comments = article_data.get('additional_comments', '')
             db.session.commit()
             response['success'] = True
-            response['message'] = f'Article updated with: {article_data["value"]} AS feedback'
+            response['message'] = f'Article updated with: {article_data["value"]} AS feedback and additional comments'
         else:
             # Handle the case when action ID doesn't match any expected value
             response['error'] = f'Unknown action ID: {article_data["action_id"]} while updating the article'
@@ -77,8 +101,6 @@ def handle_block_actions(data):
         response['error'] = f'Article not found in the database'
 
     return response
-
-
 
 # RESERVED ROUTE - DO NOT USE
 # This route receives all relevant articles that needs to go to the Top Stories as well as feedback

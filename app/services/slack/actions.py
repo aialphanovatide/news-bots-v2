@@ -2,17 +2,16 @@ from app.services.slack.index import client
 from slack_sdk.errors import SlackApiError
 from typing import List
 
-
 # Send news to the specified Slack Channel
-def send_NEWS_message_to_slack_channel(channel_id: str, title: str, 
-                                       article_url: str, content: str, 
+def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
+                                       article_url: str, content: str,
                                        used_keywords: List[str], image: str):
    
     trimmed_title = title[:1800]
     last_period_index = content.rfind('.', 0, 1970)
-    if last_period_index == -1:
+    if (last_period_index == -1):
         last_period_index = content.find('.', 1970)
-        if last_period_index == -1:
+        if (last_period_index == -1):
             last_period_index = 1970
     trimmed_content = content[:last_period_index + 1]
     trimmed_content = trimmed_content.replace('**', '*')
@@ -67,61 +66,53 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
             ]
         },
         {
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": f"*Send to AI Alpha App*"
-			},
-			"accessory": {
-				"type": "button",
-				"text": {
-					"type": "plain_text",
-					"text": "ADD AS TOP STORY",
-					"emoji": True
-				},
-				"value": f"link_to_article: {article_url}",
-				"action_id": "add_to_top_story"
-			}
-		},
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "Green",
+                        "emoji": True
+                    },
+                    "value": "green",
+                    "action_id": "green"
+                },
+                {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "Yellow",
+                        "emoji": True
+                    },
+                    "value": "yellow",
+                    "action_id": "yellow"
+                },
+                {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "Red",
+                        "emoji": True
+                    },
+                    "value": "red",
+                    "action_id": "red"
+                }
+            ]
+        },
         {
             "dispatch_action": True,
-			"type": "input",
-			"element": {
-				"type": "plain_text_input",
-				"action_id": "green"
-			},
-			"label": {
-				"type": "plain_text",
-				"text": "GREEN",
-				"emoji": True
-			}
-		},
-        {
-            "dispatch_action": True,
-			"type": "input",
-			"element": {
-				"type": "plain_text_input",
-				"action_id": "red"
-			},
-			"label": {
-				"type": "plain_text",
-				"text": "RED",
-				"emoji": True
-			}
-		},
-        {
-            "dispatch_action": True,
-			"type": "input",
-			"element": {
-				"type": "plain_text_input",
-				"action_id": "yellow"
-			},
-			"label": {
-				"type": "plain_text",
-				"text": "YELLOW",
-				"emoji": True
-			}
-		},
+            "type": "input",
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "additional_comments"
+            },
+            "label": {
+                "type": "plain_text",
+                "text": "Additional Comments",
+                "emoji": True
+            }
+        },
         {
             "type": "divider"
         }
