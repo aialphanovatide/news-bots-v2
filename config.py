@@ -38,6 +38,7 @@ class Bot(db.Model):
     __tablename__ = 'bot'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String)
+    dalle_prompt = db.Column(db.String)
     # relationships
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     created_at = db.Column(db.TIMESTAMP)

@@ -2,6 +2,7 @@
 CREATE TABLE bot (
     id SERIAL PRIMARY KEY,
     name VARCHAR,
+    dalle_prompt VARCHAR,
     category_id INTEGER,
     created_at TIMESTAMP,
     updated_at TIMESTAMP

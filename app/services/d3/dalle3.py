@@ -7,6 +7,8 @@ from io import BytesIO
 from openai import OpenAI
 from dotenv import load_dotenv
 
+from config import Bot
+
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
@@ -17,14 +19,24 @@ client = OpenAI(
     api_key=OPENAI_API_KEY,
 )
 
+from flask_sqlalchemy import SQLAlchemy
+import requests
+import json
 
-def generate_poster_prompt(article, bot_id):
+db = SQLAlchemy()
+
+# Asumiendo que tienes una clase Bot definida para tu tabla
+class Bot(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    dalle_prompt = db.Column(db.String(256))
+
+def generate_poster_prompt(article, bot_id, client, OPENAI_API_KEY):
     
-    prompt = f'Generate a DALL-E prompt related to this {article}. It should be 400 characters or less and avoid specific names focused on abstract image without mention letters, numbers or words.'
+    prompt = f'Generate a DALL-E prompt related to this {article}. It should be 200 characters or less and avoid specific names focused on abstract image without mention letters, numbers or words.'
     api_url = 'https://api.openai.com/v1/images/generations'
     
     poster_response_prompt = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4",
         messages=[{"role": "system", "content": prompt},
                   {"role": "user", "content": prompt}],
         temperature=0.6,
@@ -36,14 +48,12 @@ def generate_poster_prompt(article, bot_id):
     
     final_prompt = poster_response_prompt.choices[0].message.content[:450]
     
-    print("prompt generado por GPT 0: " + final_prompt)
+    # Obtener el prompt final de la base de datos
+    bot = Bot.query.filter_by(id=bot_id).first()
+    if not bot or not bot.dalle_prompt:
+        return {'error': 'No dalle_prompt found for the given bot_id', 'success': False}
     
-    if 1 <= bot_id <= 39:
-        postfinalprompt = 'depicting an anime style.'
-    else:
-        postfinalprompt = 'Generate realistic, photograph-style images, using natural lighting and a professional color palette to convey credibility and authority.'
-
-   
+    postfinalprompt = bot.dalle_prompt
 
     headers = {
         'Content-Type': 'application/json',
@@ -64,6 +74,7 @@ def generate_poster_prompt(article, bot_id):
         return {'response': image_url, 'success': True}  # It only returns the image URL
     else:
         return {'error': response.text, 'success': False}
+
 
 
 # Resize the image and uploads to two different Buckets, one for the MKT sites and other for the App
