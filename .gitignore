@@ -30,3 +30,6 @@ app/utils/userDataDir/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+./userDataDir
+app/utils/tmp/playwright
