@@ -40,9 +40,9 @@ def get_bots():
     except Exception as e:
         response['error'] = f'Error getting all Bots: {str(e)}'
         return jsonify(response), 500
-
-
     
+    
+
 # Create and schedule a new news Bot
 @bots_bp.route('/create_bot', methods=['POST'])
 async def create_bot():
@@ -52,13 +52,12 @@ async def create_bot():
         current_time = datetime.now()
 
         # Required inputs
-        required_fields = ['name', 'category_id', 'url', 'keywords', 'blacklist']
+        required_fields = ['name', 'category_id', 'url', 'keywords', 'blacklist', 'dalle_prompt']
         for field in required_fields:
             if field not in data:
                 response['error'] = f'Missing field in request data: {field}'
                 return jsonify(response), 400
-            
-        
+
         category_id = data['category_id']
         # Verify existing bot
         existing_bot = Bot.query.filter_by(name=data['name']).first()
@@ -81,6 +80,7 @@ async def create_bot():
         new_bot = Bot(
             name=data['name'],
             category_id=category_id,
+            dalle_prompt=data['dalle_prompt'],
             created_at=current_time,
             updated_at=current_time
         )
@@ -139,7 +139,7 @@ async def create_bot():
                 args=[url, new_bot.name, blacklist, existing_category.id, new_bot.id, category_slack_channel],
                 trigger='interval', 
                 minutes=category_interval
-                )
+            )
             
             response['message'] = 'Bot created and automated successfully'
         else:
