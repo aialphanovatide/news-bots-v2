@@ -19,11 +19,12 @@ client = OpenAI(
 
 
 def generate_poster_prompt(article, bot_id):
+    
     prompt = f'Generate a DALL-E prompt related to this {article}. It should be 400 characters or less and avoid specific names focused on abstract image without mention letters, numbers or words.'
     api_url = 'https://api.openai.com/v1/images/generations'
     
     poster_response_prompt = client.chat.completions.create(
-        model="gpt-4",
+        model="gpt-4o",
         messages=[{"role": "system", "content": prompt},
                   {"role": "user", "content": prompt}],
         temperature=0.6,
@@ -34,6 +35,8 @@ def generate_poster_prompt(article, bot_id):
         return {'error': 'No poster prompt given', 'success': False}
     
     final_prompt = poster_response_prompt.choices[0].message.content[:450]
+    
+    print("prompt generado por GPT 0: " + final_prompt)
     
     if 1 <= bot_id <= 39:
         postfinalprompt = 'depicting an anime style.'
