@@ -11,27 +11,18 @@ def fetch_urls(url: str) -> Dict:
     result = {'success': False, 'data': [], 'errors': [], 'title': None}
     max_links = 30
 
-    root_dir = os.path.abspath(os.path.dirname(__file__))
-    user_data_dir = os.path.join(root_dir, 'userDataDir')   
+    user_dir = '/tmp/playwright'
     
+    if not os.path.exists(user_dir):
+        os.makedirs(user_dir)
 
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch_persistent_context(
-                user_data_dir=user_data_dir,
-                headless=False,
-                bypass_csp=True, 
-                ignore_https_errors=True, 
-                accept_downloads=True,
-                slow_mo=20000,
-                args=['--disable-features=IsolateOrigins,site-per-process', '--no-first-run'], 
-                )
-            page = browser.pages[0] if browser.pages else browser.new_page()
-
+            # browser =  p.chromium.launch(headless=False, slow_mo=20)
+            browser = p.chromium.launch_persistent_context(user_dir, headless=False, slow_mo=2000)
             page =  browser.new_page()
-            page.goto(url, timeout=7000000)
-            page.wait_for_load_state("domcontentloaded", timeout=7000000)
-            
+            page.goto(url)
+            page.wait_for_load_state("domcontentloaded", timeout=70000)
             
             news_links = set()
             
@@ -70,6 +61,7 @@ def fetch_urls(url: str) -> Dict:
 def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id: int, bot_id: int, category_slack_channel) -> dict:
     
     print('--Execution started--')
+    max_links = 30
     result = {'success': False, 'links_fetched': 0, 'errors': []}
     fetch_result =  fetch_urls(url)
     
@@ -97,11 +89,14 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
         
         if 'message' in article_info:
             print(f'SUCCEED: {article_info["message"]}')
+        
+        if len(news_links) >= max_links:
+            break
     
     if len(result['errors']) == 0:
         result['success'] = True
     else:
-        print(f'Errors found during {str(bot_name).upper()} execution', result['errors'])
+        print(f'Length errors found during {str(bot_name).upper()} execution', result['errors'])
 
     return result
 
