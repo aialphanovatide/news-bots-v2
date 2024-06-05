@@ -26,6 +26,7 @@ class Category(db.Model):
     prompt = db.Column(db.String)
     is_active = db.Column(db.Boolean)
     border_color = db.Column(db.String)
+    updated_at = db.Column(db.TIMESTAMP)
     created_at = db.Column(db.TIMESTAMP)
 
     bots = db.relationship("Bot", backref="category", cascade="all, delete-orphan")

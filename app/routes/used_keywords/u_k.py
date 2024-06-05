@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta
-from config import UsedKeywords, db
+from config import Article, UsedKeywords, db
 
 
 news_bots_features_bp = Blueprint(
@@ -13,7 +13,7 @@ news_bots_features_bp = Blueprint(
 @news_bots_features_bp.route('/api/get_used_keywords_to_download', methods=['GET'])
 def get_used_keywords_to_download():
     try:
-        coin_bot_id = request.args.get('coin_bot_id', type=int)
+        bot_id = request.args.get('bot_id', type=int) 
         time_period = request.args.get('time_period', default='3d')
 
         end_date = datetime.now()
@@ -26,14 +26,15 @@ def get_used_keywords_to_download():
         else:
             return jsonify({"error": "Invalid time period provided"}), 400
 
-        used_keywords_query = db.query(UsedKeywords.keywords).filter(
-            UsedKeywords.coin_bot_id == coin_bot_id,
-            UsedKeywords.created_at >= start_date,
-            UsedKeywords.created_at <= end_date
+        # Realizar la consulta a la tabla Article
+        articles_query = db.session.query(Article.used_keywords).filter(
+            Article.bot_id == bot_id,
+            Article.created_at >= start_date,
+            Article.created_at <= end_date
         ).all()
 
         # Unify all keywords into a single string
-        all_keywords = ' '.join([kw.keywords for kw in used_keywords_query])
+        all_keywords = ' '.join([article.used_keywords for article in articles_query if article.used_keywords])
 
         # Split the string into a list of unique keywords
         unique_keywords = list(set(all_keywords.split(', ')))
@@ -45,8 +46,8 @@ def get_used_keywords_to_download():
 
     except Exception as e:
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
-
-
+    
+    
 
 # Define the GET route to fetch all used keywords
 @news_bots_features_bp.route('/api/get/used_keywords', methods=['GET'])

@@ -8,7 +8,6 @@ CREATE TABLE bot (
     updated_at TIMESTAMP
 );
 -- Crear la tabla 'category'
-
 CREATE TABLE category (
     id SERIAL PRIMARY KEY,
     name VARCHAR,

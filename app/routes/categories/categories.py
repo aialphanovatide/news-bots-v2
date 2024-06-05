@@ -108,3 +108,26 @@ def get_categories():
         response['error'] = f'Internal server error {str(e)}'
         return jsonify(response), 500
 
+# Get all bots
+@categories_bp.route('/get_all_bots', methods=['GET'])
+def get_bots():
+    response = {'data': None, 'error': None, 'success': False}
+    try:
+        categories = Category.query.order_by(Category.id).all()
+
+        bots = [
+            {
+                'category': category.name,
+                'isActive': category.is_active,
+                'alias': category.alias,
+                'icon': category.icon,
+                'updated_at': category.updated_at,
+                'color': category.border_color
+            } for category in categories
+        ]
+        response['data'] = {'bots': bots}
+        response['success'] = True
+        return jsonify(response), 200
+    except Exception as e:
+        response['error'] = f'Internal server error {str(e)}'
+        return jsonify(response), 500

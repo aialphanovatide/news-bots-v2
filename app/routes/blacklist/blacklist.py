@@ -44,6 +44,7 @@ def add_to_blacklist():
         data = request.json
         blacklist_entry = data.get('blacklist')
         bot_id = data.get('bot_id')
+        print()
 
         if not bot_id or not blacklist_entry:
             response['error'] = 'Bot ID or Blacklist entry missing in request data'
