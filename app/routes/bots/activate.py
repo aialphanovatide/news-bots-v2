@@ -22,6 +22,18 @@ def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, catego
             bot_id=bot_id,
             category_slack_channel=category_slack_channel
         )
+        try:
+            category = Category.query.filter_by(id=category_id).first()
+            if category:
+                category.updated_at = datetime.now()
+                db.session.commit()
+                print(f'{category_id} updated successfully')
+            else:
+                print(f'Category {category_id} not found in the database')
+        except Exception as e:
+            print(f'Error updating {category_id}: {str(e)}')
+    
+        
 
 
 @activate_bots_bp.route('/activate_all_categories', methods=['POST'])
