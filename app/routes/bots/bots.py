@@ -27,11 +27,12 @@ def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, catego
 
 # Get all available bots
 @bots_bp.route('/bots', methods=['GET'])
-def get_bots():
+def get_complete_bots():
     response = {'data': None, 'error': None, 'success': False}
     try:
         bots = Bot.query.all()
         bot_data = [bot.as_dict() for bot in bots]
+
 
         response['data'] = bot_data
         response['success'] = True
@@ -192,3 +193,123 @@ def delete_bot(bot_id):
 
     
     
+
+@bots_bp.route('/get_all_coin_bots', methods=['GET'])
+def get_all_coin_bots():
+    try:
+        coin_bots = db.session.query(Bot.id, Bot.name).all()
+            
+        coin_bots_data = [{'id': id, 'name': name } for id, name,  in coin_bots]
+        return jsonify({'success': True, 'coin_bots': coin_bots_data}), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bots_bp.route('/get_all_bots', methods=['GET'])
+def get_bots():
+    try:
+        categories = db.session.query(Category).order_by(Category.id).all()
+        
+        bots = [{'category': category.name, 'isActive': category.is_active, 
+                 'alias': category.alias, 'icon': category.icon, 'updated_at': category.updated_at , 'color': category.border_color} for category in categories]
+        return jsonify({'success': True, 'bots': bots}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'bots': [], 'error': str(e)}), 500
+
+@bots_bp.route('/activate_bot_by_id/<category_name>', methods=['POST'])
+def activate_bot_by_id(category_name):
+    response = {'data': None, 'error': None, 'success': False}
+    try:
+        # Fetch the category from the database
+        category = Category.query.filter_by(name=category_name).first()
+        if not category:
+            response['error'] = 'Category not found'
+            return jsonify(response), 404
+
+        # Check if the category is already active
+        category_interval = category.time_interval
+        category_slack_channel = category.slack_channel
+        if category.is_active:
+            response['message'] = f"{category_name} category is already active"
+            return jsonify(response), 200
+
+        # Fetch all bots associated with the category
+        bots = Bot.query.filter_by(category_id=category.id).all()
+
+        interval_base = 20  # Base interval in minutes
+
+        for index, bot in enumerate(bots):
+            # Fetch the associated site for the bot
+            site = Site.query.filter_by(bot_id=bot.id).first()
+            if not site or not site.url:
+                continue  # Skip if no site or site URL is found
+
+            # Prepare the necessary data for the bot
+            bot_site = site.url
+            bot_blacklist = [bl.name for bl in Blacklist.query.filter_by(bot_id=bot.id).all()]
+            bot_id = bot.id
+            bot_name = bot.name
+
+            # Calculate interval based on the index of the bot
+            minutes = interval_base + 10 * index
+
+            scheduler.add_job(
+                id=str(bot_name),
+                func=scheduled_job,
+                name=bot_name,
+                replace_existing=True,
+                args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category_slack_channel],
+                trigger='interval',
+                minutes=minutes
+            )
+            
+        # Set category as active
+        category.is_active = True
+        db.session.commit()
+
+        response['message'] = f'{category_name} category was activated successfully'
+        response['success'] = True
+        return jsonify(response), 200
+
+    except Exception as e:
+        db.session.rollback()
+        response['error'] = f"Error activating bots for category '{category_name}': {e}"
+        return jsonify(response), 500
+
+
+@bots_bp.route('/deactivate_bot_by_id/<category_name>', methods=['POST'])
+def deactivate_bot_by_id(category_name):
+    response = {'data': None, 'error': None, 'success': False}
+    try:
+        # Fetch the category from the database
+        category = Category.query.filter_by(name=category_name).first()
+        if not category:
+            response['error'] = 'Category not found'
+            return jsonify(response), 404
+        
+        # Remove bots from scheduler
+        bot_names = [bot.name for bot in Bot.query.filter_by(category_id=category.id).all()]
+
+        for name in bot_names:
+            schedule_job = scheduler.get_job(id=str(name))
+            if schedule_job:
+                scheduler.remove_job(id=str(name))
+
+        # Check if the category is already inactive
+        if not category.is_active:
+            response['message'] = f"{category_name} is already deactivated"
+            return jsonify(response), 200
+
+        # Set category as inactive
+        category.is_active = False
+        db.session.commit()  
+
+        response['message'] = f"{category_name} was deactivated successfully"
+        response['success'] = True
+        return jsonify(response), 200
+
+    except Exception as e:
+        db.session.rollback()
+        response['error'] = f"Error deactivating category '{category_name}': {e}"
+        return jsonify(response), 500
