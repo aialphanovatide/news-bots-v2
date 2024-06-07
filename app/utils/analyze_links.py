@@ -9,6 +9,8 @@ from config import Keyword, UnwantedArticle, Article, db
 from app.services.slack.actions import send_NEWS_message_to_slack_channel
 from app.services.perplexity.article_convert import article_perplexity_remaker
 from app.services.d3.dalle3 import generate_poster_prompt, resize_and_upload_image_to_s3
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 btc_slack_channel_id = 'C05RK7CCDEK'
 eth_slack_channel_id = 'C05URLDF3JP'
@@ -36,143 +38,177 @@ def clean_text(text):
     text = re.sub(r'\#\#\#', '', text, flags=re.MULTILINE)
     return text
 
-
-# validate a link against a list of keyword and then saves it to the DB
 def validate_and_save_article(news_link, article_title, article_content, category_id, bot_id, bot_name, category_slack_channel):
 
-        articles_saved = 0
-        unwanted_articles_saved = 0
+    articles_saved = 0
+    unwanted_articles_saved = 0
 
-        try:    
-                # Check if the URL has already been analyzed
-                existing_unwanted_article = UnwantedArticle.query.filter_by(bot_id=bot_id, url=news_link).first()
-                existing_article = Article.query.filter_by(bot_id=bot_id, url=news_link).first()
-    
-                if existing_unwanted_article or existing_article:
-                    return {'error': 'article already analyzed', 
-                            'articles_saved': articles_saved,
-                            'unwanted_articles_saved': unwanted_articles_saved}
-                else:
-                    # Retrieve keywords related to the bot from the database
-                    bot_keywords = Keyword.query.filter_by(bot_id=bot_id).all()
-                    bot_keyword_names = [keyword.name for keyword in bot_keywords]
+    try:    
+        # Check if the URL has already been analyzed
+        existing_unwanted_article = UnwantedArticle.query.filter_by(bot_id=bot_id, url=news_link).first()
+        existing_article = Article.query.filter_by(bot_id=bot_id, url=news_link).first()
 
-                    # Check for used keywords within the article content
-                    used_keywords = [keyword for keyword in bot_keyword_names if any(keyword.lower() in paragraph.lower() for paragraph in article_content)]
-             
-                if not used_keywords:
-     
-                    # Save article right away because there was no matched keywords
-                    unwanted_article = UnwantedArticle(
-                        title=article_title,
-                        content=article_content,
-                        url=news_link,
-                        date=datetime.now(),
-                        reason='article did not has any keyword',
-                        bot_id=bot_id,
-                        created_at=datetime.now(),
-                        updated_at=datetime.now()
-                    )
-                    db.session.add(unwanted_article)
-                    db.session.commit()
-                    
-                    unwanted_articles_saved += 1
-                    return {'error': f"article {article_title} didn't match any keyword", 
-                            'articles_saved': articles_saved,
-                            'unwanted_articles_saved': unwanted_articles_saved}
-                
-                # Perform perplexity summary on the article
-                perplexity_result = article_perplexity_remaker(content=article_content, 
-                                                            category_id=category_id)
-                
-                # if there's no summary, then return so the bot tries in the next execution
-                if perplexity_result['success'] == False:
-                    return {'error': f'There is no summary, perplexity error {perplexity_result["error"]}', 
-                            'articles_saved': articles_saved,
-                            'unwanted_articles_saved': unwanted_articles_saved}
-
-                new_article_summary = perplexity_result['response']
-                final_summary=clean_text(new_article_summary)
-                # Extract title from perplexity results, if present
-                title_match = re.search(r"\*\*(.*?)\*\*", final_summary)
-                new_article_title = article_title
-                if title_match and new_article_summary:
-                    new_article_title = title_match.group(1)
-                    new_article_summary = re.sub(r"\*\*.*?\*\*", "", new_article_summary, count=1).strip()
-                    
-                
-                # Check if the Content has already been analyzed
-                old_unwanted_article = UnwantedArticle.query.filter_by(bot_id=bot_id, title=new_article_title).first()
-                old_article = Article.query.filter_by(bot_id=bot_id, title=new_article_title).first()
-    
-                if old_unwanted_article or old_article:
-                    print("Article already Analyzed - - skipping")
-                    return {'error': 'article already analyzed', 
-                            'articles_saved': articles_saved,
-                            'unwanted_articles_saved': unwanted_articles_saved}
-                else:
-                    image = generate_poster_prompt(article=new_article_summary, bot_id=bot_id)
-                    # if image generation fails, then return so the bot tries in the next execution
-                    if image['success'] == False:
-                        return {'error': f'Image couldnt be generated: {image["error"]}', 
-                            'articles_saved': articles_saved,           
-                            'unwanted_articles_saved': unwanted_articles_saved}
-                    
-                    image = image['response']
-                    article_id = transform_string(new_article_title)
-                    image_filename = f"{article_id}.jpg"
-                    image_url=f'https://sitesnewsposters.s3.us-east-2.amazonaws.com/{image_filename}'     
-                                
-                    try:
-                        # Resize and upload the image to S3
-                        resized_image_url = resize_and_upload_image_to_s3(image, 'appnewsposters', image_filename)
-                        if resized_image_url['success'] == False:
-                            return {'error': f'Image couldnt be upload to AWS: {resized_image_url["error"]}', 
-                            'articles_saved': articles_saved,
-                            'unwanted_articles_saved': unwanted_articles_saved}
-                    except Exception as e:
-                        return {'error': 'Unexpected error while uploading image to AWS', 
-                            'articles_saved': articles_saved,
-                            'unwanted_articles_saved': unwanted_articles_saved}
-                    
-                    # Save the article to the database
-                    new_article = Article(
-                        title=new_article_title,
-                        content=final_summary,
-                        image=image_filename,
-                        date=datetime.now(),
-                        url=news_link,
-                        used_keywords=', '.join(used_keywords),
-                        bot_id=bot_id,
-                        created_at=datetime.now(),
-                        updated_at=datetime.now()
-                    )
-                    db.session.add(new_article)
-                    db.session.commit()
-                    articles_saved += 1
-
-                    channel_id = 'C071142J72R'
-                    if str(bot_name).casefold() == 'gold':
-                        channel_id = 'C074ZDTMYDA'
-                    
-                    # Notify on Slack about the article
-                    send_NEWS_message_to_slack_channel(channel_id=channel_id, 
-                                                    title=new_article_title,
-                                                    article_url=news_link,
-                                                    content=new_article_summary, 
-                                                    used_keywords=used_keywords, 
-                                                    image=image_url)
-                    
-                    return {'message': f'article {new_article_title} validated and saved', 
-                            'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
-                    
+        if existing_unwanted_article or existing_article:
+            return {'error': 'article already analyzed', 
+                    'articles_saved': articles_saved,
+                    'unwanted_articles_saved': unwanted_articles_saved}
         
-        except Exception as e:
-            return {'error': f"An unexpected error occurred during keyword validation: {str(e)}", 
+        # Ensure article_content is a single string
+        if isinstance(article_content, list):
+            article_content = " ".join(article_content)
+        
+        # Retrieve the last 10 articles
+        last_10_articles = Article.query.filter_by(bot_id=bot_id).order_by(Article.date.desc()).limit(10).all()
+        last_10_contents = [article.content for article in last_10_articles]
+
+        # Calculate cosine similarity
+        all_contents = last_10_contents + [article_content]
+        vectorizer = TfidfVectorizer().fit_transform(all_contents)
+        vectors = vectorizer.toarray()
+        cosine_matrix = cosine_similarity(vectors)
+        
+        # Check for high similarity
+        similarity_threshold = 0.8  # Define a threshold for high similarity
+        for i in range(len(last_10_contents)):
+            similarity_score = cosine_matrix[-1][i]
+            if similarity_score >= similarity_threshold:
+                unwanted_article = UnwantedArticle(
+                    title=article_title,
+                    content=article_content,
+                    url=news_link,
+                    date=datetime.now(),
+                    reason='article content too similar to recent articles',
+                    bot_id=bot_id,
+                    created_at=datetime.now(),
+                    updated_at=datetime.now()
+                )
+                db.session.add(unwanted_article)
+                db.session.commit()
+
+                unwanted_articles_saved += 1
+                return {'error': f"article {article_title} is too similar to a recent article", 
+                        'articles_saved': articles_saved,
+                        'unwanted_articles_saved': unwanted_articles_saved}
+                
+            else: print("Article will be sabed, not similarity match. Similarity Score: ", similarity_score)
+
+        # Retrieve keywords related to the bot from the database
+        bot_keywords = Keyword.query.filter_by(bot_id=bot_id).all()
+        bot_keyword_names = [keyword.name for keyword in bot_keywords]
+
+        # Check for used keywords within the article content
+        used_keywords = [keyword for keyword in bot_keyword_names if any(keyword.lower() in paragraph.lower() for paragraph in article_content.split())]
+
+        if not used_keywords:
+
+            # Save article right away because there was no matched keywords
+            unwanted_article = UnwantedArticle(
+                title=article_title,
+                content=article_content,
+                url=news_link,
+                date=datetime.now(),
+                reason='article did not has any keyword',
+                bot_id=bot_id,
+                created_at=datetime.now(),
+                updated_at=datetime.now()
+            )
+            db.session.add(unwanted_article)
+            db.session.commit()
+
+            unwanted_articles_saved += 1
+            return {'error': f"article {article_title} didn't match any keyword", 
+                    'articles_saved': articles_saved,
+                    'unwanted_articles_saved': unwanted_articles_saved}
+
+        # Perform perplexity summary on the article
+        perplexity_result = article_perplexity_remaker(content=article_content, 
+                                                        category_id=category_id)
+
+        # if there's no summary, then return so the bot tries in the next execution
+        if perplexity_result['success'] == False:
+            return {'error': f'There is no summary, perplexity error {perplexity_result["error"]}', 
+                    'articles_saved': articles_saved,
+                    'unwanted_articles_saved': unwanted_articles_saved}
+
+        new_article_summary = perplexity_result['response']
+        final_summary = clean_text(new_article_summary)
+        # Extract title from perplexity results, if present
+        title_match = re.search(r"\*\*(.*?)\*\*", final_summary)
+        new_article_title = article_title
+        if title_match and new_article_summary:
+            new_article_title = title_match.group(1)
+            new_article_summary = re.sub(r"\*\*.*?\*\*", "", new_article_summary, count=1).strip()
+
+        # Check if the Content has already been analyzed
+        old_unwanted_article = UnwantedArticle.query.filter_by(bot_id=bot_id, title=new_article_title).first()
+        old_article = Article.query.filter_by(bot_id=bot_id, title=new_article_title).first()
+
+        if old_unwanted_article or old_article:
+            print("Article already Analyzed - - skipping")
+            return {'error': 'article already analyzed', 
+                    'articles_saved': articles_saved,
+                    'unwanted_articles_saved': unwanted_articles_saved}
+        else:
+            image = generate_poster_prompt(article=new_article_summary, bot_id=bot_id)
+            # if image generation fails, then return so the bot tries in the next execution
+            if image['success'] == False:
+                return {'error': f'Image couldnt be generated: {image["error"]}', 
+                    'articles_saved': articles_saved,           
+                    'unwanted_articles_saved': unwanted_articles_saved}
+
+            image = image['response']
+            article_id = transform_string(new_article_title)
+            image_filename = f"{article_id}.jpg"
+            image_url = f'https://sitesnewsposters.s3.us-east-2.amazonaws.com/{image_filename}'     
+
+            try:
+                # Resize and upload the image to S3
+                resized_image_url = resize_and_upload_image_to_s3(image, 'appnewsposters', image_filename)
+                if resized_image_url['success'] == False:
+                    return {'error': f'Image couldnt be upload to AWS: {resized_image_url["error"]}', 
+                    'articles_saved': articles_saved,
+                    'unwanted_articles_saved': unwanted_articles_saved}
+            except Exception as e:
+                return {'error': 'Unexpected error while uploading image to AWS', 
+                    'articles_saved': articles_saved,
+                    'unwanted_articles_saved': unwanted_articles_saved}
+
+            # Save the article to the database
+            new_article = Article(
+                title=new_article_title,
+                content=final_summary,
+                image=image_filename,
+                date=datetime.now(),
+                url=news_link,
+                used_keywords=', '.join(used_keywords),
+                bot_id=bot_id,
+                created_at=datetime.now(),
+                updated_at=datetime.now()
+            )
+            db.session.add(new_article)
+            db.session.commit()
+            articles_saved += 1
+
+            channel_id = 'C071142J72R'
+            if str(bot_name).casefold() == 'gold':
+                channel_id = 'C074ZDTMYDA'
+
+            # Notify on Slack about the article
+            send_NEWS_message_to_slack_channel(channel_id=channel_id, 
+                                            title=new_article_title,
+                                            article_url=news_link,
+                                            content=new_article_summary, 
+                                            used_keywords=used_keywords, 
+                                            image=image_url)
+
+            return {'message': f'article {new_article_title} validated and saved', 
                     'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
 
-
-
+    except Exception as e:
+        return {'error': f"An unexpected error occurred during keyword validation: {str(e)}", 
+                'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
+        
+        
 def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: int, bot_name: str, category_slack_channel) -> Dict[str, Any]:
     try:
         # Initialize SSL context

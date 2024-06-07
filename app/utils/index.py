@@ -44,12 +44,10 @@ def fetch_urls(url: str) -> Dict:
                     result['title'] = title
                     try:
                         resolved_link = resolve_redirects_v2(url=full_link)
-                        print("resolved_link", resolved_link)
                         if resolved_link:
                             news_links.add(resolved_link)
                             if len(news_links) >= max_links:
                                 break
-                            print("news_links", news_links)
                     except Exception as e:
                         result['errors'].append(f"Error resolving redirects for {full_link}: {str(e)}")
             
