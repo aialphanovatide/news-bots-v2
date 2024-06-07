@@ -147,7 +147,7 @@ def activate_bots_by_category():
                 replace_existing=True,
                 args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category_slack_channel],
                 trigger='interval',
-                minutes=1
+                minutes=minutes
             )
             
         # Set category as active

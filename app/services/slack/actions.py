@@ -66,53 +66,61 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
             ]
         },
         {
-            "type": "actions",
-            "elements": [
-                {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "Green",
-                        "emoji": True
-                    },
-                    "value": "green",
-                    "action_id": "green"
-                },
-                {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "Yellow",
-                        "emoji": True
-                    },
-                    "value": "yellow",
-                    "action_id": "yellow"
-                },
-                {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "Red",
-                        "emoji": True
-                    },
-                    "value": "red",
-                    "action_id": "red"
-                }
-            ]
-        },
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"*Send to AI Alpha App*"
+			},
+			"accessory": {
+				"type": "button",
+				"text": {
+					"type": "plain_text",
+					"text": "ADD AS TOP STORY",
+					"emoji": True
+				},
+				"value": f"link_to_article: {article_url}",
+				"action_id": "add_to_top_story"
+			}
+		},
         {
             "dispatch_action": True,
-            "type": "input",
-            "element": {
-                "type": "plain_text_input",
-                "action_id": "additional_comments"
-            },
-            "label": {
-                "type": "plain_text",
-                "text": "Additional Comments",
-                "emoji": True
-            }
-        },
+			"type": "input",
+			"element": {
+				"type": "plain_text_input",
+				"action_id": "green"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "GREEN",
+				"emoji": True
+			}
+		},
+        {
+            "dispatch_action": True,
+			"type": "input",
+			"element": {
+				"type": "plain_text_input",
+				"action_id": "red"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "RED",
+				"emoji": True
+			}
+		},
+        {
+            "dispatch_action": True,
+			"type": "input",
+			"element": {
+				"type": "plain_text_input",
+				"action_id": "yellow"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "YELLOW",
+				"emoji": True
+			}
+		},
         {
             "type": "divider"
         }
