@@ -35,47 +35,48 @@ def get_blacklist_by_bot():
         response['error'] = f'Internal server error: {str(e)}'
         return jsonify(response), 500
     
-
 # Add an entry to the blacklist by bot_id
 @blacklist_bp.route('/add_to_blacklist', methods=['POST'])
 def add_to_blacklist():
-    response = {'data': None, 'error': None, 'success': False}
+    response = {'data': [], 'error': None, 'success': False}
     try:
         data = request.json
-        blacklist_entry = data.get('blacklist')
+        blacklist_entries = data.get('blacklist')
         bot_id = data.get('bot_id')
-        print()
 
-        if not bot_id or not blacklist_entry:
+        if not bot_id or not blacklist_entries:
             response['error'] = 'Bot ID or Blacklist entry missing in request data'
             return jsonify(response), 400
 
-        # Find the blacklist associated with the provided bot ID
-        existing_blacklist = Blacklist.query.filter_by(bot_id=bot_id, name=blacklist_entry.casefold()).first()
-        if existing_blacklist:
-            response['error'] = f'Blacklist entry "{blacklist_entry}" already exists for bot with ID {bot_id}'
-            return jsonify(response), 400
+        # Separar las frases por comas
+        entries = [entry.strip() for entry in blacklist_entries.split(',')]
 
-        # Add a new entry to the blacklist
-        new_entry = Blacklist(name=blacklist_entry, 
-                              bot_id=bot_id,
-                              created_at=datetime.now(),
-                              updated_at=datetime.now()
-                              )
-        db.session.add(new_entry)
+        for entry in entries:
+            # Verificar si ya existe la entrada en la lista negra
+            existing_blacklist = Blacklist.query.filter_by(bot_id=bot_id, name=entry.casefold()).first()
+            if existing_blacklist:
+                continue  # Saltar si la entrada ya existe
+
+            # Agregar una nueva entrada a la lista negra
+            new_entry = Blacklist(name=entry, 
+                                  bot_id=bot_id,
+                                  created_at=datetime.now(),
+                                  updated_at=datetime.now())
+            db.session.add(new_entry)
+
         db.session.commit()
 
-        # Prepare the success response with the data of the new blacklist entry
-        response['data'] = new_entry.as_dict()
+        # Preparar la respuesta exitosa con los datos de las nuevas entradas en la lista negra
+        new_entries = Blacklist.query.filter(Blacklist.name.in_(entries), Blacklist.bot_id == bot_id).all()
+        response['data'] = [entry.as_dict() for entry in new_entries]
         response['success'] = True
-        response['message'] = 'Entry added to blacklist successfully'
+        response['message'] = 'Entries added to blacklist successfully'
         return jsonify(response), 200
+
     except Exception as e:
         db.session.rollback()
         response['error'] = f'Internal server error: {str(e)}'
         return jsonify(response), 500
-
-
     
     
 # Delete an entry from the blacklist by ID

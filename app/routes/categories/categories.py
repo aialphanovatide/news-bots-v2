@@ -1,9 +1,17 @@
 from datetime import datetime
-from flask import Blueprint, jsonify
+import os
+from flask import Blueprint, json, jsonify
 from config import Category
 from flask import request
 from config import db
-import requests
+from dotenv import load_dotenv
+import boto3
+
+load_dotenv()
+
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+AWS_ACCESS = os.getenv('AWS_ACCESS')
+AWS_SECRET_KEY = os.getenv('AWS_SECRET_KEY')
 
 categories_bp = Blueprint(
     'categories_bp', __name__,
@@ -12,12 +20,19 @@ categories_bp = Blueprint(
 )
 
 # Create a new category
+
+s3 = boto3.client(
+            's3',
+            region_name='us-east-2',
+            aws_access_key_id=AWS_ACCESS,
+            aws_secret_access_key=AWS_SECRET_KEY
+        )
+
 @categories_bp.route('/add_new_category', methods=['POST'])
 def create_category():
-
     response = {'data': None, 'error': None, 'success': False}
     try:
-        data = request.get_json()
+        data = json.loads(request.form.get('data'))
 
         # Input validation for required fields
         required_fields = ['name', 'alias', 'prompt', 'time_interval', 'slack_channel']
@@ -26,13 +41,22 @@ def create_category():
             response['error'] = f'Missing required fields: {", ".join(missing_fields)}'
             return jsonify(response), 400
 
-        name = data['name']
-
         # Check if the category already exists
-        existing_category = Category.query.filter_by(name=str(name).casefold()).first()
+        existing_category = Category.query.filter_by(name=str(data['name']).casefold()).first()
         if existing_category:
-            response['error'] = f'Category {name} already exists'
+            response['error'] = f'Category {data["name"]} already exists'
             return jsonify(response), 400
+
+        # Upload the image to S3
+        if 'image' in request.files:
+            image_file = request.files['image']
+            image_filename = f'{data['alias']}.png'
+            print("image_filename", image_filename)
+            s3.upload_fileobj(image_file, 'aialphaicons', image_filename)
+            image_url = f'https://aialphaicons.s3.amazonaws.com/{image_filename}'
+            print("image_url", image_url)
+        else:
+            image_url = None
 
         # Create a new category
         new_category = Category(
@@ -43,7 +67,7 @@ def create_category():
             time_interval=data.get('time_interval', 3),
             is_active=data.get('is_active', False),
             border_color=data.get('border_color', None),
-            icon=data.get('icon', None),
+            icon=image_url,
             created_at=datetime.now(),
         )
 
@@ -59,6 +83,7 @@ def create_category():
         db.session.rollback()
         response['error'] = f'Internal server error {str(e)}'
         return jsonify(response), 500
+
 
 
 # Delete a category by ID
