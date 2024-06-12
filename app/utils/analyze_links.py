@@ -1,7 +1,7 @@
 import re
 import ssl
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from typing import Dict, Any, List
 from app.utils.helpers import transform_string
@@ -208,7 +208,6 @@ def validate_and_save_article(news_link, article_title, article_content, categor
         return {'error': f"An unexpected error occurred during keyword validation: {str(e)}", 
                 'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
         
-        
 def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: int, bot_name: str, category_slack_channel) -> Dict[str, Any]:
     try:
         # Initialize SSL context
@@ -238,13 +237,33 @@ def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: 
     
         # Extract article title
         title_element = html.find('h1')
-
         article_title = title_element.text.strip() if title_element else title  # Fallback to the passed title if h1 not found
 
         # Extract paragraphs from the article
         paragraphs = html.find_all('p')
-
         article_content = [p.text.strip() for p in paragraphs]
+
+        # Extract publication date
+        publication_date = None
+        date_elements = html.find_all(['span', 'date', 'time'])
+        for date_element in date_elements:
+            date_text = date_element.get('datetime') or date_element.text.strip()
+            try:
+                # Try to parse the date text
+                publication_date = datetime.strptime(date_text, '%b %d, %Y at %I:%M %p')
+                break  # Exit loop if date is successfully parsed
+            except (ValueError, TypeError):
+                try:
+                    # Try another common date format
+                    publication_date = datetime.strptime(date_text, '%Y-%m-%d')
+                    break
+                except (ValueError, TypeError):
+                    continue  # Continue if parsing fails
+
+        # Check if the publication date is within the last 24 hours
+        if publication_date and datetime.now() - publication_date > timedelta(days=1):
+            return {'success': False, 'url': news_link, 'title': article_title, 
+                    'paragraphs': article_content, 'error': 'Article is older than 24 hours'}
 
         # Validate and process the content
         result = validate_and_save_article(news_link, article_title, article_content, 
@@ -262,4 +281,3 @@ def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: 
     except Exception as e:
         return {'success': False, 'url': news_link, 'title': None, 
                     'paragraphs': [], 'error': f'Error while getting article content: {str(e)}'}
-
