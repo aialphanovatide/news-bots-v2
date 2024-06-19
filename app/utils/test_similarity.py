@@ -1,9 +1,14 @@
+import os
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import openai
+from dotenv import load_dotenv
 
-# Configura tu clave API de OpenAI
-api_key = "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"
+load_dotenv()
+
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+
+api_key = OPENAI_API_KEY
 
 
 def cosine_similarity_modified(content_1, content_2):
