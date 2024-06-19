@@ -190,5 +190,3 @@ def delete_bot(bot_id):
         response['error'] = f'Internal server error: {str(e)}'
         return jsonify(response), 500
 
-    
-    
