@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from typing import Dict, Any, List
 from app.utils.helpers import transform_string
+from app.utils.similarity import cosine_similarity_with_openai_classification
 from config import Blacklist, Keyword, UnwantedArticle, Article, db
 from app.services.slack.actions import send_NEWS_message_to_slack_channel
 from app.services.perplexity.article_convert import article_perplexity_remaker
@@ -38,6 +39,31 @@ def clean_text(text):
     text = re.sub(r'\#\#\#', '', text, flags=re.MULTILINE)
     return text
 
+def validate_yahoo_date(html: BeautifulSoup) -> bool:
+    """
+    Validate the freshness of a Yahoo article based on the <time> tag.
+
+    Args:
+        html (BeautifulSoup): Parsed HTML content.
+
+    Returns:
+        bool: True if the article is fresh (within the last 24 hours), False otherwise.
+    """
+    time_tag = html.find('time', {'datetime': True})
+    if time_tag:
+        date_time_str = time_tag['datetime']
+        try:
+            publication_date = datetime.strptime(date_time_str, '%Y-%m-%dT%H:%M:%S.%fZ')
+            # Check if the publication date is within the last 24 hours
+            if datetime.utcnow() - publication_date <= timedelta(days=1):
+                return True
+        except ValueError as e:
+            print(f"Error parsing date: {e}")
+    return False
+
+
+    
+
 def validate_and_save_article(news_link, article_title, article_content, category_id, bot_id, bot_name, category_slack_channel):
     articles_saved = 0
     unwanted_articles_saved = 0
@@ -60,36 +86,33 @@ def validate_and_save_article(news_link, article_title, article_content, categor
         last_10_articles = Article.query.filter_by(bot_id=bot_id).order_by(Article.date.desc()).limit(10).all()
         last_10_contents = [article.content for article in last_10_articles]
 
-        # Calculate cosine similarity
-        all_contents = last_10_contents + [article_content]
-        vectorizer = TfidfVectorizer().fit_transform(all_contents)
-        vectors = vectorizer.toarray()
-        cosine_matrix = cosine_similarity(vectors)
-        
-        # Check for high similarity
-        similarity_threshold = 0.8  # Define a threshold for high similarity
-        for i in range(len(last_10_contents)):
-            similarity_score = cosine_matrix[-1][i]
-            if similarity_score >= similarity_threshold:
-                unwanted_article = UnwantedArticle(
-                    title=article_title,
-                    content=article_content,
-                    url=news_link,
-                    date=datetime.now(),
-                    reason='article content too similar to recent articles',
-                    bot_id=bot_id,
-                    created_at=datetime.now(),
-                    updated_at=datetime.now()
-                )
-                db.session.add(unwanted_article)
-                db.session.commit()
+        # Check for high similarity using OpenAI cosine similarity function
+        for content in last_10_contents:
+            try:
+                similarity_score = cosine_similarity_with_openai_classification(content, article_content)
+                
+                # Ensure similarity_score is a valid number before proceeding
+                if similarity_score >= 0.9:
+                    unwanted_article = UnwantedArticle(
+                        title=article_title,
+                        content=article_content,
+                        url=news_link,
+                        date=datetime.now(),
+                        reason='article content too similar to recent articles',
+                        bot_id=bot_id,
+                        created_at=datetime.now(),
+                        updated_at=datetime.now()
+                    )
+                    db.session.add(unwanted_article)
+                    db.session.commit()
 
-                unwanted_articles_saved += 1
-                return {'error': f"article {article_title} is too similar to a recent article", 
-                        'articles_saved': articles_saved,
-                        'unwanted_articles_saved': unwanted_articles_saved}
-            else:
-                print("Article will be saved, no similarity match. Similarity Score: ", similarity_score)
+                    unwanted_articles_saved += 1
+                    return {'error': f"article {article_title} is too similar to a recent article", 
+                            'articles_saved': articles_saved,
+                            'unwanted_articles_saved': unwanted_articles_saved}
+            
+            except Exception as e:
+                print(f"Exception occurred during similarity check: {str(e)}")
 
         # Retrieve keywords related to the bot from the database
         bot_keywords = Keyword.query.filter_by(bot_id=bot_id).all()
@@ -210,8 +233,9 @@ def validate_and_save_article(news_link, article_title, article_content, categor
     except Exception as e:
         return {'error': f"An unexpected error occurred during keyword validation: {str(e)}", 
                 'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
+        
+        
 
-       
 def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: int, bot_name: str, category_slack_channel) -> Dict[str, Any]:
     try:
         # Initialize SSL context
@@ -239,6 +263,12 @@ def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: 
         # Parse HTML content with BeautifulSoup
         html = BeautifulSoup(text, 'html.parser')
     
+        # If the article is from Yahoo, validate the date
+        if 'yahoo' in news_link.lower():
+            if not validate_yahoo_date(html):
+                return {'success': False, 'url': news_link, 'title': title, 
+                        'paragraphs': [], 'error': 'Yahoo article is older than 24 hours'}
+
         # Extract article title
         title_element = html.find('h1')
         article_title = title_element.text.strip() if title_element else title  # Fallback to the passed title if h1 not found
@@ -247,7 +277,7 @@ def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: 
         paragraphs = html.find_all('p')
         article_content = [p.text.strip() for p in paragraphs]
 
-        # Extract publication date
+        # Extract publication date (general approach)
         publication_date = None
         date_elements = html.find_all(['span', 'date', 'time'])
         for date_element in date_elements:

@@ -5,8 +5,10 @@ from playwright.sync_api import sync_playwright
 from app.utils.analyze_links import fetch_article_content
 import os
 
+
 # Get all urls from a source
 def fetch_urls(url: str) -> Dict:
+    print("1 STARTING FETCH URLS.")
     base_url = "https://news.google.com"
     result = {'success': False, 'data': [], 'errors': [], 'title': None}
     max_links = 30
@@ -15,31 +17,28 @@ def fetch_urls(url: str) -> Dict:
     user_data_dir = os.path.join(root_dir, 'tmp/playwright')
 
     if not os.path.exists(user_data_dir):
-        os.makedirs(user_data_dir, exist_ok=True)  
-    
-    if not os.path.exists(user_data_dir):
-        os.makedirs(user_data_dir)
+        os.makedirs(user_data_dir, exist_ok=True)
 
     try:
         with sync_playwright() as p:
-            # browser =  p.chromium.launch(headless=False, slow_mo=20)
             browser = p.chromium.launch_persistent_context(user_data_dir, headless=False, slow_mo=2000)
-            page =  browser.new_page()
+
+            page = browser.new_page()
             page.goto(url)
             page.wait_for_load_state("domcontentloaded", timeout=70000)
-            
+
             news_links = set()
-            
+
             # Extract links to news articles
-            links =  page.query_selector_all('a[href*="/articles/"]')
-        
+            links = page.query_selector_all('a[href*="/articles/"]')
+
             for link in links:
-                href =  link.get_attribute('href')
-                title =  link.text_content()
-                print('Title: ', title)
-                
+                href = link.get_attribute('href')
+                title = link.text_content().strip()
+                print('Title:', title)
+
                 # Verify title
-                if title and title.strip():
+                if title:
                     full_link = base_url + href
                     result['title'] = title
                     try:
@@ -50,14 +49,15 @@ def fetch_urls(url: str) -> Dict:
                                 break
                     except Exception as e:
                         result['errors'].append(f"Error resolving redirects for {full_link}: {str(e)}")
-            
+
             result['data'] = list(news_links)
-            result['success'] = True if len(news_links) > 0 else False
+            result['success'] = len(news_links) > 0
 
             browser.close()
             return result
 
     except Exception as e:
+        print(f"Exception in fetch_urls: {str(e)}")
         return {'success': False, 'data': [], 'errors': [str(e)]}
 
 
