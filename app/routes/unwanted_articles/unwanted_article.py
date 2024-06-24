@@ -15,14 +15,13 @@ def get_unwanted_articles_by_bot():
     try:
         bot_id = request.args.get('bot_id')
 
-        if not bot_id:
-            response['error'] = 'Bot ID missing in request data'
-            return jsonify(response), 400
-
-        unwanted_articles = UnwantedArticle.query.filter_by(bot_id=bot_id).all()
+        if bot_id:
+            unwanted_articles = UnwantedArticle.query.filter_by(bot_id=bot_id).all()
+        else:
+            unwanted_articles = UnwantedArticle.query.all()
 
         if not unwanted_articles:
-            response['error'] = 'No unwanted articles found for the specified bot ID'
+            response['error'] = 'No unwanted articles found' + (f' for the specified bot ID: {bot_id}' if bot_id else '')
             return jsonify(response), 404
 
         unwanted_article_data = [article.as_dict() for article in unwanted_articles]
