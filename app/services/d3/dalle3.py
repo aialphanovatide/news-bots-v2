@@ -12,11 +12,14 @@
 import os
 import json
 import boto3
+from flask import session
 import requests
 from PIL import Image
 from io import BytesIO
 from openai import OpenAI
 from dotenv import load_dotenv
+
+from config import Bot
 
 load_dotenv()
 
@@ -47,13 +50,15 @@ def generate_poster_prompt(article, bot_id):
     
     final_prompt = poster_response_prompt.choices[0].message.content[:450]
     
+    bot_record = Bot.query.filter_by(id=bot_id).first()
     
-    if 1 <= bot_id <= 39:
-        postfinalprompt = 'depicting an anime style.'
+    
+    if bot_record:
+        postfinalprompt = bot_record.dalle_prompt
     else:
         postfinalprompt = 'Generate realistic, photograph-style images, using natural lighting and a professional color palette to convey credibility and authority.'
 
-   
+    print("Final Phrase: ", postfinalprompt)
 
     headers = {
         'Content-Type': 'application/json',
