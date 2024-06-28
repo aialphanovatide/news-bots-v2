@@ -19,7 +19,7 @@ categories_bp = Blueprint(
     static_folder='static'
 )
 
-# Create a new category
+
 
 s3 = boto3.client(
             's3',
@@ -27,7 +27,7 @@ s3 = boto3.client(
             aws_access_key_id=AWS_ACCESS,
             aws_secret_access_key=AWS_SECRET_KEY
         )
-
+# Create a new category
 @categories_bp.route('/add_new_category', methods=['POST'])
 def create_category():
     response = {'data': None, 'error': None, 'success': False}
