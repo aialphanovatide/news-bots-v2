@@ -8,6 +8,7 @@ from app.services.perplexity.article_convert import article_perplexity_remaker
 from app.services.d3.dalle3 import generate_poster_prompt
 import boto3
 import requests
+from PIL import Image
 from io import BytesIO
 from dotenv import load_dotenv
 
@@ -144,13 +145,7 @@ def create_article():
             response['error'] = 'Failed to download image from DALL·E 3'
             print(response['error'])
             return jsonify(response), 500
-
-        image_data = image_response.content
-
-        # Upload the generated image to S3
-        image_filename = f'{data["title"].replace(" ", "_")}.png'  # File name based on the article title
-        s3_bucket_name = 'sitesnewsposters'  # Your S3 bucket name
-
+        
         # Connect to AWS S3
         s3 = boto3.client(
             's3',
@@ -158,7 +153,25 @@ def create_article():
             aws_access_key_id=AWS_ACCESS,
             aws_secret_access_key=AWS_SECRET_KEY
         )
+
+        image_data = image_response.content
+        target_size=(512, 512)
         
+        # Upload the generated image to S3 
+        image_filename = f'{data["title"].replace(" ", "_")}.png'  # File name based on the article title
+        s3_bucket_name = 'sitesnewsposters'  # Your S3 bucket name
+        app_bucket_name = ''
+        image = Image.open(BytesIO(image_data))
+        
+        # Uploads the same image to the specified Bucket for the APP
+        resized_image = image.resize(target_size)
+        with BytesIO() as output:
+            resized_image.save(output, format="JPEG")
+            output.seek(0)
+            s3.upload_fileobj(output, app_bucket_name, image_filename)
+            print("Image generated successfully and upload to APP S3 Bucket.")
+
+
         try:
             s3.upload_fileobj(BytesIO(image_data), s3_bucket_name, image_filename)
         except Exception as e:
