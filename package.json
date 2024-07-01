@@ -1,0 +1,14 @@
+{
+  "name": "news-bots-v2",
+  "version": "1.0.0",
+  "description": "In Flask development, handling the database structure securely and efficiently is crucial. Flask-Migrate, integrated with Alembic, facilitates this process through specific commands that allow versioning and modification of the database schema. Below are the key commands for working with Flask-Migrate.",
+  "main": "index.js",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.45.0",
+    "@types/node": "^20.14.9"
+  }
+}
