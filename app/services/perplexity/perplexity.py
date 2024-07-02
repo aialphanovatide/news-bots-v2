@@ -7,7 +7,7 @@ load_dotenv()
 PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY")
 
 
-def perplexity_api_request(content, prompt, model='llama-3-sonar-large-32k-online'):
+def perplexity_api_request(content, prompt, model):
     url = "https://api.perplexity.ai/chat/completions"
 
     if not content or not prompt:
@@ -50,6 +50,6 @@ def perplexity_api_request(content, prompt, model='llama-3-sonar-large-32k-onlin
     
 
 # Example usage
-# Prompt = 'Be precise and concise'
-# content = 'What is a matrix?'
-# print(perplexity_api_request(content=content, prompt=Prompt))
+Prompt = 'Be precise and concise'
+content = 'go to this google document: https://docs.google.com/document/d/1kppE_iNncp7BeNEYE9gsnhQp7lNwDLM316K8V6urV9o/edit?usp=sharing , and make a summary?'
+print(perplexity_api_request(content=content, prompt=Prompt, model='llama-3-70b-instruct'))

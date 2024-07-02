@@ -1,6 +1,6 @@
 import os
-import re
 from flask import Blueprint, json, jsonify, request
+from app.services.perplexity.perplexity import perplexity_api_request
 from app.utils.analyze_links import clean_text
 from config import Article, db
 from datetime import datetime
@@ -11,6 +11,9 @@ import requests
 from PIL import Image
 from io import BytesIO
 from dotenv import load_dotenv
+from playwright.sync_api import sync_playwright
+import re
+
 
 load_dotenv()
 
@@ -23,7 +26,15 @@ articles_bp = Blueprint(
     static_folder='static'
 )
 
+root_dir = os.path.abspath(os.path.dirname(__file__))
+user_data_dir = os.path.join(root_dir, 'tmp/playwright')
+
+if not os.path.exists(user_data_dir):
+    os.makedirs(user_data_dir, exist_ok=True)
+
 # Get all articles
+
+
 @articles_bp.route('/get_all_articles', methods=['GET'])
 def get_all_articles():
 
@@ -37,7 +48,7 @@ def get_all_articles():
         articles = Article.query.limit(limit).all()
         if not articles:
             response['message'] = 'No articles found'
-            
+
             response['success'] = True
             return jsonify(response), 200
 
@@ -48,17 +59,18 @@ def get_all_articles():
         response['error'] = f'Internal server error: {str(e)}'
         return jsonify(response), 500
 
+
 @articles_bp.route('/get_article_by_id/<int:article_id>', methods=['GET'])
 def get_article_by_id(article_id):
     response = {'data': None, 'error': None, 'success': False}
     try:
         article = Article.query.filter_by(id=article_id).first()
-        
+
         if not article:
             response['error'] = 'No article found for the specified article ID'
             return jsonify(response), 404
 
-        response['data'] = article.as_dict()  
+        response['data'] = article.as_dict()
         response['success'] = True
         return jsonify(response), 200
 
@@ -93,7 +105,6 @@ def get_articles_by_bot():
         return jsonify(response), 500
 
 
-
 # Delete an article by ID
 @articles_bp.route('/delete_article', methods=['DELETE'])
 def delete_article():
@@ -121,20 +132,23 @@ def delete_article():
         db.session.rollback()
         response['error'] = f'Internal server error: {str(e)}'
         return jsonify(response), 500
-    
+
 
 @articles_bp.route('/add_new_article', methods=['POST'])
 def create_article():
     response = {'data': None, 'error': None, 'success': False}
-    
+
     try:
         data = request.get_json()  # Get data directly from the request body
-        
+
         # Validate required fields
-        required_fields = ['title', 'content', 'analysis', 'used_keywords', 'is_article_efficent', 'bot_id', 'category_id', 'image']
-        missing_fields = [field for field in required_fields if field not in data]
+        required_fields = ['title', 'content', 'analysis', 'used_keywords',
+            'is_article_efficent', 'bot_id', 'category_id', 'image']
+        missing_fields = [
+            field for field in required_fields if field not in data]
         if missing_fields:
-            response['error'] = f'Missing required fields: {", ".join(missing_fields)}'
+            response['error'] = f'Missing required fields: {
+                ", ".join(missing_fields)}'
             print(response['error'])
             return jsonify(response), 400
 
@@ -145,7 +159,7 @@ def create_article():
             response['error'] = 'Failed to download image from DALL·E 3'
             print(response['error'])
             return jsonify(response), 500
-        
+
         # Connect to AWS S3
         s3 = boto3.client(
             's3',
@@ -155,14 +169,15 @@ def create_article():
         )
 
         image_data = image_response.content
-        target_size=(512, 512)
-        
-        # Upload the generated image to S3 
-        image_filename = f'{data["title"].replace(" ", "_")}.png'  # File name based on the article title
+        target_size = (512, 512)
+
+        # Upload the generated image to S3
+        # File name based on the article title
+        image_filename = f'{data["title"].replace(" ", "_")}.png'
         s3_bucket_name = 'sitesnewsposters'  # Your S3 bucket name
         app_bucket_name = ''
         image = Image.open(BytesIO(image_data))
-        
+
         # Uploads the same image to the specified Bucket for the APP
         resized_image = image.resize(target_size)
         with BytesIO() as output:
@@ -171,16 +186,17 @@ def create_article():
             s3.upload_fileobj(output, app_bucket_name, image_filename)
             print("Image generated successfully and upload to APP S3 Bucket.")
 
-
         try:
-            s3.upload_fileobj(BytesIO(image_data), s3_bucket_name, image_filename)
+            s3.upload_fileobj(BytesIO(image_data),
+                              s3_bucket_name, image_filename)
         except Exception as e:
             response['error'] = f'Failed to upload image to S3: {str(e)}'
             print(response['error'])
             return jsonify(response), 500
 
         # Construct the full URL of the image in S3
-        image_url_s3 = f'https://{s3_bucket_name}.s3.us-east-2.amazonaws.com/{image_filename}'
+        image_url_s3 = f'https://{
+            s3_bucket_name}.s3.us-east-2.amazonaws.com/{image_filename}'
 
         # Create a new article object
         current_time = datetime.now()
@@ -214,32 +230,37 @@ def create_article():
         response['error'] = f'Internal server error {str(e)}'
         return jsonify(response), 500
 
+
 @articles_bp.route('/generate_article', methods=['POST'])
 def generate_article():
     response = {'data': None, 'error': None, 'success': False}
-    
+
     try:
         data = request.get_json()
-        
+
         # Validate required fields
         required_fields = ['content', 'category_id']
-        missing_fields = [field for field in required_fields if field not in data]
+        missing_fields = [
+            field for field in required_fields if field not in data]
         if missing_fields:
-            response['error'] = f'Missing required fields: {", ".join(missing_fields)}'
+            response['error'] = f'Missing required fields: {
+                ", ".join(missing_fields)}'
             return jsonify(response), 400
 
         # Generate article summary using perplexity model
-        perplexity_result = article_perplexity_remaker(data['content'], data['category_id'])
+        perplexity_result = article_perplexity_remaker(
+            data['content'], data['category_id'])
         if not perplexity_result['success']:
             response['error'] = perplexity_result['error']
             return jsonify(response), 400
 
         new_article_summary = perplexity_result['response']
-        
+
         # Clean and process the article summary
         final_summary = clean_text(new_article_summary)
-        final_summary = '\n'.join(line.lstrip('- ').strip() for line in final_summary.split('\n'))
-        
+        final_summary = '\n'.join(line.lstrip('- ').strip()
+                                  for line in final_summary.split('\n'))
+
         # Extract title and content from the processed summary
         first_line_end = final_summary.find('\n')
         if first_line_end != -1:
@@ -262,23 +283,26 @@ def generate_article():
         response['error'] = f'Internal server error {str(e)}'
         return jsonify(response), 500
 
+
 @articles_bp.route('/generate_image', methods=['POST'])
 def generate_image():
     response = {'data': None, 'error': None, 'success': False}
-    
+
     try:
         data = request.get_json()
-        
+
         # Validate required fields
         required_fields = ['content', 'bot_id']
-        missing_fields = [field for field in required_fields if field not in data]
+        missing_fields = [
+            field for field in required_fields if field not in data]
         if missing_fields:
-            response['error'] = f'Missing required fields: {", ".join(missing_fields)}'
+            response['error'] = f'Missing required fields: {
+                ", ".join(missing_fields)}'
             return jsonify(response), 400
 
         # Clean the content to get a final summary
         final_summary = clean_text(data['content'])
-        
+
         # Extract the title from the cleaned summary
         first_line_end = final_summary.find('\n')
         if first_line_end != -1:
@@ -304,3 +328,73 @@ def generate_image():
         # Handle any internal server errors
         response['error'] = f'Internal server error {str(e)}'
         return jsonify(response), 500
+
+
+def remove_first_last_line(text):
+    # Split the text into lines
+    lines = text.strip().splitlines()
+
+    # Remove the first and last line if there are more than one line
+    if len(lines) > 1:
+        lines = lines[2:-2]
+
+    # Join the remaining lines back into a single text
+    cleaned_text = '\n'.join(lines)
+
+    return cleaned_text
+
+def extract_text_from_google_docs(link):
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch_persistent_context(
+                user_data_dir, headless=True, slow_mo=2000)
+            page = browser.new_page()
+            page.goto(link)
+            page.wait_for_load_state("domcontentloaded", timeout=70000)
+            # Seleccionar todo el contenido del documento
+            if os.name == 'posix':  # macOS o Linux
+                page.keyboard.press('Meta+A')
+                page.keyboard.press('Meta+C')
+            else:  # Windows
+                page.keyboard.press('Control+A')
+                page.keyboard.press('Control+C')
+            # Obtener el contenido del portapapeles
+            content = page.evaluate("navigator.clipboard.readText()")
+            browser.close()
+            return content
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        return None
+
+
+@articles_bp.route('/extract_content', methods=['POST'])
+def extract_content():
+    try:
+        data = request.json
+        extract_type = data.get('extract_type')
+        content = data.get('content')
+        link = data.get('link')
+
+        if extract_type == 'link':
+            prompt = "You are an assistant to scrap text from a news/article link."
+            content = f" Please got to {link} and scrape the article text from the news/article"
+        elif extract_type == 'google_docs':
+            content = extract_text_from_google_docs(link)
+            print("content: ", content)
+            prompt = "You are an assistant to create a summary about news"
+            content = f" Please create a summary for the following content: {content}"
+        else:
+            return jsonify({'response': 'Invalid extract type', 'success': False})
+        
+        result = perplexity_api_request(content, prompt, model='llama-3-70b-instruct')
+        print("result: ", result)
+
+        # Assuming result.response contains the scraped or summarized text
+        if 'response' in result and isinstance(result['response'], str):
+            # Clean the response text
+            cleaned_response = remove_first_last_line(result['response'])
+            result['response'] = cleaned_response  # Update the cleaned response
+        
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'response': f'An error occurred: {str(e)}', 'success': False}), 500
