@@ -275,12 +275,22 @@ def generate_article():
         else:
             new_article_title = final_summary.strip()
             final_summary = ""
+            
+                # Extract title and content from the processed summary
+        lines = final_summary.split('\n')
+        if lines:
+            new_article_title = lines[0].strip()  # Use the first line as the title
+            final_summary = '\n'.join(lines[1:]).strip()  # Join remaining lines as content
 
+        final_title=new_article_title.replace("Headline: ", "")
+        
         # Prepare response data with title and content
         response['data'] = {
-            'title': new_article_title,
+            'title': final_title,
             'content': final_summary
         }
+
+        print("title and content: ", final_title, final_summary)
         response['success'] = True
         return jsonify(response), 200
 
