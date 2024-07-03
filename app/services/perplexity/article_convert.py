@@ -18,6 +18,8 @@ def article_perplexity_remaker(content, category_id):
         if not bot_prompt:
             return {'error': "Bot Prompt not found", 'success': False}
         
+        bot_prompt = bot_prompt + "please NEVER include pharases like 'Here is a rewritten headline and summary of the article:' or similar at the start of the article."
+        
         perplexity_response = perplexity_api_request(final_content, bot_prompt)
         if perplexity_response['success']:
             return {'response': perplexity_response['response'], 'success': True}
@@ -27,4 +29,3 @@ def article_perplexity_remaker(content, category_id):
     except Exception as e:
         return {'error': f"Error at: {str(e)}", 'success': False}
 
-    
