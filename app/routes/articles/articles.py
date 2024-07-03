@@ -396,27 +396,23 @@ def extract_content():
         link = data.get('link')
 
         if extract_type == 'link':
-            prompt = "You are an assistant to scrap text from a news/article link."
-            content = f" Please got to {link} and scrape the article text from the news/article"
+            prompt = "You are an assistant to create a summary about news"
+            result = perplexity_api_request(content, prompt)
+
+            if 'response' in result and isinstance(result['response'], str):
+                response_text = result['response']
+                if response_text:
+                    cleaned_response = clean_response(response_text)
+                    result['response'] = cleaned_response
+                    print("cleaned_response: ", cleaned_response)
         elif extract_type == 'google_docs':
             content = extract_text_from_google_docs(link)
-            print("content que llega: ", content)
-            prompt = "You are an assistant to create a summary about news"
-            content = f" Please create a summary for the following content: {content}"
+            result = {'response': content, 'success': True}
+            print("content: ", content)
         else:
             return jsonify({'response': 'Invalid extract type', 'success': False})
-        
-        result = perplexity_api_request(content, prompt)
-        print("result de perplexity: ", result)
-        
-        # Assuming result.response contains the scraped or summarized text
-        if 'response' in result and isinstance(result['response'], str):
-            response_text = result['response']
-            if response_text:
-                # Clean the response text
-                cleaned_response = clean_response(response_text)
-                result['response'] = cleaned_response  # Update the cleaned response
-                print("cleaned_response: ", cleaned_response)
+
         return jsonify(result), 200
     except Exception as e:
         return jsonify({'response': f'An error occurred: {str(e)}', 'success': False}), 500
+
