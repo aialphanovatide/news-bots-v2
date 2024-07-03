@@ -246,8 +246,7 @@ def generate_article():
 
         # Validate required fields
         required_fields = ['content', 'category_id']
-        missing_fields = [
-            field for field in required_fields if field not in data]
+        missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
             response['error'] = f'Missing required fields: {
                 ", ".join(missing_fields)}'
@@ -377,15 +376,16 @@ def extract_text_from_google_docs(link):
 
 def clean_response(response):
     """
-    Erase first line from perplexity.
+    Erase the first and last lines from the response.
     """
     if response:
         lines = response.split('\n')
-        if len(lines) > 1:
-            return '\n'.join(lines[1:])
+        if len(lines) > 2:
+            return '\n'.join(lines[1:-1])
         else:
             return ''
     return response
+
 
 @articles_bp.route('/extract_content', methods=['POST'])
 def extract_content():
@@ -397,7 +397,9 @@ def extract_content():
 
         if extract_type == 'link':
             prompt = "You are an assistant to create a summary about news"
+            content = f" Please go to {link} and scrape the article text from the news/article"
             result = perplexity_api_request(content, prompt)
+            print("result",result)
 
             if 'response' in result and isinstance(result['response'], str):
                 response_text = result['response']
