@@ -7,7 +7,7 @@ def article_perplexity_remaker(content, category_id):
         if not content or not category_id:
             return {'error': 'content and category ID are required', 'success': False}
         
-        final_content = f'In less than 1800 characters, please write an infomative article refered to this content: {content}'
+        final_content = f'In less than 4000 characters, please write an infomative article refered to this content: {content}'
         
         category = Category.query.filter(Category.id == category_id).first()
 

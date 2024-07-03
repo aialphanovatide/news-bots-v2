@@ -7,12 +7,16 @@ load_dotenv()
 PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY")
 
 
-def perplexity_api_request(content, prompt, model):
+def perplexity_api_request(content, prompt):
+    print("content: ", content )
+    print("prompt: ", prompt )
     url = "https://api.perplexity.ai/chat/completions"
 
     if not content or not prompt:
         return {'response': 'content and prompt are required', 'success': False}
-
+    
+    model='llama-3-70b-instruct'
+    
     payload = {
         "model": model,
         "messages": [
@@ -47,9 +51,3 @@ def perplexity_api_request(content, prompt, model):
     
     except Exception as e:
         return {'response': f'Perplexity failed: {str(e)}', 'success': False}
-    
-
-# Example usage
-Prompt = 'Be precise and concise'
-content = 'go to this google document: https://docs.google.com/document/d/1kppE_iNncp7BeNEYE9gsnhQp7lNwDLM316K8V6urV9o/edit?usp=sharing , and make a summary?'
-print(perplexity_api_request(content=content, prompt=Prompt, model='llama-3-70b-instruct'))
