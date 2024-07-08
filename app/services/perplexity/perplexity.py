@@ -8,8 +8,6 @@ PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY")
 
 
 def perplexity_api_request(content, prompt):
-    print("content: ", content )
-    print("prompt: ", prompt )
     url = "https://api.perplexity.ai/chat/completions"
 
     if not content or not prompt:
@@ -51,3 +49,9 @@ def perplexity_api_request(content, prompt):
     
     except Exception as e:
         return {'response': f'Perplexity failed: {str(e)}', 'success': False}
+    
+    
+    
+    
+    
+
