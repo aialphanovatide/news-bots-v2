@@ -2,7 +2,7 @@ import os
 from flask import Blueprint, json, jsonify, request
 from app.services.perplexity.perplexity import perplexity_api_request
 from app.utils.analyze_links import clean_text
-from config import Article, db
+from config import Article, Bot, db
 from datetime import datetime
 from app.services.perplexity.article_convert import article_perplexity_remaker
 from app.services.d3.dalle3 import generate_poster_prompt
@@ -83,15 +83,23 @@ def get_article_by_id(article_id):
 # Get all articles of a Bot
 @articles_bp.route('/get_articles', methods=['GET'])
 def get_articles_by_bot():
-
     response = {'data': None, 'error': None, 'success': False}
     try:
         bot_id = request.args.get('bot_id')
+        bot_name = request.args.get('bot_name')
         limit = int(request.args.get('limit', 10))
 
-        if not bot_id:
-            response['error'] = 'Missing bot ID in request data'
+        if not bot_id and not bot_name:
+            response['error'] = 'Missing bot ID or bot name in request data'
             return jsonify(response), 400
+
+        # If bot_name is provided, find the corresponding bot_id
+        if bot_name:
+            bot = Bot.query.filter_by(name=bot_name).first()
+            if not bot:
+                response['error'] = 'No bot found with the specified bot name'
+                return jsonify(response), 404
+            bot_id = bot.id
 
         articles = Article.query.filter_by(bot_id=bot_id).limit(limit).all()
         if not articles:
@@ -104,6 +112,7 @@ def get_articles_by_bot():
     except Exception as e:
         response['error'] = f'Internal server error: {str(e)}'
         return jsonify(response), 500
+
 
 
 # Delete an article by ID
