@@ -184,7 +184,8 @@ def validate_and_save_article(news_link, article_title, article_content, categor
 
         image = image['response']
         article_id = transform_string(new_article_title)
-        image_filename = f"{article_id}.jpg"
+        final_filename = re.sub(r'[^a-zA-Z0-9]', '', article_id)
+        image_filename = f"{final_filename}.jpg"
         image_url = f'https://sitesnewsposters.s3.us-east-2.amazonaws.com/{image_filename}'     
 
         try:
