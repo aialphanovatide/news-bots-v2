@@ -175,6 +175,29 @@ def delete_article():
         response['error'] = f'Internal server error: {str(e)}'
         return jsonify(response), 500
 
+
+#dashboard searchtool. 
+@articles_bp.route('/get_last_articles', methods=['GET'])
+def get_last_articles():
+    response = {'data': None, 'error': None, 'success': False}
+    try:
+        limit = int(request.args.get('limit', 50))
+
+        if limit < 1:
+            response['error'] = 'Limit must be a positive integer'
+            return jsonify(response), 400
+
+        articles = Article.query.order_by(Article.date.desc()).limit(limit).all()
+        if not articles:
+            response['message'] = 'No articles found'
+            response['success'] = True
+            return jsonify(response), 200
+
+        response['data'] = [article.as_dict() for article in articles]
+        response['success'] = True
+        return jsonify(response), 200
+    except Exception as e:
+        response['error'] = f'Internal server error: {str(e)}'
 @articles_bp.route('/add_new_article', methods=['POST'])
 def create_article():
     """

@@ -153,3 +153,14 @@ def delete_keyword_from_bot():
         db.session.rollback()
         response['error'] = f'Internal server error: {str(e)}'
         return jsonify(response), 500
+
+
+@keyword_bp.route('/get_keywords_for_coin_bot/<int:coin_bot_id>', methods=['GET'])
+def get_keywords_for_coin_bot(coin_bot_id):
+    try:
+        keywords = db.session.query(Keyword).filter_by(bot_id=coin_bot_id).all()
+        keywords_data = [{'id': keyword.id, 'word': keyword.name} for keyword in keywords]
+        return jsonify({'success': True, 'keywords': keywords_data}), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
