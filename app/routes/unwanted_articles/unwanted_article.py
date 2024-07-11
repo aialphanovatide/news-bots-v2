@@ -1,6 +1,7 @@
 from datetime import datetime
 from flask import Blueprint, jsonify, request
 from config import UnwantedArticle, db
+from sqlalchemy.exc import SQLAlchemyError
 
 unwanted_articles_bp = Blueprint(
     'unwanted_articles_bp', __name__,
@@ -11,6 +12,15 @@ unwanted_articles_bp = Blueprint(
 # Get unwanted articles by bot ID
 @unwanted_articles_bp.route('/get_unwanted_articles', methods=['GET'])
 def get_unwanted_articles_by_bot():
+    """
+    Retrieves unwanted articles filtered by bot_id from the database.
+
+    Args:
+        bot_id (str): Bot ID to filter unwanted articles.
+
+    Returns:
+        JSON: Response with unwanted article data or error message.
+    """
     response = {'data': None, 'error': None, 'success': False}
     try:
         bot_id = request.args.get('bot_id')
@@ -29,25 +39,34 @@ def get_unwanted_articles_by_bot():
         response['data'] = unwanted_article_data
         response['success'] = True
         return jsonify(response), 200
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        response['error'] = f'Database error: {str(e)}'
+        return jsonify(response), 500
     except Exception as e:
         response['error'] = f'Internal server error: {str(e)}'
         return jsonify(response), 500
 
 
-
 # Search for unwanted articles by search query
 @unwanted_articles_bp.route('/search_unwanted_articles', methods=['POST'])
 def search_unwanted_articles():
+    """
+    Searches unwanted articles by title or content using a search query.
+
+    Returns:
+        JSON: Response with matching unwanted article data or error message.
+    """
     response = {'data': None, 'error': None, 'success': False}
     try:
-        search_query = request.args.get('search_query')
+        search_query = request.json.get('search_query')
 
         if not search_query:
             response['error'] = 'Search query missing in request data'
             return jsonify(response), 400
 
         unwanted_articles = UnwantedArticle.query.filter(
-            (UnwantedArticle.title.ilike(f'%{search_query}%')) | 
+            (UnwantedArticle.title.ilike(f'%{search_query}%')) |
             (UnwantedArticle.content.ilike(f'%{search_query}%'))
         ).all()
 
@@ -60,9 +79,10 @@ def search_unwanted_articles():
         response['data'] = unwanted_article_data
         response['success'] = True
         return jsonify(response), 200
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        response['error'] = f'Database error: {str(e)}'
+        return jsonify(response), 500
     except Exception as e:
         response['error'] = f'Internal server error: {str(e)}'
         return jsonify(response), 500
-
-    
-

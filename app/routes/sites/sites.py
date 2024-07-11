@@ -1,6 +1,7 @@
 from datetime import datetime
 from flask import Blueprint, jsonify, request
 from config import Site, db
+from sqlalchemy.exc import SQLAlchemyError
 
 sites_bp = Blueprint(
     'sites_bp', __name__,
@@ -11,6 +12,15 @@ sites_bp = Blueprint(
 # Get sites by bot ID
 @sites_bp.route('/get_sites', methods=['GET'])
 def get_sites_by_bot():
+    """
+    Retrieve sites associated with a bot specified by bot_id.
+    Args:
+        bot_id (str): ID of the bot to retrieve sites for.
+    Response:
+        200: Successful response with site data.
+        400: Missing bot ID in request parameters.
+        500: Internal server error.
+    """
     response = {'data': None, 'error': None, 'success': False}
     try:
         bot_id = request.args.get('bot_id')
@@ -25,11 +35,16 @@ def get_sites_by_bot():
         response['data'] = site_data
         response['success'] = True
         return jsonify(response), 200
-    except Exception as e:
-        response['error'] = f'Internal server error: {str(e)}'
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        response['error'] = f'Database error: {str(e)}'
         return jsonify(response), 500
 
-
+    except Exception as e:
+        db.session.rollback()
+        response['error'] = f'Internal server error: {str(e)}'
+        return jsonify(response), 500
 
 
 

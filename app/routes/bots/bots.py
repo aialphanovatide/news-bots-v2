@@ -1,10 +1,10 @@
 import re
-import asyncio
 from scheduler_config_1 import scheduler
 from datetime import datetime
 from app.utils.index import fetch_news_links
 from flask import Blueprint, jsonify, request
 from config import Blacklist, Bot, Keyword, Site, db, Category
+from sqlalchemy.exc import SQLAlchemyError
 
 bots_bp = Blueprint(
     'bots_bp', __name__,
@@ -24,10 +24,14 @@ def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, catego
             category_slack_channel=category_slack_channel
         )
 
-
-# Get all available bots
 @bots_bp.route('/bots', methods=['GET'])
 def get_bots():
+    """
+    Get all available bots.
+    Response:
+        200: List of bots retrieved successfully.
+        500: Internal server error.
+    """
     response = {'data': None, 'error': None, 'success': False}
     try:
         bots = Bot.query.all()
@@ -37,15 +41,30 @@ def get_bots():
         response['success'] = True
 
         return jsonify(response), 200
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        response['error'] = f'Database error: {str(e)}'
     except Exception as e:
         response['error'] = f'Error getting all Bots: {str(e)}'
         return jsonify(response), 500
-    
-    
 
-# Create and schedule a new news Bot
 @bots_bp.route('/create_bot', methods=['POST'])
 async def create_bot():
+    """
+    Create and schedule a new news bot.
+    Args:
+        name (str): Name of the bot.
+        category_id (int): ID of the category.
+        url (str): URL to fetch news from.
+        keywords (str): Comma-separated keywords for the bot.
+        blacklist (str): Comma-separated blacklist for the bot.
+        dalle_prompt (str): DALLE prompt for the bot.
+    Response:
+        200: Bot created (and scheduled if the category is active) successfully.
+        400: Missing required field or bot name already exists.
+        404: Category ID not found.
+        500: Internal server error.
+    """
     response = {'data': None, 'error': None, 'success': False}
     try:
         data = request.json
@@ -130,7 +149,6 @@ async def create_bot():
 
         # Schedule the bot if the category is active
         if is_category_active:
-            # Schedule job for bot
             scheduler.add_job(
                 id=str(new_bot.name), 
                 func=scheduled_job,
@@ -140,7 +158,6 @@ async def create_bot():
                 trigger='interval', 
                 minutes=category_interval
             )
-            
             response['message'] = 'Bot created and automated successfully'
         else:
             response['message'] = 'Bot created, but NOT automated - Activate the category'
@@ -148,30 +165,33 @@ async def create_bot():
         response['data'] = new_bot.as_dict()
         response['success'] = True
         return jsonify(response), 200
+    
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        response['error'] = f'Database error: {str(e)}'
 
     except Exception as e:
         response['error'] = f"Error creating bot: {str(e)}"
         return jsonify(response), 500
 
-
-  
-# Delete a single Bot by ID
 @bots_bp.route('/delete_bot/<int:bot_id>', methods=['DELETE'])
 def delete_bot(bot_id):
+    """
+    Delete a single bot by ID.
+    Args:
+        bot_id (int): The ID of the bot to delete.
+    Response:
+        200: Bot deleted successfully.
+        404: Bot not found.
+        500: Internal server error.
+    """
     response = {'data': None, 'error': None, 'success': False}
     try:
         bot = Bot.query.get(bot_id)
-
         if not bot:
             response['error'] = 'Bot not found'
             return jsonify(response), 404
-        
-        bot = Bot.query.get(bot_id)
 
-        if not bot:
-            response['error'] = 'Bot not found'
-            return jsonify(response), 404
-        
         # Check if there is a scheduled job for the bot
         bot_job = scheduler.get_job(job_id=str(bot_id))
         if bot_job:
@@ -184,9 +204,12 @@ def delete_bot(bot_id):
         response['message'] = f'Bot with ID {bot_id} deleted successfully'
         response['success'] = True
         return jsonify(response), 200
+    
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        response['error'] = f'Database error: {str(e)}'
 
     except Exception as e:
         db.session.rollback()
         response['error'] = f'Internal server error: {str(e)}'
         return jsonify(response), 500
-

@@ -1,11 +1,11 @@
 from datetime import datetime
 import os
-from flask import Blueprint, json, jsonify
-from config import Category
-from flask import request
-from config import db
+from flask import Blueprint, json, jsonify, request
+from config import Category, db
 from dotenv import load_dotenv
 import boto3
+from sqlalchemy.exc import SQLAlchemyError
+
 
 load_dotenv()
 
@@ -19,17 +19,25 @@ categories_bp = Blueprint(
     static_folder='static'
 )
 
-
-
 s3 = boto3.client(
-            's3',
-            region_name='us-east-2',
-            aws_access_key_id=AWS_ACCESS,
-            aws_secret_access_key=AWS_SECRET_KEY
-        )
-# Create a new category
+    's3',
+    region_name='us-east-2',
+    aws_access_key_id=AWS_ACCESS,
+    aws_secret_access_key=AWS_SECRET_KEY
+)
+
 @categories_bp.route('/add_new_category', methods=['POST'])
 def create_category():
+    """
+    Create a new category.
+    Data:
+        Form data with 'name' (str), 'alias' (str), 'prompt' (str), 'time_interval' (int),
+        'slack_channel' (str), optional 'is_active' (bool), 'border_color' (str), and an optional image file.
+    Response:
+        201: Category created successfully.
+        400: Missing required fields or invalid request.
+        500: Internal server error or database error.
+    """
     response = {'data': None, 'error': None, 'success': False}
     try:
         data = json.loads(request.form.get('data'))
@@ -50,11 +58,9 @@ def create_category():
         # Upload the image to S3
         if 'image' in request.files:
             image_file = request.files['image']
-            image_filename = f'{data['alias']}.png'
-            print("image_filename", image_filename)
+            image_filename = f'{data["alias"]}.png'
             s3.upload_fileobj(image_file, 'aialphaicons', image_filename)
             image_url = f'https://aialphaicons.s3.amazonaws.com/{image_filename}'
-            print("image_url", image_url)
         else:
             image_url = None
 
@@ -79,17 +85,27 @@ def create_category():
         response['success'] = True
         return jsonify(response), 201
 
-    except Exception as e:
+    except SQLAlchemyError as e:
         db.session.rollback()
-        response['error'] = f'Internal server error {str(e)}'
+        response['error'] = f'Database error: {str(e)}'
+        return jsonify(response), 500
+
+    except Exception as e:
+        response['error'] = f'Internal server error: {str(e)}'
         return jsonify(response), 500
 
 
-
-# Delete a category by ID
 @categories_bp.route('/categories/<int:category_id>', methods=['DELETE'])
 def delete_category(category_id):
-
+    """
+    Delete a category by ID.
+    Args:
+        category_id (int): ID of the category to delete.
+    Response:
+        200: Category deleted successfully.
+        404: Category not found.
+        500: Internal server error or database error.
+    """
     response = {'data': None, 'error': None, 'success': False}
     try:
         # Fetch the category from the database
@@ -106,16 +122,25 @@ def delete_category(category_id):
         response['success'] = True
         return jsonify(response), 200
 
-    except Exception as e:
+    except SQLAlchemyError as e:
         db.session.rollback()
-        response['error'] = f'Internal server error {str(e)}'
+        response['error'] = f'Database error: {str(e)}'
+        return jsonify(response), 500
+
+    except Exception as e:
+        response['error'] = f'Internal server error: {str(e)}'
         return jsonify(response), 500
 
 
-    
-# Get all available categories
 @categories_bp.route('/categories', methods=['GET'])
 def get_categories():
+    """
+    Get all available categories.
+    Response:
+        200: Successfully retrieved categories.
+        404: No categories found.
+        500: Internal server error or database error.
+    """
     response = {'data': None, 'error': None, 'success': False}
     try:
         categories = Category.query.all()
@@ -129,13 +154,25 @@ def get_categories():
         response['data'] = {'categories': category_data}
         response['success'] = True
         return jsonify(response), 200
-    except Exception as e:
-        response['error'] = f'Internal server error {str(e)}'
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        response['error'] = f'Database error: {str(e)}'
         return jsonify(response), 500
 
-# Get all bots
+    except Exception as e:
+        response['error'] = f'Internal server error: {str(e)}'
+        return jsonify(response), 500
+
+
 @categories_bp.route('/get_all_bots', methods=['GET'])
 def get_bots():
+    """
+    Get all bots.
+    Response:
+        200: Successfully retrieved bots.
+        500: Internal server error or database error.
+    """
     response = {'data': None, 'error': None, 'success': False}
     try:
         categories = Category.query.order_by(Category.id).all()
@@ -153,6 +190,12 @@ def get_bots():
         response['data'] = {'bots': bots}
         response['success'] = True
         return jsonify(response), 200
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        response['error'] = f'Database error: {str(e)}'
+        return jsonify(response), 500
+
     except Exception as e:
-        response['error'] = f'Internal server error {str(e)}'
+        response['error'] = f'Internal server error: {str(e)}'
         return jsonify(response), 500

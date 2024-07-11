@@ -1,9 +1,9 @@
-import random
-from datetime import datetime, timedelta
+from datetime import datetime
 from flask import Blueprint, jsonify, request
 from config import Blacklist, Category, Bot, Site, db
 from app.utils.index import fetch_news_links
 from scheduler_config_1 import scheduler
+from sqlalchemy.exc import SQLAlchemyError
 
 activate_bots_bp = Blueprint(
     'activate_bots_bp', __name__,
@@ -33,11 +33,15 @@ def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, catego
         except Exception as e:
             print(f'Error updating {category_id}: {str(e)}')
     
-        
-
-
 @activate_bots_bp.route('/activate_all_categories', methods=['POST'])
 async def activate_all_bots():
+    """
+    Activate all bots for all categories.
+    Response:
+        200: All categories activated successfully.
+        404: No categories found.
+        500: Internal server error.
+    """
     response = {'data': None, 'error': None, 'success': False}
     try:
         categories = Category.query.all()
@@ -87,57 +91,58 @@ async def activate_all_bots():
         response['message'] = 'All categories activated'
         response['success'] = True
         return jsonify(response), 200
+    
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        response['error'] = f'Database error: {str(e)}'
 
     except Exception as e:
-        db.session.rollback()
         response['error'] = f"Error activating all bots: {e}"
         return jsonify(response), 500
 
-    
-
-# Activate a single category
 @activate_bots_bp.route('/activate_category', methods=['POST'])
 def activate_bots_by_category():
+    """
+    Activate bots for a single category.
+    Args:
+        category_name (str): The name of the category to activate.
+    Response:
+        200: Category activated successfully or already active.
+        400: Category name is required.
+        404: Category not found.
+        500: Internal server error.
+    """
     response = {'data': None, 'error': None, 'success': False}
-  
     try:
-        # Get the category name from the request JSON
         category_name = request.json.get('category_name')
         if not category_name:
             response['error'] = 'Category name is required'
             return jsonify(response), 400
 
-        # Fetch the category from the database
         category = Category.query.filter_by(name=category_name).first()
         if not category:
             response['error'] = 'Category not found'
             return jsonify(response), 404
 
-        # Check if the category is already active
         category_interval = category.time_interval
         category_slack_channel = category.slack_channel
         if category.is_active:
             response['message'] = f"{category_name} category is already active"
             return jsonify(response), 200
 
-        # Fetch all bots associated with the category
         bots = Bot.query.filter_by(category_id=category.id).all()
-
         interval_base = 20  # Base interval in minutes
 
         for index, bot in enumerate(bots):
-            # Fetch the associated site for the bot
             site = Site.query.filter_by(bot_id=bot.id).first()
             if not site or not site.url:
-                continue  # Skip if no site or site URL is found
+                continue
 
-            # Prepare the necessary data for the bot
             bot_site = site.url
             bot_blacklist = [bl.name for bl in Blacklist.query.filter_by(bot_id=bot.id).all()]
             bot_id = bot.id
             bot_name = bot.name
 
-            # Calculate interval based on the index of the bot
             minutes = interval_base + 10 * index
 
             scheduler.add_job(
@@ -150,24 +155,38 @@ def activate_bots_by_category():
                 minutes=minutes
             )
             
-        # Set category as active
         category.is_active = True
         db.session.commit()
 
         response['message'] = f'{category_name} category was activated successfully'
         response['success'] = True
         return jsonify(response), 200
-
+    
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        response['error'] = f'Database error: {str(e)}'
     except Exception as e:
         db.session.rollback()
         response['error'] = f"Error activating bots for category '{category_name}': {e}"
         return jsonify(response), 500
 
-
-
-# Endpoint to list all scheduled jobs
 @activate_bots_bp.route('/jobs', methods=['GET'])
 def list_jobs():
-    jobs = scheduler.get_jobs()
-    job_list = [{'id': job.id, 'name': job.name, 'next_run_time': job.next_run_time} for job in jobs]
-    return jsonify(job_list)
+    """
+    List all scheduled jobs.
+    Response:
+        200: Successfully retrieved the list of jobs.
+    """
+    response = {'data': None, 'error': None, 'success': False}
+    try:
+        jobs = scheduler.get_jobs()
+        job_list = [{'id': job.id, 'name': job.name, 'next_run_time': job.next_run_time} for job in jobs]
+        response['data'] = job_list
+        response['success'] = True
+        return jsonify(response), 200
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        response['error'] = f'Database error: {str(e)}'
+    except Exception as e:
+        response['error'] = f"Error listing jobs: {e}"
+        return jsonify(response), 500
