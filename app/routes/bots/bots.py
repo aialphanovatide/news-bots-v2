@@ -1,4 +1,5 @@
 import re
+from app.utils.helpers import measure_execution_time
 from scheduler_config_1 import scheduler
 from datetime import datetime
 from app.utils.index import fetch_news_links
@@ -25,6 +26,7 @@ def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, catego
         )
 
 @bots_bp.route('/bots', methods=['GET'])
+@measure_execution_time
 def get_bots():
     """
     Get all available bots.

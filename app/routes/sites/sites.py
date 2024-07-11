@@ -1,5 +1,6 @@
 from datetime import datetime
 from flask import Blueprint, jsonify, request
+from app.utils.helpers import measure_execution_time
 from config import Site, db
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -11,6 +12,7 @@ sites_bp = Blueprint(
 
 # Get sites by bot ID
 @sites_bp.route('/get_sites', methods=['GET'])
+@measure_execution_time
 def get_sites_by_bot():
     """
     Retrieve sites associated with a bot specified by bot_id.

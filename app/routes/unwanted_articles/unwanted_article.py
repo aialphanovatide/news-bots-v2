@@ -21,7 +21,7 @@ def get_unwanted_articles_by_bot():
     Returns:
         JSON: Response with unwanted article data or error message.
     """
-    response = {'data': None, 'error': None, 'success': False}
+    response = {'data': None, 'error': None, 'success': False, 'message': None}
     try:
         bot_id = request.args.get('bot_id')
 
@@ -38,6 +38,7 @@ def get_unwanted_articles_by_bot():
 
         response['data'] = unwanted_article_data
         response['success'] = True
+        response['message'] = 'Unwanted articles retrieved successfully'
         return jsonify(response), 200
     except SQLAlchemyError as e:
         db.session.rollback()
@@ -57,7 +58,7 @@ def search_unwanted_articles():
     Returns:
         JSON: Response with matching unwanted article data or error message.
     """
-    response = {'data': None, 'error': None, 'success': False}
+    response = {'data': None, 'error': None, 'success': False, 'message': None}
     try:
         search_query = request.json.get('search_query')
 
@@ -78,6 +79,7 @@ def search_unwanted_articles():
 
         response['data'] = unwanted_article_data
         response['success'] = True
+        response['message'] = 'Unwanted articles retrieved successfully'
         return jsonify(response), 200
     except SQLAlchemyError as e:
         db.session.rollback()

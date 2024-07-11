@@ -1,6 +1,7 @@
 from datetime import datetime
 import os
 from flask import Blueprint, json, jsonify, request
+from app.utils.helpers import measure_execution_time
 from config import Category, db
 from dotenv import load_dotenv
 import boto3
@@ -27,6 +28,7 @@ s3 = boto3.client(
 )
 
 @categories_bp.route('/add_new_category', methods=['POST'])
+@measure_execution_time
 def create_category():
     """
     Create a new category.
@@ -96,6 +98,7 @@ def create_category():
 
 
 @categories_bp.route('/categories/<int:category_id>', methods=['DELETE'])
+@measure_execution_time
 def delete_category(category_id):
     """
     Delete a category by ID.
@@ -133,6 +136,7 @@ def delete_category(category_id):
 
 
 @categories_bp.route('/categories', methods=['GET'])
+@measure_execution_time
 def get_categories():
     """
     Get all available categories.
@@ -166,6 +170,7 @@ def get_categories():
 
 
 @categories_bp.route('/get_all_bots', methods=['GET'])
+@measure_execution_time
 def get_bots():
     """
     Get all bots.

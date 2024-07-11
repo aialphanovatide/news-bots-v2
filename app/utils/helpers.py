@@ -2,6 +2,9 @@ import requests
 import aiofiles
 import json
 import os
+from functools import wraps
+import time
+
 
 # Takes a string and change to lowercase and join with _
 def transform_string(input_string):
@@ -107,3 +110,17 @@ async def save_string_to_txt(string, filename='news.txt'):
 #         print("Data saved to", filename)
 #     except Exception as e:
 #         print("Error:", e)
+
+
+
+
+def measure_execution_time(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        print(f"Execution time for {func.__name__}: {execution_time} seconds")
+        return result
+    return wrapper

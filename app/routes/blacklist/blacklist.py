@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from app.utils.helpers import measure_execution_time
 from config import Blacklist, db
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
@@ -11,6 +12,7 @@ blacklist_bp = Blueprint(
 
 
 @blacklist_bp.route('/get_blacklist', methods=['GET'])
+@measure_execution_time
 def get_blacklist_by_bot():
     """
     Get blacklist of a specific bot.

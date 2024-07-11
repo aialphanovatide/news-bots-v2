@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from app.utils.helpers import measure_execution_time
 from config import Article, db
 from datetime import datetime
 from app.services.slack.actions import send_WARNING_message_to_slack_channel
@@ -11,7 +12,6 @@ slack_action_bp = Blueprint(
     template_folder='templates',
     static_folder='static'
 )
-
 
 def extract_url_from_text(text):
     """
@@ -28,7 +28,6 @@ def extract_url_from_text(text):
     if match:
         return match.group(1)
     return None
-
 
 def handle_block_actions(data):
     """
@@ -104,8 +103,8 @@ def handle_block_actions(data):
 
     return response
 
-
 @slack_action_bp.route("/slack/events", methods=["POST"])
+@measure_execution_time
 def slack_events():
     """
     Endpoint to receive Slack events and handle block actions.
@@ -140,7 +139,7 @@ def slack_events():
                 )
                 return jsonify({'error': response['error']}), 400
             
-            return jsonify({'status': 'success'}), 200
+            return jsonify({'status': 'success', 'message': response.get('message', 'Operation successful')}), 200
         
         else:
             return jsonify({'error': 'Unknown event type'}), 400

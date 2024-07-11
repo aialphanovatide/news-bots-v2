@@ -1,5 +1,6 @@
 import os
 from flask import Blueprint, jsonify, request
+from app.utils.helpers import measure_execution_time
 from config import Article, Bot, db
 from datetime import datetime
 import boto3
@@ -28,6 +29,7 @@ if not os.path.exists(user_data_dir):
     os.makedirs(user_data_dir, exist_ok=True)
 
 @articles_bp.route('/get_all_articles', methods=['GET'])
+@measure_execution_time
 def get_all_articles():
     """
     Get all articles with a limit.
@@ -62,6 +64,7 @@ def get_all_articles():
         return jsonify(response), 500
 
 @articles_bp.route('/get_article_by_id/<int:article_id>', methods=['GET'])
+@measure_execution_time
 def get_article_by_id(article_id):
     """
     Get a single article by its ID.
@@ -90,6 +93,7 @@ def get_article_by_id(article_id):
         return jsonify(response), 500
 
 @articles_bp.route('/get_articles', methods=['GET'])
+@measure_execution_time
 def get_articles_by_bot():
     """
     Get articles associated with a specific bot.
@@ -256,6 +260,7 @@ def create_article():
         return jsonify(response), 500
 
 @articles_bp.route('/get_all_articles_title', methods=['GET'])
+@measure_execution_time
 def get_all_articles_title():
     """
     Get all article titles with a limit.
