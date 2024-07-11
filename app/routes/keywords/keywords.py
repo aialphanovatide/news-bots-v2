@@ -1,6 +1,8 @@
 from flask import Blueprint, jsonify, request
+from app.utils.helpers import measure_execution_time
 from config import Keyword, db
 from datetime import datetime
+from sqlalchemy.exc import SQLAlchemyError
 
 keyword_bp = Blueprint(
     'keyword_bp', __name__,
@@ -8,9 +10,19 @@ keyword_bp = Blueprint(
     static_folder='static'
 )
 
-# Get all keywords filtered by bot_id
 @keyword_bp.route('/get_keywords', methods=['GET'])
+@measure_execution_time
 def get_keywords_by_bot():
+    """
+    Get all keywords filtered by bot_id.
+    Args:
+        bot_id (int): Bot ID to filter keywords.
+    Response:
+        200: Successfully retrieved keywords.
+        400: Bot ID missing in request parameters.
+        404: No keywords found for the provided bot ID.
+        500: Internal server error or database error.
+    """
     response = {'data': None, 'error': None, 'success': False}
     try:
         bot_id = request.args.get('bot_id')
@@ -30,17 +42,30 @@ def get_keywords_by_bot():
         response['data'] = keyword_data
         response['success'] = True
         return jsonify(response), 200
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        response['error'] = f'Database error: {str(e)}'
+        return jsonify(response), 500
+
     except Exception as e:
         db.session.rollback()
         response['error'] = f'Internal server error: {str(e)}'
         return jsonify(response), 500
 
 
-
-
-# Add keyword(s) to a bot
 @keyword_bp.route('/add_keyword', methods=['POST'])
+@measure_execution_time
 def add_keyword_to_bot():
+    """
+    Add keyword(s) to a bot.
+    Data:
+        JSON data with 'keyword' (str) and 'bot_id' (int).
+    Response:
+        200: Keywords added to bot successfully or no new keywords added.
+        400: Keyword or Bot ID missing in request data.
+        500: Internal server error or database error.
+    """
     response = {'data': None, 'error': None, 'success': False}
     try:
         data = request.json
@@ -76,16 +101,30 @@ def add_keyword_to_bot():
             response['message'] = 'No new keywords added'
             return jsonify(response), 200
 
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        response['error'] = f'Database error: {str(e)}'
+        return jsonify(response), 500
+
     except Exception as e:
         db.session.rollback()
         response['error'] = f'Internal server error: {str(e)}'
         return jsonify(response), 500
 
 
-
-# Delete a keyword from a bot by ID
 @keyword_bp.route('/delete_keyword', methods=['DELETE'])
+@measure_execution_time
 def delete_keyword_from_bot():
+    """
+    Delete a keyword from a bot by ID.
+    Args:
+        keyword_id (int): ID of the keyword to delete.
+    Response:
+        200: Keyword deleted from bot successfully.
+        400: Keyword ID missing in request data.
+        404: Keyword not found.
+        500: Internal server error or database error.
+    """
     response = {'data': None, 'error': None, 'success': False}
     try:
         keyword_id = request.args.get('keyword_id')
@@ -104,11 +143,16 @@ def delete_keyword_from_bot():
         else:
             response['error'] = 'Keyword not found'
             return jsonify(response), 404
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        response['error'] = f'Database error: {str(e)}'
+        return jsonify(response), 500
+
     except Exception as e:
         db.session.rollback()
         response['error'] = f'Internal server error: {str(e)}'
         return jsonify(response), 500
-
 
 
 @keyword_bp.route('/get_keywords_for_coin_bot/<int:coin_bot_id>', methods=['GET'])
