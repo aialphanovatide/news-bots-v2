@@ -2,10 +2,8 @@ import os
 import requests
 from dotenv import load_dotenv 
 
-
 load_dotenv()
 PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY")
-
 
 def perplexity_api_request(content, prompt):
     url = "https://api.perplexity.ai/chat/completions"
@@ -37,6 +35,15 @@ def perplexity_api_request(content, prompt):
             first_choice = response_data['choices'][0]
             if 'message' in first_choice:
                 content_response = first_choice['message']['content']
+                
+                # Remover las frases no deseadas
+                unwanted_phrases = [
+                    "Here is the rewritten headline and summary:",
+                    "Here is a rewritten headline and summary of the article:"
+                ]
+                for phrase in unwanted_phrases:
+                    content_response = content_response.replace(phrase, "").strip()
+                
                 return {'response': content_response, 'success': True}
             else:
                 return {'response': "No 'message' key found in choices", 'success': False}
@@ -49,9 +56,4 @@ def perplexity_api_request(content, prompt):
     
     except Exception as e:
         return {'response': f'Perplexity failed: {str(e)}', 'success': False}
-    
-    
-    
-    
-    
 

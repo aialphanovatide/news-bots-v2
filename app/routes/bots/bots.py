@@ -363,9 +363,14 @@ def get_all_coin_bots():
         500: Internal server error.
     """
     try:
+        response = {'data': None, 'error': None, 'success': False}
         coin_bots = db.session.query(Bot.id, Bot.name).all()
         coin_bots_data = [{'id': id, 'name': name } for id, name in coin_bots]
         return jsonify({'success': True, 'coin_bots': coin_bots_data}), 200
+    
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        response['error'] = f'Database error: {str(e)}'
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
