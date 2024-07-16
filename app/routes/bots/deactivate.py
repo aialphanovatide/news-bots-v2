@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from scheduler_config_1 import scheduler
+from scheduler_config import scheduler
 from config import Category, db, Bot
 from sqlalchemy.exc import SQLAlchemyError
 

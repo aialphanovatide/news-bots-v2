@@ -3,15 +3,12 @@ from datetime import datetime, timedelta
 from app.utils.helpers import measure_execution_time
 from config import Article, UsedKeywords, db
 from sqlalchemy.exc import SQLAlchemyError
-from functools import wraps
-import time
 
 news_bots_features_bp = Blueprint(
     'news_bots_features_bp', __name__,
     template_folder='templates',
     static_folder='static'
 )
-
 
 @news_bots_features_bp.route('/api/get_used_keywords_to_download', methods=['GET'])
 @measure_execution_time

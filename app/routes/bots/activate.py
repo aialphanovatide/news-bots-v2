@@ -2,7 +2,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 from config import Blacklist, Category, Bot, Site, db
 from app.utils.index import fetch_news_links
-from scheduler_config_1 import scheduler
+from scheduler_config import scheduler
 from sqlalchemy.exc import SQLAlchemyError
 
 activate_bots_bp = Blueprint(
@@ -37,6 +37,7 @@ def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, catego
 async def activate_all_bots():
     """
     Activate all bots for all categories.
+    
     Response:
         200: All categories activated successfully.
         404: No categories found.

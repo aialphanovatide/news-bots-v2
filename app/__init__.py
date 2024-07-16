@@ -3,7 +3,7 @@ import os
 from config import db
 from flask import Flask
 from dotenv import load_dotenv
-from scheduler_config_1 import scheduler
+from scheduler_config import scheduler
 from app.routes.bots.bots import bots_bp
 from app.routes.sites.sites import sites_bp
 from app.routes.slack.slack import slack_action_bp

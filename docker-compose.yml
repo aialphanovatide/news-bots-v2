@@ -2,24 +2,74 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres
+    image: postgres:13
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     restart: always
     environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
 
   app:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "5000:5000"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       DB_PORT: ${DB_PORT}
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
-      DB_HOST: ${DB_HOST}
+      DB_HOST: postgres
     command: ["python", "run.py"]
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.45.1-jammy
+    volumes:
+      - ./playwright_scripts:/app/playwright_scripts
+    working_dir: /app/playwright_scripts
+    ipc: host
+    depends_on:
+      - app
+    networks:
+      - app-network
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    restart: unless-stopped
+    command:
+      - "http"
+      - "--domain=${NGROK_DOMAIN}"
+      - "app:5000"
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    ports:
+      - "4040:4040"
+    depends_on:
+      - app
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

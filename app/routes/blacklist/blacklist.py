@@ -16,13 +16,16 @@ blacklist_bp = Blueprint(
 def get_blacklist_by_bot():
     """
     Get blacklist of a specific bot.
+
     Args:
         bot_id (int): The ID of the bot to retrieve the blacklist for.
+
     Response:
         200: Successfully retrieved the blacklist.
         400: Bot ID missing in request data.
         404: Blacklist not found for the specified bot ID.
         500: Internal server error.
+
     """
     response = {'data': None, 'error': None, 'success': False}
     try:
@@ -47,18 +50,22 @@ def get_blacklist_by_bot():
         response['error'] = f'Internal server error: {str(e)}'
         return jsonify(response), 500
 
+
 @blacklist_bp.route('/add_to_blacklist', methods=['POST'])
 def add_to_blacklist():
     """
     Add an entry to the blacklist for a specific bot.
+
     Args:
         bot_id (int): The ID of the bot to add entries to the blacklist for.
         blacklist (str): A comma-separated list of entries to add to the blacklist.
+
     Response:
         200: Successfully added entries to the blacklist.
         400: Bot ID or blacklist entry missing in request data.
         500: Internal server error.
     """
+
     response = {'data': [], 'error': None, 'success': False}
     try:
         data = request.json

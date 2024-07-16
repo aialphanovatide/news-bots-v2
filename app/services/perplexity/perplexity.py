@@ -60,7 +60,6 @@ def perplexity_api_request(content, prompt):
 
 
 
-# Define el contenido y el prompt
 content = (
     "German Sale, Mt. Gox Repayments Impact Bitcoin • The German government's sale of over 25,000 BTC to exchanges "
     "led to a significant price surge, but the impact on 24-hour market activity was limited. • The government still "
@@ -88,8 +87,6 @@ prompt = (
     "(vi) Highlight the most important words without using any symbols."
 )
 
-# Realiza la solicitud a la API de Perplexity
-response = perplexity_api_request(content, prompt)
+# Usage Example
+# response = perplexity_api_request(content, prompt)
 
-# Imprime la respuesta
-print(response)

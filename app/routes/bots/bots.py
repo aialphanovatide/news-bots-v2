@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import SQLAlchemyError
 from app.utils.helpers import measure_execution_time
-from scheduler_config_1 import scheduler
+from scheduler_config import scheduler
 from config import Blacklist, Bot, Keyword, Site, db, Category
 from app.utils.index import fetch_news_links
 
