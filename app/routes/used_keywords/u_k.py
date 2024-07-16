@@ -1,8 +1,9 @@
 from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta
-from app.utils.helpers import measure_execution_time
+from app.routes.routes_utils import create_response, handle_db_session
 from config import Article, UsedKeywords, db
 from sqlalchemy.exc import SQLAlchemyError
+from app.utils.helpers import measure_execution_time
 
 news_bots_features_bp = Blueprint(
     'news_bots_features_bp', __name__,
@@ -12,6 +13,7 @@ news_bots_features_bp = Blueprint(
 
 @news_bots_features_bp.route('/api/get_used_keywords_to_download', methods=['GET'])
 @measure_execution_time
+@handle_db_session
 def get_used_keywords_to_download():
     """
     Retrieves used keywords from articles based on a specified time period and bot ID.
@@ -23,9 +25,8 @@ def get_used_keywords_to_download():
     Returns:
         JSON: Response with unique keywords extracted from articles or error message.
     """
-    response = {'success': False, 'error': None, 'message': None}
     try:
-        response['message'] = 'Keywords retrieved successfully'
+        response = create_response(message='Keywords retrieved successfully')
         
         bot_id = request.args.get('bot_id', type=int)
         time_period = request.args.get('time_period', default='3d')
@@ -38,7 +39,7 @@ def get_used_keywords_to_download():
         elif time_period == "3m":
             start_date = end_date - timedelta(days=90)
         else:
-            response['error'] = 'Invalid time period provided'
+            response = create_response(error=f'Invalid time period: {time_period}')
             return jsonify(response), 400
 
         articles_query = db.session.query(Article.used_keywords).filter(
@@ -57,16 +58,17 @@ def get_used_keywords_to_download():
 
     except SQLAlchemyError as e:
         db.session.rollback()
-        response['error'] = f'Database error: {str(e)}'
+        response = create_response(error=f'Database error: {str(e)}')
         return jsonify(response), 500
-
+    
     except Exception as e:
-        response['error'] = f'An error occurred: {str(e)}'
+        response = create_response(error=f'Internal server error: {str(e)}')
         return jsonify(response), 500
 
 
 @news_bots_features_bp.route('/api/get/used_keywords', methods=['GET'])
 @measure_execution_time
+@handle_db_session
 def get_used_keywords():
     """
     Retrieves all used keywords stored in the database.
@@ -74,14 +76,13 @@ def get_used_keywords():
     Returns:
         JSON: Response with used keywords or a message indicating none were found.
     """
-    response = {'success': False, 'error': None, 'message': None}
     try:
-        response['message'] = 'Used keywords retrieved successfully'
+        response = create_response(message='Used keywords retrieved successfully')
 
         used_keywords = db.session.query(UsedKeywords).all()
 
         if not used_keywords:
-            response['message'] = 'No used keywords found'
+            response = create_response(error='No keywords found')
             return jsonify(response), 404
         else:
             used_keywords_list = [keyword.as_dict() for keyword in used_keywords]
@@ -91,9 +92,9 @@ def get_used_keywords():
 
     except SQLAlchemyError as e:
         db.session.rollback()
-        response['error'] = f'Database error: {str(e)}'
+        response = create_response(error=f'Database error: {str(e)}')
         return jsonify(response), 500
-
+    
     except Exception as e:
-        response['error'] = f'An error occurred getting the used keywords: {str(e)}'
+        response = create_response(error=f'Internal server error: {str(e)}')
         return jsonify(response), 500

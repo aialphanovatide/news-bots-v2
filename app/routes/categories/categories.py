@@ -1,12 +1,15 @@
+# routes.py
+
 from datetime import datetime
+import json
 import os
-from flask import Blueprint, json, jsonify, request
+from flask import Blueprint, jsonify, request
 from app.utils.helpers import measure_execution_time
 from config import Category, db
 from dotenv import load_dotenv
 import boto3
 from sqlalchemy.exc import SQLAlchemyError
-
+from app.routes.routes_utils import create_response, handle_db_session
 
 load_dotenv()
 
@@ -29,6 +32,7 @@ s3 = boto3.client(
 
 @categories_bp.route('/add_new_category', methods=['POST'])
 @measure_execution_time
+@handle_db_session
 def create_category():
     """
     Create a new category.
@@ -40,7 +44,6 @@ def create_category():
         400: Missing required fields or invalid request.
         500: Internal server error or database error.
     """
-    response = {'data': None, 'error': None, 'success': False}
     try:
         data = json.loads(request.form.get('data'))
 
@@ -48,14 +51,12 @@ def create_category():
         required_fields = ['name', 'alias', 'prompt', 'time_interval', 'slack_channel']
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
-            response['error'] = f'Missing required fields: {", ".join(missing_fields)}'
-            return jsonify(response), 400
+            return jsonify(create_response(error=f'Missing required fields: {", ".join(missing_fields)}')), 400
 
         # Check if the category already exists
         existing_category = Category.query.filter_by(name=str(data['name']).casefold()).first()
         if existing_category:
-            response['error'] = f'Category {data["name"]} already exists'
-            return jsonify(response), 400
+            return jsonify(create_response(error=f'Category {data["name"]} already exists')), 400
 
         # Upload the image to S3
         if 'image' in request.files:
@@ -83,22 +84,19 @@ def create_category():
         db.session.commit()
 
         # Prepare the response with only necessary data
-        response['data'] = new_category.as_dict()
-        response['success'] = True
-        return jsonify(response), 201
+        return jsonify(create_response(success=True, data=new_category.as_dict())), 200
 
     except SQLAlchemyError as e:
         db.session.rollback()
-        response['error'] = f'Database error: {str(e)}'
-        return jsonify(response), 500
+        return jsonify(create_response(error=f'Database error: {str(e)}')), 500
 
     except Exception as e:
-        response['error'] = f'Internal server error: {str(e)}'
-        return jsonify(response), 500
+        return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
 
 
 @categories_bp.route('/categories/<int:category_id>', methods=['DELETE'])
 @measure_execution_time
+@handle_db_session
 def delete_category(category_id):
     """
     Delete a category by ID.
@@ -109,34 +107,29 @@ def delete_category(category_id):
         404: Category not found.
         500: Internal server error or database error.
     """
-    response = {'data': None, 'error': None, 'success': False}
     try:
         # Fetch the category from the database
         category = Category.query.get(category_id)
         if not category:
-            response['error'] = f'Category with ID {category_id} not found'
-            return jsonify(response), 404
+            return jsonify(create_response(error=f'Category with ID {category_id} not found')), 404
 
         # Delete the category
         db.session.delete(category)
         db.session.commit()
 
-        response['data'] = {'id': category_id}
-        response['success'] = True
-        return jsonify(response), 200
+        return jsonify(create_response(success=True, data={'id': category_id})), 200
 
     except SQLAlchemyError as e:
         db.session.rollback()
-        response['error'] = f'Database error: {str(e)}'
-        return jsonify(response), 500
+        return jsonify(create_response(error=f'Database error: {str(e)}')), 500
 
     except Exception as e:
-        response['error'] = f'Internal server error: {str(e)}'
-        return jsonify(response), 500
+        return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
 
 
 @categories_bp.route('/categories', methods=['GET'])
 @measure_execution_time
+@handle_db_session
 def get_categories():
     """
     Get all available categories.
@@ -145,32 +138,27 @@ def get_categories():
         404: No categories found.
         500: Internal server error or database error.
     """
-    response = {'data': None, 'error': None, 'success': False}
     try:
         categories = Category.query.all()
 
         if not categories:
-            response['error'] = 'No categories found'
-            return jsonify(response), 404
+            return jsonify(create_response(error='No categories found')), 404
 
         category_data = [category.as_dict() for category in categories]
 
-        response['data'] = {'categories': category_data}
-        response['success'] = True
-        return jsonify(response), 200
+        return jsonify(create_response(success=True, data={'categories': category_data})), 200
 
     except SQLAlchemyError as e:
         db.session.rollback()
-        response['error'] = f'Database error: {str(e)}'
-        return jsonify(response), 500
+        return jsonify(create_response(error=f'Database error: {str(e)}')), 500
 
     except Exception as e:
-        response['error'] = f'Internal server error: {str(e)}'
-        return jsonify(response), 500
+        return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
 
 
 @categories_bp.route('/get_all_bots', methods=['GET'])
 @measure_execution_time
+@handle_db_session
 def get_bots():
     """
     Get all bots.
@@ -178,7 +166,6 @@ def get_bots():
         200: Successfully retrieved bots.
         500: Internal server error or database error.
     """
-    response = {'data': None, 'error': None, 'success': False}
     try:
         categories = Category.query.order_by(Category.id).all()
 
@@ -192,15 +179,11 @@ def get_bots():
                 'color': category.border_color
             } for category in categories
         ]
-        response['data'] = {'bots': bots}
-        response['success'] = True
-        return jsonify(response), 200
+        return jsonify(create_response(success=True, data={'bots': bots})), 200
 
     except SQLAlchemyError as e:
         db.session.rollback()
-        response['error'] = f'Database error: {str(e)}'
-        return jsonify(response), 500
+        return jsonify(create_response(error=f'Database error: {str(e)}')), 500
 
     except Exception as e:
-        response['error'] = f'Internal server error: {str(e)}'
-        return jsonify(response), 500
+        return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
