@@ -18,3 +18,5 @@ asyncio
 aiohttp
 flasgger
 Flask-APScheduler
+sklearn
+pyperclip

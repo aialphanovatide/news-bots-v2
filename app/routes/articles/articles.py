@@ -6,14 +6,12 @@ from PIL import Image
 from dotenv import load_dotenv
 import boto3
 import requests
-import pyperclip
-from playwright.sync_api import sync_playwright
-from sqlalchemy.exc import SQLAlchemyError
+from app.routes.routes_utils import create_response, handle_db_session
 from app.services.perplexity.perplexity import perplexity_api_request
 from app.utils.analyze_links import clean_text
-from config import Article, Bot, db, Category
-from app.services.perplexity.article_convert import article_perplexity_remaker
+from config import Article, Bot, db
 from app.services.d3.dalle3 import generate_poster_prompt
+
 
 load_dotenv()
 
@@ -27,403 +25,206 @@ user_data_dir = os.path.join(root_dir, 'tmp/playwright')
 os.makedirs(user_data_dir, exist_ok=True)
 
 
+
 @articles_bp.route('/get_all_articles', methods=['GET'])
+@handle_db_session
 def get_all_articles():
     """
     Retrieve all articles with an optional limit.
+    
+    Returns:
+        JSON response with the list of articles or an error message.
     """
-    response = {'data': None, 'error': None, 'success': False}
-    try:
-        limit = request.args.get('limit', default=10, type=int)
-        if limit < 1:
-            response['error'] = 'Limit must be a positive integer'
-            return jsonify(response), 400
+    limit = request.args.get('limit', default=10, type=int)
+    if limit < 1:
+        response = create_response(error='Limit must be a positive integer')
+        return jsonify(response), 400
 
-        articles = Article.query.limit(limit).all()
-        if not articles:
-            response['message'] = 'No articles found'
-            response['success'] = True
-            return jsonify(response), 200
+    articles = Article.query.limit(limit).all()
+    if not articles:
+        response = create_response(success=True, data=[], error='No articles found')
+        return jsonify(response), 404
 
-        response['data'] = [article.as_dict() for article in articles]
-        response['success'] = True
-        return jsonify(response), 200
-    except Exception as e:
-        response['error'] = f'Internal server error: {str(e)}'
-        return jsonify(response), 500
+    response = create_response(success=True, data=[article.as_dict() for article in articles])
+    return jsonify(response), 200
 
 
 @articles_bp.route('/get_article_by_id/<int:article_id>', methods=['GET'])
+@handle_db_session
 def get_article_by_id(article_id):
     """
     Retrieve a specific article by its ID.
+    
+    Args:
+        article_id (int): The ID of the article to retrieve.
+    
+    Returns:
+        JSON response with the article data or an error message.
     """
-    response = {'data': None, 'error': None, 'success': False}
-    try:
-        article = Article.query.filter_by(id=article_id).first()
-        if not article:
-            response['error'] = 'No article found for the specified article ID'
-            return jsonify(response), 404
+    article = Article.query.filter_by(id=article_id).first()
+    if not article:
+        response = create_response(error='No article found for the specified article ID')
+        return jsonify(response), 404
 
-        response['data'] = article.as_dict()
-        response['success'] = True
-        return jsonify(response), 200
-    except Exception as e:
-        response['error'] = f'Internal server error: {str(e)}'
-        return jsonify(response), 500
+    response = create_response(success=True, data=article.as_dict())
+    return jsonify(response), 200
 
 
 @articles_bp.route('/get_articles', methods=['GET'])
+@handle_db_session
 def get_articles_by_bot():
     """
     Retrieve articles by bot ID or bot name with an optional limit.
+    
+    Returns:
+        JSON response with the list of articles or an error message.
     """
-    response = {'data': None, 'error': None, 'success': False}
-    try:
-        bot_id = request.args.get('bot_id')
-        bot_name = request.args.get('bot_name')
-        limit = request.args.get('limit', default=10, type=int)
+    bot_id = request.args.get('bot_id')
+    bot_name = request.args.get('bot_name')
+    limit = request.args.get('limit', default=10, type=int)
 
-        if not bot_id and not bot_name:
-            response['error'] = 'Missing bot ID or bot name in request data'
-            return jsonify(response), 400
+    if not bot_id and not bot_name:
+        response = create_response(error='Missing bot ID or bot name in request data')
+        return jsonify(response), 400
 
-        if bot_name:
-            bot = Bot.query.filter_by(name=bot_name).first()
-            if not bot:
-                response['error'] = 'No bot found with the specified bot name'
-                return jsonify(response), 404
-            bot_id = bot.id
-
-        articles = Article.query.filter_by(bot_id=bot_id).limit(limit).all()
-        if not articles:
-            response['error'] = 'No articles found for the specified bot ID'
+    if bot_name:
+        bot = Bot.query.filter_by(name=bot_name).first()
+        if not bot:
+            response = create_response(error='No bot found with the specified bot name')
             return jsonify(response), 404
+        bot_id = bot.id
 
-        response['data'] = [article.as_dict() for article in articles]
-        response['success'] = True
-        return jsonify(response), 200
-    except Exception as e:
-        response['error'] = f'Internal server error: {str(e)}'
-        return jsonify(response), 500
+    articles = Article.query.filter_by(bot_id=bot_id).limit(limit).all()
+    if not articles:
+        response = create_response(error='No articles found for the specified bot ID')
+        return jsonify(response), 404
+
+    response = create_response(success=True, data=[article.as_dict() for article in articles])
+    return jsonify(response), 200
 
 
 @articles_bp.route('/delete_article', methods=['DELETE'])
+@handle_db_session
 def delete_article():
     """
     Delete an article by its ID.
+    
+    Args:
+        article_id (int): The ID of the article to delete.
+    
+    Returns:
+        JSON response with the success status or an error message.
     """
-    response = {'data': None, 'error': None, 'success': False}
-    try:
-        article_id = request.args.get('article_id')
+    article_id = request.args.get('article_id')
+    if not article_id:
+        response = create_response(error='Article ID missing in request data')
+        return jsonify(response), 400
 
-        if not article_id:
-            response['error'] = 'Article ID missing in request data'
-            return jsonify(response), 400
-
-        article = Article.query.get(article_id)
-        if article:
-            db.session.delete(article)
-            db.session.commit()
-            response['success'] = True
-            response['message'] = 'Article deleted successfully'
-            return jsonify(response), 200
-        else:
-            response['error'] = 'Article not found'
-            return jsonify(response), 404
-    except Exception as e:
-        db.session.rollback()
-        response['error'] = f'Internal server error: {str(e)}'
-        return jsonify(response), 500
+    article = Article.query.get(article_id)
+    if article:
+        db.session.delete(article)
+        db.session.commit()
+        response = create_response(success=True, message='Article deleted successfully')
+        return jsonify(response), 200
+    else:
+        response = create_response(error='Article not found')
+        return jsonify(response), 404
 
 
 @articles_bp.route('/add_new_article', methods=['POST'])
+@handle_db_session
 def create_article():
     """
     Create a new article with provided data.
+    
+    Returns:
+        JSON response with the created article data or an error message.
     """
-    response = {'data': None, 'error': None, 'success': False}
-    try:
-        data = request.get_json()
+    data = request.get_json()
+    required_fields = ['title', 'content', 'analysis', 'used_keywords', 'is_article_efficient', 'bot_id', 'category_id', 'image_url']
+    missing_fields = [field for field in required_fields if field not in data]
+    if missing_fields:
+        response = create_response(error=f'Missing required fields: {", ".join(missing_fields)}')
+        return jsonify(response), 400
 
-        required_fields = ['title', 'content', 'analysis', 'used_keywords', 'is_article_efficient', 'bot_id', 'category_id', 'image_url']
-        missing_fields = [field for field in required_fields if field not in data]
-        if missing_fields:
-            response['error'] = f'Missing required fields: {", ".join(missing_fields)}'
-            return jsonify(response), 400
-
-        image_url = data['image_url']
-        image_response = requests.get(image_url)
-        if image_response.status_code != 200:
-            response['error'] = 'Failed to download image from DALL·E 3'
-            return jsonify(response), 500
-
-        s3 = boto3.client('s3', region_name='us-east-2', aws_access_key_id=AWS_ACCESS, aws_secret_access_key=AWS_SECRET_KEY)
-        image_data = image_response.content
-        target_size = (512, 512)
-        image_filename = f'{data["title"].replace(" ", "_")}.png'
-        s3_bucket_name = 'sitesnewsposters'
-        app_bucket_name = 'appnewsposters'
-
-        image = Image.open(BytesIO(image_data))
-
-        try:
-            s3.upload_fileobj(BytesIO(image_data), s3_bucket_name, image_filename)
-        except Exception as e:
-            response['error'] = f'Failed to upload image to S3: {str(e)}'
-            return jsonify(response), 500
-
-        resized_image = image.resize(target_size)
-        with BytesIO() as output:
-            resized_image.save(output, format="JPEG")
-            output.seek(0)
-            try:
-                s3.upload_fileobj(output, app_bucket_name, image_filename)
-            except Exception as e:
-                response['error'] = f'Failed to upload resized image to S3: {str(e)}'
-                return jsonify(response), 500
-
-        image_url_s3 = f'https://{s3_bucket_name}.s3.us-east-2.amazonaws.com/{image_filename}'
-        current_time = datetime.now()
-        new_article = Article(
-            title=data['title'],
-            content=data['content'].replace("- ", ""),
-            image=image_url_s3,
-            analysis=data['analysis'],
-            url="Generated By Ai-Alpha Team.",
-            date=current_time,
-            used_keywords=data['used_keywords'],
-            is_article_efficent='Green ' + data['is_article_efficient'],
-            is_top_story=False,
-            bot_id=data['bot_id'],
-            created_at=current_time,
-            updated_at=current_time
-        )
-
-        db.session.add(new_article)
-        db.session.commit()
-
-        response['data'] = new_article.as_dict()
-        response['success'] = True
-        return jsonify(response), 200
-    except Exception as e:
-        db.session.rollback()
-        response['error'] = f'Internal server error: {str(e)}'
+    image_url = data['image_url']
+    image_response = requests.get(image_url)
+    if image_response.status_code != 200:
+        response = create_response(error='Failed to download image from DALL·E 3')
         return jsonify(response), 500
+
+    s3 = boto3.client('s3', region_name='us-east-2', aws_access_key_id=AWS_ACCESS, aws_secret_access_key=AWS_SECRET_KEY)
+    image_data = image_response.content
+    target_size = (512, 512)
+    image_filename = f'{data["title"].replace(" ", "_")}.png'
+    s3_bucket_name = 'sitesnewsposters'
+    app_bucket_name = 'appnewsposters'
+
+    image = Image.open(BytesIO(image_data))
+
+    try:
+        s3.upload_fileobj(BytesIO(image_data), s3_bucket_name, image_filename)
+    except Exception as e:
+        response = create_response(error=f'Failed to upload image to S3: {str(e)}')
+        return jsonify(response), 500
+
+    resized_image = image.resize(target_size)
+    with BytesIO() as output:
+        resized_image.save(output, format="JPEG")
+        output.seek(0)
+        try:
+            s3.upload_fileobj(output, app_bucket_name, image_filename)
+        except Exception as e:
+            response = create_response(error=f'Failed to upload resized image to S3: {str(e)}')
+            return jsonify(response), 500
+
+    image_url_s3 = f'https://{s3_bucket_name}.s3.us-east-2.amazonaws.com/{image_filename}'
+    current_time = datetime.now()
+    new_article = Article(
+        title=data['title'],
+        content=data['content'].replace("- ", ""),
+        image=image_url_s3,
+        analysis=data['analysis'],
+        url="Generated By Ai-Alpha Team.",
+        date=current_time,
+        used_keywords=data['used_keywords'],
+        is_article_efficent='Green ' + data['is_article_efficient'],
+        is_top_story=False,
+        bot_id=data['bot_id'],
+        created_at=current_time,
+        updated_at=current_time
+    )
+
+    db.session.add(new_article)
+    db.session.commit()
+
+    response = create_response(success=True, data=new_article.as_dict())
+    return jsonify(response), 200
 
 
 @articles_bp.route('/generate_article', methods=['POST'])
+@handle_db_session
 def generate_article():
     """
     Generate a new article summary using the perplexity model.
+    
+    Returns:
+        JSON response with the generated article summary or an error message.
     """
-    response = {'data': None, 'error': None, 'success': False}
-    try:
-        data = request.get_json()
+    data = request.get_json()
+    required_fields = ['search_query', 'bot_id', 'category_id', 'keywords']
+    missing_fields = [field for field in required_fields if field not in data]
+    if missing_fields:
+        response = create_response(error=f'Missing required fields: {", ".join(missing_fields)}')
+        return jsonify(response), 400
 
-        required_fields = ['content', 'category_id']
-        missing_fields = [field for field in required_fields if field not in data]
-        if missing_fields:
-            response['error'] = f'Missing required fields: {", ".join(missing_fields)}'
-            return jsonify(response), 400
+    article_prompt = generate_poster_prompt(data['search_query'])
+    article_content = clean_text(article_prompt)
+    article_summary = perplexity_api_request(data['search_query'], article_content)
 
-        perplexity_result = article_perplexity_remaker(data['content'], data['category_id'])
-        if not perplexity_result['success']:
-            response['error'] = perplexity_result['error']
-            return jsonify(response), 400
-
-        new_article_summary = perplexity_result['response']
-        final_summary = clean_text(new_article_summary)
-        final_summary = '\n'.join(line.lstrip('- ').strip() for line in final_summary.split('\n'))
-
-        lines = final_summary.split('\n')
-        if lines:
-            new_article_title = lines[0].strip()  # Use the first line as the title
-            final_summary = '\n'.join(lines[1:]).strip()  # Join remaining lines as content
-
-        final_title = new_article_title.replace("Headline: ", "")
-
-        response['data'] = {
-            'title': final_title,
-            'content': final_summary
-        }
-
-        response['success'] = True
-        return jsonify(response), 200
-
-    except Exception as e:
-        response['error'] = f'Internal server error: {str(e)}'
+    if not article_summary:
+        response = create_response(error='Failed to generate article summary')
         return jsonify(response), 500
 
-
-@articles_bp.route('/generate_image', methods=['POST'])
-def generate_image():
-    """
-    Generate an image using the DALL-E 3 model.
-    """
-    response = {'data': None, 'error': None, 'success': False}
-    try:
-        data = request.get_json()
-
-        required_fields = ['content', 'bot_id']
-        missing_fields = [field for field in required_fields if field not in data]
-        if missing_fields:
-            response['error'] = f'Missing required fields: {", ".join(missing_fields)}'
-            return jsonify(response), 400
-
-        final_summary = clean_text(data['content'])
-
-        first_line_end = final_summary.find('\n')
-        new_article_title = final_summary[:first_line_end].strip() if first_line_end != -1 else final_summary.strip()
-
-        dalle3_result = generate_poster_prompt(final_summary, data['bot_id'])
-        if not dalle3_result['success']:
-            response['error'] = dalle3_result['error']
-            return jsonify(response), 400
-
-        original_image_url = dalle3_result['response']
-
-        response['data'] = {'image_url': original_image_url}
-        response['success'] = True
-        return jsonify(response), 200
-
-    except Exception as e:
-        response['error'] = f'Internal server error: {str(e)}'
-        return jsonify(response), 500
-
-
-def extract_text_from_google_docs(link):
-    """
-    Extract text content from a Google Docs link.
-    """
-    try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            context = browser.new_context()
-            page = context.new_page()
-            page.goto(link)
-            page.wait_for_load_state("domcontentloaded", timeout=70000)
-
-            if os.name == 'posix':  # macOS or Linux
-                page.keyboard.press('Meta+A')
-                page.keyboard.press('Meta+C')
-            else:  # Windows
-                page.keyboard.press('Control+A')
-                page.keyboard.press('Control+C')
-
-            page.wait_for_timeout(2000)
-            content = pyperclip.paste()
-            browser.close()
-            return content
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
-        return None
-
-
-def clean_response(response):
-    """
-    Erase the first and last lines from the response.
-    """
-    if response:
-        lines = response.split('\n')
-        if len(lines) > 2:
-            return '\n'.join(lines[1:-1])
-        else:
-            return ''
-    return response
-
-
-@articles_bp.route('/extract_content', methods=['POST'])
-def extract_content():
-    """
-    Extract content from a link or Google Docs based on the extract type.
-    """
-    response = {'response': None, 'success': False}
-    try:
-        data = request.get_json()
-        extract_type = data.get('extract_type')
-        link = data.get('link')
-
-        if extract_type == 'link':
-            prompt = "You are an assistant to create a summary about news"
-            content = f"Please go to {link} and scrape the article text from the news/article"
-            result = perplexity_api_request(content, prompt)
-
-            if 'response' in result and isinstance(result['response'], str):
-                response_text = result['response']
-                if response_text:
-                    cleaned_response = clean_response(response_text)
-                    result['response'] = cleaned_response
-        elif extract_type == 'google_docs':
-            content = extract_text_from_google_docs(link)
-            result = {'response': content, 'success': True}
-        else:
-            return jsonify({'response': 'Invalid extract type', 'success': False})
-
-        return jsonify(result), 200
-    except Exception as e:
-        return jsonify({'response': f'An error occurred: {str(e)}', 'success': False}), 500
-
-
-
-
-@articles_bp.route('/last_five_articles', methods=['GET'])
-def get_last_five_articles():
-    """
-    Get the last five articles with extended details.
-    Response:
-        200: Successfully retrieved the last five articles.
-        404: No articles found matching the criteria.
-        500: Internal server error.
-    """
-    response = {'data': None, 'error': None, 'success': False}
-    try:
-        # Fetch the last five articles that match the given criteria
-        articles = Article.query.filter_by(url="Generated By Ai-Alpha Team.") \
-                                .order_by(Article.date.desc()) \
-                                .limit(5) \
-                                .all()
-
-        if not articles:
-            response['error'] = 'No articles found matching the criteria'
-            return jsonify(response), 404
-
-        extended_articles = []
-        for article in articles:
-            bot = Bot.query.get(article.bot_id)
-            bot_name = bot.name if bot else None
-
-            category = Category.query.get(bot.category_id) if bot else None
-            category_name = category.name if category else None
-
-            extended_article = {
-                'id': article.id,
-                'title': article.title,
-                'content': article.content,
-                'image': article.image,
-                'analysis': article.analysis,
-                'bot_id': article.bot_id,
-                'bot_name': bot_name,
-                'category_name': category_name,
-                'created_at': article.created_at.strftime('%a, %d %b %Y %H:%M:%S GMT'),
-                'updated_at': article.updated_at.strftime('%a, %d %b %Y %H:%M:%S GMT'),
-                'date': article.date.strftime('%a, %d %b %Y %H:%M:%S GMT'),
-                'url': article.url,
-                'used_keywords': article.used_keywords,
-                'is_article_efficent': article.is_article_efficent,
-                'is_top_story': article.is_top_story
-            }
-
-            extended_articles.append(extended_article)
-
-        response['data'] = extended_articles
-        response['success'] = True
-        return jsonify(response), 200
-
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        response['error'] = f'Database error: {str(e)}'
-        return jsonify(response), 500
-    except Exception as e:
-        response['error'] = f'Internal server error: {str(e)}'
-        return jsonify(response), 500
+    response = create_response(success=True, data={'summary': article_summary})
+    return jsonify(response), 200

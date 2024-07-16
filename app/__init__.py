@@ -3,7 +3,7 @@ import os
 from config import db
 from flask import Flask
 from dotenv import load_dotenv
-from scheduler_config_1 import scheduler
+from scheduler_config import scheduler
 from app.routes.bots.bots import bots_bp
 from app.routes.sites.sites import sites_bp
 from app.routes.slack.slack import slack_action_bp
@@ -15,6 +15,7 @@ from app.routes.blacklist.blacklist import blacklist_bp
 from app.routes.categories.categories import categories_bp
 from app.routes.used_keywords.u_k import news_bots_features_bp
 from app.routes.unwanted_articles.unwanted_article import unwanted_articles_bp
+from app.routes.news.news import website_news_bp
 from data import initialize_categories, initialize_fixed_data, initialize_keywords, initialize_sites_data
 
 load_dotenv()
@@ -55,5 +56,6 @@ def create_app():
     app.register_blueprint(slack_action_bp)
     app.register_blueprint(activate_bots_bp)
     app.register_blueprint(news_bots_features_bp)
+    app.register_blueprint(website_news_bp)
 
     return app
