@@ -27,9 +27,14 @@ app/utils/userDataDir/
 # Database
 *.sqlite
 
+
+
 # OS generated files
 .DS_Store
 Thumbs.db
+
+app\routes\articles\tmp
+.tmp
 
 ./userDataDir
 app/utils/tmp/playwright
