@@ -1,17 +1,11 @@
 # routes.py
 
 from flask import Blueprint, jsonify, request
-<<<<<<< HEAD
 from sqlalchemy.exc import SQLAlchemyError
-from app.utils.helpers import measure_execution_time
 from scheduler_config import scheduler
-from config import Blacklist, Bot, Keyword, Site, db, Category
-=======
+from config import Blacklist, Bot, Site, db, Category
 from datetime import datetime
->>>>>>> 04988fa3317a21e4b1c80f3f5de1e4a5e91f57a1
 from app.utils.index import fetch_news_links
-from config import Blacklist, Category, Bot, Site, db
-from scheduler_config_1 import scheduler
 from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response, handle_db_session
 
