@@ -57,8 +57,6 @@ def perplexity_api_request(content, prompt):
     except Exception as e:
         return {'response': f'Perplexity failed: {str(e)}', 'success': False}
 
-<<<<<<< HEAD
-=======
 
 
 
@@ -92,4 +90,3 @@ prompt = (
 # Usage Example
 # response = perplexity_api_request(content, prompt)
 
->>>>>>> b5aeca502ea7abaefd8fbe992c40368f6b9451f7
