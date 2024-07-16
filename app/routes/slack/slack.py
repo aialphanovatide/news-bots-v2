@@ -1,11 +1,12 @@
+from datetime import datetime
 from flask import Blueprint, jsonify, request
 from app.utils.helpers import measure_execution_time
 from config import Article, db
-from datetime import datetime
+from sqlalchemy.exc import SQLAlchemyError
+from app.routes.routes_utils import create_response, handle_db_session
 from app.services.slack.actions import send_WARNING_message_to_slack_channel
 import json
 import re
-from sqlalchemy.exc import SQLAlchemyError
 
 slack_action_bp = Blueprint(
     'slack_action_bp', __name__,
@@ -29,6 +30,56 @@ def extract_url_from_text(text):
         return match.group(1)
     return None
 
+@slack_action_bp.route("/slack/events", methods=["POST"])
+@measure_execution_time
+@handle_db_session
+def slack_events():
+    """
+    Endpoint to receive Slack events and handle block actions.
+    
+    Returns:
+        200: Success response.
+        400: Error response with details.
+        500: Internal server error.
+    """
+    try:
+        payload = request.form.get('payload')
+
+        if not payload:
+            response = create_response(error='Missing payload')
+            return jsonify(response), 400
+
+        # Parse the payload as JSON
+        data = json.loads(payload)
+
+        # Type of interaction
+        event_type = data.get('type')
+        if event_type == 'block_actions':
+            # Handle block_actions payload
+            response = handle_block_actions(data)
+            
+            if response.get('error'):
+                # Send a warning message to Slack channel on error
+                send_WARNING_message_to_slack_channel(
+                    channel_id='C070SM07NGL',
+                    title_message='Error while updating news',
+                    sub_title='Reason',
+                    message=response['error']
+                )
+                response = create_response(error=response['error'])
+                return jsonify(response), 400
+            
+            response = create_response(success=True, message=response.get('message', 'Operation successful'))
+            return jsonify(response), 200
+        
+        else:
+            response = create_response(error='Unknown event type')
+            return jsonify(response), 400
+        
+    except Exception as e:
+        response = create_response(error=str(e))
+        return jsonify(response), 500
+
 def handle_block_actions(data):
     """
     Handles block actions received from Slack messages to modify articles in the database.
@@ -39,7 +90,7 @@ def handle_block_actions(data):
     Returns:
         dict: Response indicating success or failure with appropriate messages.
     """
-    response = {'success': False, 'error': None, 'message': None}
+    response = create_response(success=False, error=None, message=None)
 
     try:
         actions = data.get('actions', [])
@@ -79,15 +130,13 @@ def handle_block_actions(data):
                 existing_article.is_top_story = True
                 existing_article.updated_at = datetime.now()
                 db.session.commit()
-                response['success'] = True
-                response['message'] = 'Article added to top story successfully'
+                response = create_response(success=True, message='Article added to top story successfully')
             elif article_data['action_id'] in ['green', 'red', 'yellow']:
                 existing_article.updated_at = datetime.now()
                 existing_article.is_article_efficient = f"{article_data['action_id']} - {article_data['value']}"
                 existing_article.additional_comments = article_data.get('additional_comments', '')
                 db.session.commit()
-                response['success'] = True
-                response['message'] = f'Article updated with: {article_data["value"]} as feedback and additional comments'
+                response = create_response(success=True, message=f'Article updated with: {article_data["value"]} as feedback and additional comments')
             else:
                 # Handle the case when action ID doesn't match any expected value
                 response['error'] = f'Unknown action ID: {article_data["action_id"]} while updating the article'
@@ -102,47 +151,3 @@ def handle_block_actions(data):
         response['error'] = f'Internal server error: {str(e)}'
 
     return response
-
-@slack_action_bp.route("/slack/events", methods=["POST"])
-@measure_execution_time
-def slack_events():
-    """
-    Endpoint to receive Slack events and handle block actions.
-    
-    Returns:
-        200: Success response.
-        400: Error response with details.
-        500: Internal server error.
-    """
-    try:
-        payload = request.form.get('payload')
-
-        if not payload:
-            return jsonify({'error': 'Missing payload'}), 400
-
-        # Parse the payload as JSON
-        data = json.loads(payload)
-
-        # Type of interaction
-        event_type = data.get('type')
-        if event_type == 'block_actions':
-            # Handle block_actions payload
-            response = handle_block_actions(data)
-            
-            if response.get('error'):
-                # Send a warning message to Slack channel on error
-                send_WARNING_message_to_slack_channel(
-                    channel_id='C070SM07NGL',
-                    title_message='Error while updating news',
-                    sub_title='Reason',
-                    message=response['error']
-                )
-                return jsonify({'error': response['error']}), 400
-            
-            return jsonify({'status': 'success', 'message': response.get('message', 'Operation successful')}), 200
-        
-        else:
-            return jsonify({'error': 'Unknown event type'}), 400
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
