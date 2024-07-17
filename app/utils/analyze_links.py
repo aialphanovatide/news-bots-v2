@@ -216,12 +216,10 @@ def validate_and_save_article(news_link, article_title, article_content, categor
         db.session.commit()
         articles_saved += 1
 
-        channel_id = 'C071142J72R'
-        if str(bot_name).casefold() == 'gold':
-            channel_id = 'C074ZDTMYDA'
+        
 
         # Notify on Slack about the article
-        send_NEWS_message_to_slack_channel(channel_id=channel_id, 
+        send_NEWS_message_to_slack_channel(channel_id=category_slack_channel, 
                                            title=new_article_title,
                                            article_url=news_link,
                                            content=final_summary, 
