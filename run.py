@@ -6,6 +6,7 @@ from flasgger import Swagger
 from flask_migrate import Migrate
 from app import create_app
 
+
 app = create_app()
 
 swagger_template_path = os.path.join(app.root_path, 'static', 'swagger_template.json')
@@ -34,6 +35,7 @@ CORS(app, origins='*', supports_credentials=True)
 
 app.static_folder = 'static'
 app.secret_key = os.urandom(24)
+
 
 
 if __name__ == "__main__":

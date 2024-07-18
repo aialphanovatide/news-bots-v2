@@ -14,6 +14,7 @@ from app.routes.bots.deactivate import deactivate_bots_bp
 from app.routes.blacklist.blacklist import blacklist_bp
 from app.routes.categories.categories import categories_bp
 from app.routes.used_keywords.u_k import news_bots_features_bp
+from app.routes.top_stories.top_stories import top_stories_bp
 from app.routes.unwanted_articles.unwanted_article import unwanted_articles_bp
 from app.routes.news.news import website_news_bp
 from data import initialize_categories, initialize_fixed_data, initialize_keywords, initialize_sites_data
@@ -50,6 +51,7 @@ def create_app():
     app.register_blueprint(articles_bp)
     app.register_blueprint(blacklist_bp)
     app.register_blueprint(keyword_bp)
+    app.register_blueprint(top_stories_bp)
     app.register_blueprint(unwanted_articles_bp)
     app.register_blueprint(sites_bp)
     app.register_blueprint(deactivate_bots_bp)
