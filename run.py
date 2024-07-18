@@ -37,6 +37,7 @@ app.static_folder = 'static'
 app.secret_key = os.urandom(24)
 
 
+
 if __name__ == "__main__":
     try:
         print("Starting the server...")

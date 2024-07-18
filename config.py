@@ -134,8 +134,6 @@ class Article(db.Model):
     bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'))
     created_at = db.Column(db.TIMESTAMP)
     updated_at = db.Column(db.TIMESTAMP)
-    # delete
-    test = db.Column(db.TIMESTAMP)
 
 
     def as_dict(self):
