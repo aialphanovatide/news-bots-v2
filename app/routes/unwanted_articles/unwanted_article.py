@@ -58,7 +58,6 @@ def get_unwanted_articles_by_bot():
         return jsonify(response), 500
 
 
-
 @unwanted_articles_bp.route('/search_unwanted_articles', methods=['POST'])
 @handle_db_session
 def search_unwanted_articles():
