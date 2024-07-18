@@ -10,6 +10,7 @@ unwanted_articles_bp = Blueprint(
     static_folder='static'
 )
 
+
 @unwanted_articles_bp.route('/get_unwanted_articles', methods=['GET'])
 @handle_db_session
 def get_unwanted_articles_by_bot():
@@ -24,29 +25,39 @@ def get_unwanted_articles_by_bot():
     """
     try:
         bot_id = request.args.get('bot_id')
+        limit = request.args.get('limit', default=20, type=int)
+
+        if limit < 1:
+            response = create_response(error='Limit must be a positive integer')
+            return jsonify(response), 400
+
+        query = UnwantedArticle.query
 
         if bot_id:
-            unwanted_articles = UnwantedArticle.query.filter_by(bot_id=bot_id).all()
-        else:
-            unwanted_articles = UnwantedArticle.query.all()
+            query = query.filter_by(bot_id=bot_id)
+
+        unwanted_articles = query.order_by(UnwantedArticle.created_at.desc()).limit(limit).all()
 
         if not unwanted_articles:
-            response = create_response(error=f'No unwanted articles found for the specified bot ID: {bot_id}' if bot_id else 'No unwanted articles found')
+            response = create_response(
+                error=f'No unwanted articles found for the specified bot ID: {bot_id}' if bot_id else 'No unwanted articles found'
+            )
             return jsonify(response), 404
 
         unwanted_article_data = [article.as_dict() for article in unwanted_articles]
 
         response = create_response(success=True, data=unwanted_article_data, message='Unwanted articles retrieved successfully')
         return jsonify(response), 200
-    
+
     except SQLAlchemyError as e:
         db.session.rollback()
         response = create_response(error=f'Database error: {str(e)}')
         return jsonify(response), 500
-    
+
     except Exception as e:
         response = create_response(error=f'Internal server error: {str(e)}')
         return jsonify(response), 500
+
 
 
 @unwanted_articles_bp.route('/search_unwanted_articles', methods=['POST'])
