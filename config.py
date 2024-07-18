@@ -101,6 +101,24 @@ class Blacklist(db.Model):
 
 
 class Article(db.Model):
+    """
+    Represents an article in the database.
+
+    Attributes:
+        id (int): Primary key, auto-incremented.
+        title (str): Title of the article.
+        content (str): Content of the article.
+        image (str): URL or path to the image associated with the article.
+        analysis (str): Analysis data of the article.
+        url (str): URL of the article.
+        date (datetime): Timestamp when the article was published.
+        used_keywords (str): Keywords used in the article.
+        is_article_efficent (str): Flag to indicate if the article is efficient.
+        is_top_story (bool): Flag to indicate if the article is a top story.
+        bot_id (int): Foreign key referencing the bot that created the article.
+        created_at (datetime): Timestamp when the article was created.
+        updated_at (datetime): Timestamp when the article was last updated.
+    """
     __tablename__ = 'article'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title = db.Column(db.String)

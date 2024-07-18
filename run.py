@@ -6,6 +6,7 @@ from flasgger import Swagger
 from flask_migrate import Migrate
 from app import create_app
 
+
 app = create_app()
 
 swagger_template_path = os.path.join(app.root_path, 'static', 'swagger_template.json')
