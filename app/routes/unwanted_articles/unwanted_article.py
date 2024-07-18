@@ -10,7 +10,6 @@ unwanted_articles_bp = Blueprint(
     static_folder='static'
 )
 
-
 @unwanted_articles_bp.route('/get_unwanted_articles', methods=['GET'])
 @handle_db_session
 def get_unwanted_articles_by_bot():
