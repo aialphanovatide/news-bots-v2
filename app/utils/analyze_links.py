@@ -67,7 +67,7 @@ def validate_yahoo_date(html: BeautifulSoup) -> bool:
 def validate_and_save_article(news_link, article_title, article_content, category_id, bot_id, bot_name, category_slack_channel):
     articles_saved = 0
     unwanted_articles_saved = 0
-
+    raw_article_content = article_content
     try:
         # Check if the URL has already been analyzed
         existing_unwanted_article = UnwantedArticle.query.filter_by(bot_id=bot_id, url=news_link).first()
@@ -95,7 +95,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
                 if similarity_score >= 0.9:
                     unwanted_article = UnwantedArticle(
                         title=article_title,
-                        content=article_content,
+                        content=raw_article_content,
                         url=news_link,
                         date=datetime.now(),
                         reason='article content too similar to recent articles',
@@ -131,7 +131,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
             # Save article as unwanted because it didn't match any keyword or contains blacklist keywords
             unwanted_article = UnwantedArticle(
                 title=article_title,
-                content=article_content,
+                content=raw_article_content,
                 url=news_link,
                 date=datetime.now(),
                 reason='article did not match any keyword or contains blacklist keyword',
