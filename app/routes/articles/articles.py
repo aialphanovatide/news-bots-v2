@@ -96,13 +96,14 @@ def get_articles_by_bot():
             return jsonify(response), 404
         bot_id = bot.id
 
-    articles = Article.query.filter_by(bot_id=bot_id).limit(limit).all()
+    articles = Article.query.filter_by(bot_id=bot_id).order_by(Article.created_at.desc()).limit(limit).all()
     if not articles:
         response = create_response(error='No articles found for the specified bot ID')
         return jsonify(response), 404
 
     response = create_response(success=True, data=[article.as_dict() for article in articles])
     return jsonify(response), 200
+
 
 
 @articles_bp.route('/delete_article', methods=['DELETE'])
