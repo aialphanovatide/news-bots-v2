@@ -14,7 +14,7 @@ config = context.config
 fileConfig(config.config_file_name)
 logger = logging.getLogger('alembic.env')
 
-
+#comment
 def get_engine():
     try:
         # this works with Flask-SQLAlchemy<3 and Alchemical
