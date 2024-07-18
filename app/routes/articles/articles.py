@@ -27,7 +27,6 @@ user_data_dir = os.path.join(root_dir, 'tmp/playwright')
 os.makedirs(user_data_dir, exist_ok=True)
 
 
-
 @articles_bp.route('/get_all_articles', methods=['GET'])
 @handle_db_session
 def get_all_articles():
@@ -42,13 +41,14 @@ def get_all_articles():
         response = create_response(error='Limit must be a positive integer')
         return jsonify(response), 400
 
-    articles = Article.query.limit(limit).all()
+    articles = Article.query.order_by(Article.created_at.desc()).limit(limit).all()
     if not articles:
         response = create_response(success=True, data=[], error='No articles found')
         return jsonify(response), 404
 
     response = create_response(success=True, data=[article.as_dict() for article in articles])
     return jsonify(response), 200
+
 
 
 @articles_bp.route('/get_article_by_id/<int:article_id>', methods=['GET'])
