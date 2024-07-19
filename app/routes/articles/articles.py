@@ -205,6 +205,40 @@ def create_article():
     return jsonify(response), 200
 
 
+@articles_bp.route('/generate_image', methods=['POST'])
+def generate_image():
+    """
+    Generate an image using the DALL-E 3 model.
+    """
+    try:
+        data = request.get_json()
+
+        required_fields = ['content', 'bot_id']
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            response = create_response(error=f'Missing required fields: {", ".join(missing_fields)}')
+            return jsonify(response), 400
+
+        final_summary = clean_text(data['content'])
+
+        first_line_end = final_summary.find('\n')
+        new_article_title = final_summary[:first_line_end].strip() if first_line_end != -1 else final_summary.strip()
+
+        dalle3_result = generate_poster_prompt(final_summary, data['bot_id'])
+        if not dalle3_result['success']:
+            response = create_response(error=dalle3_result['error'])
+            return jsonify(response), 400
+
+        original_image_url = dalle3_result['response']
+
+        response = create_response(success=True, data={'image_url': original_image_url})
+        return jsonify(response), 200
+
+    except Exception as e:
+        response = create_response(error=f'Internal server error: {str(e)}')
+        return jsonify(response), 500
+
+
 @articles_bp.route('/generate_article', methods=['POST'])
 @handle_db_session
 def generate_article():
