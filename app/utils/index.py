@@ -75,7 +75,7 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
         link_url = news_link['url']
         
         final_url = resolve_redirects_playwright(url=link_url)
-        
+        print("Url to fetch content: ", final_url)
         article_info = fetch_article_content(news_link=final_url,
                                              category_id=category_id,
                                              bot_id=bot_id,

@@ -296,6 +296,7 @@ def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: 
             return {'success': False, 'url': news_link, 'title': article_title, 
                     'paragraphs': article_content, 'error': 'Article is older than 24 hours'}
         # Validate and process the content
+        print("content to pass: ", article_content)
         result = validate_and_save_article(news_link, article_title, article_content, 
                                            category_id, bot_id, bot_name, category_slack_channel)
          
