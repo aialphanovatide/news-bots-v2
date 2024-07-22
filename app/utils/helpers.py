@@ -6,57 +6,68 @@ from functools import wraps
 from playwright.sync_api import sync_playwright
 import time
 
-
-# Takes a string and change to lowercase and join with _
+# Takes a string, changes it to lowercase, and joins words with underscores
 def transform_string(input_string):
     if not isinstance(input_string, str):
         return None
-    # Convert the string to lowercase
     lower_string = input_string.lower()
-    # Split the string into words
     words = lower_string.split()
-    # Double each word and join them with underscores
     doubled_words = '_'.join(word + '_' + word for word in words)
     return doubled_words
 
-# Recursive function that aims to resolve redirects URLs
+# Recursive function that resolves redirects
 def resolve_redirects(url):
     try:
         response = requests.get(url, allow_redirects=False)
         if response.status_code in (300, 301, 302, 303):
-            redirect_url = response.headers['location']
+            redirect_url = response.headers.get('location')
             return resolve_redirects(redirect_url)
         else:
             return response.url
     except Exception as e:
         print(f"Error while resolving redirect: {e}")
         return None
-    
 
+# Resolves redirects using Playwright and simulates copy to clipboard
 def resolve_redirects_playwright(url: str) -> str:
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)  # Puedes usar p.firefox o p.webkit si prefieres otro navegador
-        page = browser.new_page()
-        page.goto(url)
-        time.sleep(4)
+    root_dir = os.path.abspath(os.path.dirname(__file__))
+    user_data_dir = os.path.join(root_dir, 'tmp/playwright')
 
-        page.evaluate("""
-            navigator.clipboard.writeText(window.location.href).then(function() {
-                console.log('URL ok');
-            }, function(err) {
-                console.error('Error: ', err);
-            });
-        """)
+    if not os.path.exists(user_data_dir):
+        os.makedirs(user_data_dir, exist_ok=True)
 
-        time.sleep(1)
+    try:
+        with sync_playwright() as p:
+            # Launch Chromium in non-headless mode
+            browser = p.chromium.launch_persistent_context(user_data_dir, headless=True, slow_mo=2000)
+            page = browser.new_page()
+            page.goto(url)
+        
+            time.sleep(7)  # Wait for any redirection
 
-        # Obtener la URL actual
-        final_url = page.url
+            # Use JavaScript to copy the URL to the clipboard
+            page.evaluate("""
+                navigator.clipboard.writeText(window.location.href).then(function() {
+                    console.log('URL copied to clipboard');
+                }, function(err) {
+                    console.error('Error copying URL: ', err);
+                });
+            """)
 
-        browser.close()
-        return final_url
+            time.sleep(2)  # Allow time for clipboard operation
 
+            # Get the final URL
+            final_url = page.url
+            print(f"Final URL: {final_url}")
 
+            browser.close()
+            return final_url
+
+    except Exception as e:
+        print(f"Error using Playwright: {e}")
+        return None
+
+# Resolves redirects with a timeout and a limit on the number of redirects
 def resolve_redirects_v2(url, timeout=100, max_redirects=100):
     try:
         visited_urls = set()
@@ -69,14 +80,13 @@ def resolve_redirects_v2(url, timeout=100, max_redirects=100):
             visited_urls.add(current_url)
 
             response = requests.get(current_url, allow_redirects=False, timeout=timeout)
-            
             if response.status_code in (300, 301, 302, 303):
                 current_url = response.headers.get('location')
                 if not current_url:
                     print("Redirect location header missing.")
                     return None
             else:
-                print("response redir: ", response.url)
+                print("Redirected response URL:", response.url)
                 return response.url
 
         print(f"Max redirects ({max_redirects}) exceeded.")
@@ -89,11 +99,10 @@ def resolve_redirects_v2(url, timeout=100, max_redirects=100):
         print(f"Error while resolving redirect: {e}")
         return None
 
-# Saves a Dict of elements into a JSON file
+# Saves a dictionary to a JSON file
 async def save_dict_to_json(data_dict, filename='data.json'):
     try:
         if os.path.exists(filename):
-            # If the file already exists, generate a new filename with a numeric suffix
             index = 1
             while True:
                 new_filename = f"{os.path.splitext(filename)[0]}_{index}.json"
@@ -108,7 +117,6 @@ async def save_dict_to_json(data_dict, filename='data.json'):
     except Exception as e:
         print("Error:", e)
 
-
 # Saves a long string to a TXT file
 async def save_string_to_txt(string, filename='news.txt'):
     try:
@@ -118,28 +126,7 @@ async def save_string_to_txt(string, filename='news.txt'):
     except Exception as e:
         print("Error:", e)
 
-
-# # Saves a list of elements into a JSON file
-# async def save_list_to_json(data_list, filename='data.json'):
-#     try:
-#         if os.path.exists(filename):
-#             count = 1
-#             while True:
-#                 new_filename = f"{os.path.splitext(filename)[0]}_{count}.json"
-#                 if not os.path.exists(new_filename):
-#                     break
-#                 count += 1
-#             filename = new_filename
-
-#         async with aiofiles.open(filename, 'w', encoding='utf-8') as file:
-#             await file.write(json.dumps(data_list, ensure_ascii=False, indent=4))
-#         print("Data saved to", filename)
-#     except Exception as e:
-#         print("Error:", e)
-
-
-
-
+# Decorator to measure execution time of functions
 def measure_execution_time(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -150,3 +137,6 @@ def measure_execution_time(func):
         print(f"Execution time for {func.__name__}: {execution_time} seconds")
         return result
     return wrapper
+
+
+
