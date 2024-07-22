@@ -238,10 +238,9 @@ def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: 
     try:
         # Initialize SSL context
         ssl_context = ssl.SSLContext()
-
         # Send HTTP GET request
         response = requests.get(news_link)
-      
+        print(response)
         if response.status_code != 200:
             return {
                 'success': False,
@@ -260,7 +259,7 @@ def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: 
 
         # Parse HTML content with BeautifulSoup
         html = BeautifulSoup(text, 'html.parser')
-    
+
         # If the article is from Yahoo, validate the date
         if 'yahoo' in news_link.lower():
             if not validate_yahoo_date(html):
@@ -296,10 +295,10 @@ def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: 
         if publication_date and datetime.now() - publication_date > timedelta(days=1):
             return {'success': False, 'url': news_link, 'title': article_title, 
                     'paragraphs': article_content, 'error': 'Article is older than 24 hours'}
-
         # Validate and process the content
         result = validate_and_save_article(news_link, article_title, article_content, 
                                            category_id, bot_id, bot_name, category_slack_channel)
+         
         if 'error' in result:
             return {'success': False, 'url': news_link, 'title': article_title, 
                     'paragraphs': article_content, 'error': result['error']}
