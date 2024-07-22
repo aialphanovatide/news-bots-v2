@@ -8,8 +8,6 @@ import os
 
 from app.utils.testurl import resolve_redirects_playwright
 
-
-# Get all urls from a source
 def fetch_urls(url: str) -> Dict:
     print("\nStarting fetching URLs...")
     base_url = "https://news.google.com"
@@ -25,12 +23,11 @@ def fetch_urls(url: str) -> Dict:
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch_persistent_context(user_data_dir, headless=False, slow_mo=2000)
-
             page = browser.new_page()
             page.goto(url)
             page.wait_for_load_state("domcontentloaded", timeout=70000)
 
-            news_links = set()
+            news_links = []
 
             # Extract links to news articles
             links = page.query_selector_all('a[href*="/articles/"]')
@@ -42,19 +39,13 @@ def fetch_urls(url: str) -> Dict:
                 # Verify title
                 if title:
                     full_link = base_url + href
-                    print('\nhref:', href)
-                    try:
-                        resolved_link = resolve_redirects(url=full_link)
-                        print("res links: ", resolved_link)
-                        if resolved_link:
-                            news_links.add({'title'})
-                            print("\nresolved links: ", resolved_link)
-                            if len(news_links) >= max_links:
-                                break
-                    except Exception as e:
-                        result['errors'].append(f"Error resolving redirects for {full_link}: {str(e)}")
+                    # Add the link and title to the list
+                    news_links.append({'title': title, 'url': full_link})
+                    
+                    if len(news_links) >= max_links:
+                        break
 
-            result['data'] = list(news_links)
+            result['data'] = news_links
             result['success'] = len(news_links) > 0
 
             browser.close()
@@ -64,34 +55,33 @@ def fetch_urls(url: str) -> Dict:
         print(f"Exception in fetch_urls: {str(e)}")
         return {'success': False, 'data': [], 'errors': [str(e)]}
 
-
-# Process URLs, validate, save to DB and send notififcations
 def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id: int, bot_id: int, category_slack_channel) -> dict:
     
     print('--Execution started--')
     result = {'success': False, 'links_fetched': 0, 'errors': []}
-    fetch_result =  fetch_urls(url)
+    fetch_result = fetch_urls(url)
 
     if not fetch_result['success']:
         return fetch_result
 
     news_links = fetch_result['data']
-    print("News link en la funcion fetch news link: ", news_links)
     title = fetch_result['title']
-    print('title: ', title)
     print(f'Length links to scrape for {str(bot_name).upper()}: ', len(news_links))
     result['links_fetched'] = len(news_links)
-    
-    
+
     # Fetch article, validate and save to DB
     for news_link in news_links:
-        article_info = fetch_article_content(news_link=news_link,
-                                                category_id=category_id,
-                                                    bot_id=bot_id,
-                                                    bot_name=bot_name,
-                                                    title=title,
-                                                    category_slack_channel=category_slack_channel
-                                                    )
+        # Extract the URL from the news_link dictionary
+        link_url = news_link['url']
+        
+        final_url = resolve_redirects_playwright(url=link_url)
+        
+        article_info = fetch_article_content(news_link=final_url,
+                                             category_id=category_id,
+                                             bot_id=bot_id,
+                                             bot_name=bot_name,
+                                             title=title,
+                                             category_slack_channel=category_slack_channel)
 
         if 'error' in article_info:
             result['errors'].append(f"Error fetching content for {article_info['url']}, Reason: {article_info['error']}")
@@ -112,27 +102,13 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
     return result
 
 
-fetch_news_links(url='https://news.google.com/search?q=bitcoin%20btc%20%22bitcoin%20btc%22%20when%3A1d%20-buy%20-tradingview%20-msn%20-medium&hl=en-US&gl=US&ceid=US%3Aen',
-                 bot_name='btc',
-                 blacklist=[],
-                 category_id=1,
-                 bot_id=1,
-                 category_slack_channel='C05RK7CCDEK'
-                 )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# fetch_news_links(url='https://news.google.com/search?q=bitcoin%20btc%20%22bitcoin%20btc%22%20when%3A1d%20-buy%20-tradingview%20-msn%20-medium&hl=en-US&gl=US&ceid=US%3Aen',
+#                  bot_name='btc',
+#                  blacklist=[],
+#                  category_id=1,
+#                  bot_id=1,
+#                  category_slack_channel='C05RK7CCDEK'
+#                  )
 
 
 

@@ -3,6 +3,7 @@ import aiofiles
 import json
 import os
 from functools import wraps
+from playwright.sync_api import sync_playwright
 import time
 
 
@@ -30,6 +31,30 @@ def resolve_redirects(url):
     except Exception as e:
         print(f"Error while resolving redirect: {e}")
         return None
+    
+
+def resolve_redirects_playwright(url: str) -> str:
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)  # Puedes usar p.firefox o p.webkit si prefieres otro navegador
+        page = browser.new_page()
+        page.goto(url)
+        time.sleep(4)
+
+        page.evaluate("""
+            navigator.clipboard.writeText(window.location.href).then(function() {
+                console.log('URL ok');
+            }, function(err) {
+                console.error('Error: ', err);
+            });
+        """)
+
+        time.sleep(1)
+
+        # Obtener la URL actual
+        final_url = page.url
+
+        browser.close()
+        return final_url
 
 
 def resolve_redirects_v2(url, timeout=100, max_redirects=100):
