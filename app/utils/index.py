@@ -1,14 +1,17 @@
 from typing import List, Dict
 from app.utils.helpers import resolve_redirects, resolve_redirects_v2
+
 from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright
 from app.utils.analyze_links import fetch_article_content
 import os
 
+from app.utils.testurl import resolve_redirects_playwright
+
 
 # Get all urls from a source
 def fetch_urls(url: str) -> Dict:
-    print("1 STARTING FETCH URLS.")
+    print("\nStarting fetching URLs...")
     base_url = "https://news.google.com"
     result = {'success': False, 'data': [], 'errors': [], 'title': None}
     max_links = 30
@@ -33,18 +36,19 @@ def fetch_urls(url: str) -> Dict:
             links = page.query_selector_all('a[href*="/articles/"]')
 
             for link in links:
-                href = link.get_attribute('href')
+                href = link.get_attribute('href').removeprefix('.')
                 title = link.text_content().strip()
-                print('Title:', title)
 
                 # Verify title
                 if title:
                     full_link = base_url + href
-                    result['title'] = title
+                    print('\nhref:', href)
                     try:
-                        resolved_link = resolve_redirects_v2(url=full_link)
+                        resolved_link = resolve_redirects(url=full_link)
+                        print("res links: ", resolved_link)
                         if resolved_link:
-                            news_links.add(resolved_link)
+                            news_links.add({'title'})
+                            print("\nresolved links: ", resolved_link)
                             if len(news_links) >= max_links:
                                 break
                     except Exception as e:
@@ -65,7 +69,6 @@ def fetch_urls(url: str) -> Dict:
 def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id: int, bot_id: int, category_slack_channel) -> dict:
     
     print('--Execution started--')
-    max_links = 30
     result = {'success': False, 'links_fetched': 0, 'errors': []}
     fetch_result =  fetch_urls(url)
 
@@ -73,7 +76,9 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
         return fetch_result
 
     news_links = fetch_result['data']
+    print("News link en la funcion fetch news link: ", news_links)
     title = fetch_result['title']
+    print('title: ', title)
     print(f'Length links to scrape for {str(bot_name).upper()}: ', len(news_links))
     result['links_fetched'] = len(news_links)
     
@@ -107,7 +112,13 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
     return result
 
 
-
+fetch_news_links(url='https://news.google.com/search?q=bitcoin%20btc%20%22bitcoin%20btc%22%20when%3A1d%20-buy%20-tradingview%20-msn%20-medium&hl=en-US&gl=US&ceid=US%3Aen',
+                 bot_name='btc',
+                 blacklist=[],
+                 category_id=1,
+                 bot_id=1,
+                 category_slack_channel='C05RK7CCDEK'
+                 )
 
 
 

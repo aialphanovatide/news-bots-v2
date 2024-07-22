@@ -51,12 +51,12 @@ def job_error(event):
         error_type = event.exception.__class__.__name__
         message = f"An error occurred in '{job_id}' - {error_type}: {event.exception}"
         
-        send_WARNING_message_to_slack_channel(
-            channel_id=logs_channel_id,
-            title_message=f"Error executing {job_id}",
-            sub_title="Response",
-            message=message
-        )
+        # send_WARNING_message_to_slack_channel(
+        #     channel_id=logs_channel_id,
+        #     title_message=f"Error executing {job_id}",
+        #     sub_title="Response",
+        #     message=message
+        # )
         
         print(f"Error: Job '{job_id}' raised {error_type}")
 

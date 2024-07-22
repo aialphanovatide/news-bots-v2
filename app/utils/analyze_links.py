@@ -241,10 +241,10 @@ def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: 
     try:
         # Initialize SSL context
         ssl_context = ssl.SSLContext()
-
+        print("news link: ", news_link)
         # Send HTTP GET request
         response = requests.get(news_link)
-      
+        print(response)
         if response.status_code != 200:
             return {
                 'success': False,
@@ -263,7 +263,7 @@ def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: 
 
         # Parse HTML content with BeautifulSoup
         html = BeautifulSoup(text, 'html.parser')
-    
+
         # If the article is from Yahoo, validate the date
         if 'yahoo' in news_link.lower():
             if not validate_yahoo_date(html):
@@ -276,39 +276,43 @@ def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: 
 
         # Extract paragraphs from the article
         paragraphs = html.find_all('p')
+        print("paragraphs: ", paragraphs)
         article_content = [p.text.strip() for p in paragraphs]
 
-        # Extract publication date (general approach)
-        publication_date = None
-        date_elements = html.find_all(['span', 'date', 'time'])
-        for date_element in date_elements:
-            date_text = date_element.get('datetime') or date_element.text.strip()
-            try:
-                # Try to parse the date text
-                publication_date = datetime.strptime(date_text, '%b %d, %Y at %I:%M %p')
-                break  # Exit loop if date is successfully parsed
-            except (ValueError, TypeError):
-                try:
-                    # Try another common date format
-                    publication_date = datetime.strptime(date_text, '%Y-%m-%d')
-                    break
-                except (ValueError, TypeError):
-                    continue  # Continue if parsing fails
+        # # Extract publication date (general approach)
+        # publication_date = None
+        # date_elements = html.find_all(['span', 'date', 'time'])
+        # for date_element in date_elements:
+        #     date_text = date_element.get('datetime') or date_element.text.strip()
+        #     try:
+        #         # Try to parse the date text
+        #         publication_date = datetime.strptime(date_text, '%b %d, %Y at %I:%M %p')
+        #         break  # Exit loop if date is successfully parsed
+        #     except (ValueError, TypeError):
+        #         try:
+        #             # Try another common date format
+        #             publication_date = datetime.strptime(date_text, '%Y-%m-%d')
+        #             break
+        #         except (ValueError, TypeError):
+        #             continue  # Continue if parsing fails
 
-        # Check if the publication date is within the last 24 hours
-        if publication_date and datetime.now() - publication_date > timedelta(days=1):
-            return {'success': False, 'url': news_link, 'title': article_title, 
-                    'paragraphs': article_content, 'error': 'Article is older than 24 hours'}
+        # # Check if the publication date is within the last 24 hours
+        # if publication_date and datetime.now() - publication_date > timedelta(days=1):
+        #     return {'success': False, 'url': news_link, 'title': article_title, 
+        #             'paragraphs': article_content, 'error': 'Article is older than 24 hours'}
+            
+        print("title: ", article_title)
+        print("content: ", article_content)
+        # # Validate and process the content
+        # result = validate_and_save_article(news_link, article_title, article_content, 
+        #                                    category_id, bot_id, bot_name, category_slack_channel)
+         
+        # if 'error' in result:
+        #     return {'success': False, 'url': news_link, 'title': article_title, 
+        #             'paragraphs': article_content, 'error': result['error']}
 
-        # Validate and process the content
-        result = validate_and_save_article(news_link, article_title, article_content, 
-                                           category_id, bot_id, bot_name, category_slack_channel)
-        if 'error' in result:
-            return {'success': False, 'url': news_link, 'title': article_title, 
-                    'paragraphs': article_content, 'error': result['error']}
-
-        return {'success': True, 'url': news_link, 'title': article_title, 
-                'paragraphs': article_content, 'message': result['message']}
+        # return {'success': True, 'url': news_link, 'title': article_title, 
+        #         'paragraphs': article_content, 'message': result['message']}
 
     except requests.RequestException as e:
         return {'success': False, 'url': news_link, 'title': None, 

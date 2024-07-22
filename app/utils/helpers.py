@@ -32,7 +32,7 @@ def resolve_redirects(url):
         return None
 
 
-def resolve_redirects_v2(url, timeout=10, max_redirects=10):
+def resolve_redirects_v2(url, timeout=100, max_redirects=100):
     try:
         visited_urls = set()
         current_url = url
@@ -51,6 +51,7 @@ def resolve_redirects_v2(url, timeout=10, max_redirects=10):
                     print("Redirect location header missing.")
                     return None
             else:
+                print("response redir: ", response.url)
                 return response.url
 
         print(f"Max redirects ({max_redirects}) exceeded.")
