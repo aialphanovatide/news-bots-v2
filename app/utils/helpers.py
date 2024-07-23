@@ -1,10 +1,9 @@
-import requests
-import aiofiles
-import json
 import os
+import time
+import json
+import aiofiles
 from functools import wraps
 from playwright.sync_api import sync_playwright
-import time
 
 # Takes a string, changes it to lowercase, and joins words with underscores
 def transform_string(input_string):
@@ -28,8 +27,8 @@ def resolve_redirects_playwright(url: str) -> str:
             # Launch Chromium in non-headless mode
             browser = p.chromium.launch_persistent_context(user_data_dir, headless=True, slow_mo=2000)
             page = browser.new_page()
-            page.goto(url)
-            time.sleep(5)  # Wait for the page to load
+            page.goto(url, wait_until='networkidle')
+            time.sleep(5)
 
             # Get the final URL
             final_url = page.url
@@ -79,6 +78,3 @@ def measure_execution_time(func):
         print(f"Execution time for {func.__name__}: {execution_time} seconds")
         return result
     return wrapper
-
-
-

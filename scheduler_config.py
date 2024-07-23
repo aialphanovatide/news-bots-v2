@@ -65,12 +65,12 @@ def job_max_instances_reached(event):
     with scheduler.app.app_context(): 
         job_id = str(event.job_id).capitalize()
         message = f'Maximum number of running instances reached, *Upgrade* the time interval for {job_id}'
-        send_WARNING_message_to_slack_channel(
-            channel_id=logs_channel_id,
-            title_message=f"Error executing {job_id}",
-            sub_title="Response",
-            message=message
-        )
+        # send_WARNING_message_to_slack_channel(
+        #     channel_id=logs_channel_id,
+        #     title_message=f"Error executing {job_id}",
+        #     sub_title="Response",
+        #     message=message
+        # )
         print(message)
 
 
