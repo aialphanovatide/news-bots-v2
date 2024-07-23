@@ -59,10 +59,7 @@ def validate_yahoo_date(html: BeautifulSoup) -> bool:
                 return True
         except ValueError as e:
             print(f"Error parsing date: {e}")
-    return False
-
-
-    
+    return False 
 
 def validate_and_save_article(news_link, article_title, article_content, category_id, bot_id, bot_name, category_slack_channel):
     articles_saved = 0
@@ -218,12 +215,12 @@ def validate_and_save_article(news_link, article_title, article_content, categor
 
 
         # Notify on Slack about the article
-        send_NEWS_message_to_slack_channel(channel_id=category_slack_channel, 
-                                           title=new_article_title,
-                                           article_url=news_link,
-                                           content=final_summary, 
-                                           used_keywords=used_keywords, 
-                                           image=image_url)
+        # send_NEWS_message_to_slack_channel(channel_id=category_slack_channel, 
+        #                                    title=new_article_title,
+        #                                    article_url=news_link,
+        #                                    content=final_summary, 
+        #                                    used_keywords=used_keywords, 
+        #                                    image=image_url)
 
         return {'message': f'article {new_article_title} validated and saved', 
                 'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
@@ -232,15 +229,11 @@ def validate_and_save_article(news_link, article_title, article_content, categor
         return {'error': f"An unexpected error occurred during keyword validation: {str(e)}", 
                 'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
         
-        
-
+    
 def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: int, bot_name: str, category_slack_channel) -> Dict[str, Any]:
     try:
-        # Initialize SSL context
-        ssl_context = ssl.SSLContext()
         # Send HTTP GET request
         response = requests.get(news_link)
-        print(response)
         if response.status_code != 200:
             return {
                 'success': False,

@@ -1,12 +1,10 @@
-from typing import List, Dict
-from app.utils.helpers import resolve_redirects, resolve_redirects_v2
-
-from playwright.async_api import async_playwright
-from playwright.sync_api import sync_playwright
-from app.utils.analyze_links import fetch_article_content
 import os
+from typing import List, Dict
+from datetime import datetime
+from playwright.sync_api import sync_playwright
+from app.utils.helpers import resolve_redirects_playwright
+from app.utils.analyze_links import fetch_article_content
 
-from app.utils.testurl import resolve_redirects_playwright
 
 def fetch_urls(url: str) -> Dict:
     print("\nStarting fetching URLs...")
@@ -28,6 +26,7 @@ def fetch_urls(url: str) -> Dict:
             page.wait_for_load_state("domcontentloaded", timeout=70000)
 
             news_links = []
+            unique_urls = set()
 
             # Extract links to news articles
             links = page.query_selector_all('a[href*="/articles/"]')
@@ -39,9 +38,11 @@ def fetch_urls(url: str) -> Dict:
                 # Verify title
                 if title:
                     full_link = base_url + href
-                    # Add the link and title to the list
-                    news_links.append({'title': title, 'url': full_link})
-                    
+                    if full_link not in unique_urls:
+                        unique_urls.add(full_link)
+                        # Add the link and title to the list
+                        news_links.append({'title': title, 'url': full_link})
+                        
                     if len(news_links) >= max_links:
                         break
 
@@ -55,9 +56,11 @@ def fetch_urls(url: str) -> Dict:
         print(f"Exception in fetch_urls: {str(e)}")
         return {'success': False, 'data': [], 'errors': [str(e)]}
 
+
 def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id: int, bot_id: int, category_slack_channel) -> dict:
     
     print('--Execution started--')
+    start_time = datetime.now()
     result = {'success': False, 'links_fetched': 0, 'errors': []}
     fetch_result = fetch_urls(url)
 
@@ -65,7 +68,7 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
         return fetch_result
 
     news_links = fetch_result['data']
-    title = fetch_result['title']
+  
     print(f'Length links to scrape for {str(bot_name).upper()}: ', len(news_links))
     result['links_fetched'] = len(news_links)
 
@@ -73,8 +76,13 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
     for news_link in news_links:
         # Extract the URL from the news_link dictionary
         link_url = news_link['url']
-        
+        title = news_link['title']
         final_url = resolve_redirects_playwright(url=link_url)
+        
+        print('\n--- final_url ---', final_url)
+        print('title: ', title)
+
+
         article_info = fetch_article_content(news_link=final_url,
                                              category_id=category_id,
                                              bot_id=bot_id,
@@ -87,27 +95,28 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
             continue
         
         if 'message' in article_info:
-            print(f'SUCCEED: {article_info["message"]}')
+            print(f'\nSUCCEED: {article_info["message"]}')
             continue
-        
-        if len(news_links) >= 30:
-            break
     
     if len(result['errors']) == 0:
         result['success'] = True
+        print('--- Execution ended ---')
     else:
         print(f'Length errors found during {str(bot_name).upper()} execution', result['errors'])
-
+    
+    end_time = datetime.now()
+    
+    print('\nTime consumed: ', start_time - end_time)
     return result
 
 
-# fetch_news_links(url='https://news.google.com/search?q=bitcoin%20btc%20%22bitcoin%20btc%22%20when%3A1d%20-buy%20-tradingview%20-msn%20-medium&hl=en-US&gl=US&ceid=US%3Aen',
-#                  bot_name='btc',
-#                  blacklist=[],
-#                  category_id=1,
-#                  bot_id=1,
-#                  category_slack_channel='C05RK7CCDEK'
-#                  )
+fetch_news_links(url='https://news.google.com/search?q=bitcoin%20btc%20%22bitcoin%20btc%22%20when%3A1d%20-buy%20-tradingview%20-msn%20-medium&hl=en-US&gl=US&ceid=US%3Aen',
+                 bot_name='btc',
+                 blacklist=[],
+                 category_id=1,
+                 bot_id=1,
+                 category_slack_channel='C05RK7CCDEK'
+                 )
 
 
 
