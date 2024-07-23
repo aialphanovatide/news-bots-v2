@@ -36,7 +36,6 @@ def perplexity_api_request(content, prompt):
             if 'message' in first_choice:
                 content_response = first_choice['message']['content']
                 
-                # Remover las frases no deseadas
                 unwanted_phrases = [
                     "Here is the rewritten headline and summary:",
                     "Here is a rewritten headline and summary of the article:"
