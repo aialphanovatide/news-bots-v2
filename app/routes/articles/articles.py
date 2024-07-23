@@ -226,7 +226,7 @@ def generate_image():
     """
     try:
         data = request.get_json()
-
+        print(data)
         required_fields = ['content', 'bot_id']
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
@@ -234,9 +234,6 @@ def generate_image():
             return jsonify(response), 400
 
         final_summary = clean_text(data['content'])
-
-        first_line_end = final_summary.find('\n')
-        new_article_title = final_summary[:first_line_end].strip() if first_line_end != -1 else final_summary.strip()
 
         dalle3_result = generate_poster_prompt(final_summary, data['bot_id'])
         if not dalle3_result['success']:
@@ -263,23 +260,27 @@ def generate_article():
         JSON response with the generated article summary or an error message.
     """
     data = request.get_json()
-    required_fields = ['search_query', 'bot_id', 'category_id', 'keywords']
+    required_fields = ['content', 'category_id']
     missing_fields = [field for field in required_fields if field not in data]
+    
     if missing_fields:
         response = create_response(error=f'Missing required fields: {", ".join(missing_fields)}')
         return jsonify(response), 400
-
-    article_prompt = generate_poster_prompt(data['search_query'])
-    article_content = clean_text(article_prompt)
-    article_summary = perplexity_api_request(data['search_query'], article_content)
-
-    if not article_summary:
-        response = create_response(error='Failed to generate article summary')
+    
+    try:
+        article_content = clean_text(data['content'])
+        article_summary = perplexity_api_request(content=article_content, prompt="you are a economic yournalist writing about crypto and other economics, generate an news article talking about this crypto content in less than 150 words: ")
+        
+        if not article_summary:
+            response = create_response(error='Failed to generate article summary')
+            return jsonify(response), 500
+        
+        response = create_response(success=True, data={'summary': article_summary})
+        return jsonify(response), 200
+    
+    except Exception as e:
+        response = create_response(error=str(e))
         return jsonify(response), 500
-
-    response = create_response(success=True, data={'summary': article_summary})
-    return jsonify(response), 200
-
 
 
 @articles_bp.route('/last_five_articles', methods=['GET'])
