@@ -10,7 +10,7 @@ def fetch_urls(url: str) -> Dict:
     print("\nStarting fetching URLs...")
     base_url = "https://news.google.com"
     result = {'success': False, 'data': [], 'errors': [], 'title': None}
-    max_links = 30
+    max_links = 5
 
     root_dir = os.path.abspath(os.path.dirname(__file__))
     user_data_dir = os.path.join(root_dir, 'tmp/playwright')
@@ -110,13 +110,13 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
     return result
 
 
-fetch_news_links(url='https://news.google.com/search?q=bitcoin%20btc%20%22bitcoin%20btc%22%20when%3A1d%20-buy%20-tradingview%20-msn%20-medium&hl=en-US&gl=US&ceid=US%3Aen',
-                 bot_name='btc',
-                 blacklist=[],
-                 category_id=1,
-                 bot_id=1,
-                 category_slack_channel='C05RK7CCDEK'
-                 )
+# fetch_news_links(url='https://news.google.com/search?q=ethereum%20%22ethereum%22%20when%3A1d%20-msn%20-buy&hl=en-US&gl=US&ceid=US%3Aen',
+#                  bot_name='eth',
+#                  blacklist=[],
+#                  category_id=2,
+#                  bot_id=2,
+#                  category_slack_channel='C05RK7CCDEK'
+#                  )
 
 
 
