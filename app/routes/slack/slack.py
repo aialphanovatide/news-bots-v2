@@ -74,7 +74,6 @@ slack_action_bp = Blueprint(
 def slack_events():
     try:
         payload = request.form.get('payload')
-
         if not payload:
             return jsonify(create_response(success=False, error='Missing payload')), 400
 
@@ -106,6 +105,20 @@ def slack_events():
     except Exception as e:
         return jsonify(create_response(success=False, error=f'Internal server error: {str(e)}')), 500
 
+def clean_url(url):
+    """
+    Cleans the URL by removing unwanted characters.
+
+    Args:
+        url (str): The URL to clean.
+
+    Returns:
+        str: The cleaned URL.
+    """
+    if url:
+        return url.replace('<', '').replace('>', '')
+    return url
+
 
 def handle_block_actions(data):
     """
@@ -133,12 +146,10 @@ def handle_block_actions(data):
                 article_data['action_id'] = action_id
                 article_data['value'] = value
 
-        # Extract additional comments if present
-        additional_comments = data.get('state', {}).get('additional_comments_input', '')
 
         # Extract the URL from the message blocks
         url = extract_url_from_blocks(data['message']['blocks'])
-        
+        url = clean_url(url)
         if not url:
             return {'success': False, 'error': 'No valid URL found in the slack message'}
 
