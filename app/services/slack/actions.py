@@ -15,7 +15,6 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
             last_period_index = 1970
     trimmed_content = content[:last_period_index + 1]
     trimmed_content = trimmed_content.replace('**', '*')
-    
     formatted_keywords = ', '.join(used_keywords)
  
     # print('trimmed_content: ', trimmed_content)
