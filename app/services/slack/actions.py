@@ -15,6 +15,7 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
             last_period_index = 1970
     trimmed_content = content[:last_period_index + 1]
     trimmed_content = trimmed_content.replace('**', '*')
+    
     formatted_keywords = ', '.join(used_keywords)
  
     # print('trimmed_content: ', trimmed_content)
@@ -33,10 +34,10 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
             }
         },
         {
-            "type": "image",
-            "image_url": f"{image}",
-            "alt_text": f"{title}"
-        },
+			"type": "image",
+			"image_url": f"{image}",
+			"alt_text": f"{title}"
+		},
         {
             "type": "section",
             "fields": [
@@ -65,66 +66,65 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
             ]
         },
         {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": "*Send to AI Alpha App*"
-            },
-            "accessory": {
-                "type": "button",
-                "text": {
-                    "type": "plain_text",
-                    "text": "ADD AS TOP STORY",
-                    "emoji": True
-                },
-                "value": f"link_to_article:{article_url}",
-                "action_id": "add_to_top_story"
-            }
-        },
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"*Send to AI Alpha App*"
+			},
+			"accessory": {
+				"type": "button",
+				"text": {
+					"type": "plain_text",
+					"text": "ADD AS TOP STORY",
+					"emoji": True
+				},
+				"value": f"link_to_article: {article_url}",
+				"action_id": "add_to_top_story"
+			}
+		},
         {
-            "type": "input",
-            "block_id": "green_block",
-            "element": {
-                "type": "plain_text_input",
-                "action_id": "green_input"
-            },
-            "label": {
-                "type": "plain_text",
-                "text": "GREEN",
-                "emoji": True
-            }
-        },
+            "dispatch_action": True,
+			"type": "input",
+			"element": {
+				"type": "plain_text_input",
+				"action_id": "green"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "GREEN",
+				"emoji": True
+			}
+		},
         {
-            "type": "input",
-            "block_id": "red_block",
-            "element": {
-                "type": "plain_text_input",
-                "action_id": "red_input"
-            },
-            "label": {
-                "type": "plain_text",
-                "text": "RED",
-                "emoji": True
-            }
-        },
+            "dispatch_action": True,
+			"type": "input",
+			"element": {
+				"type": "plain_text_input",
+				"action_id": "red"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "RED",
+				"emoji": True
+			}
+		},
         {
-            "type": "input",
-            "block_id": "yellow_block",
-            "element": {
-                "type": "plain_text_input",
-                "action_id": "yellow_input"
-            },
-            "label": {
-                "type": "plain_text",
-                "text": "YELLOW",
-                "emoji": True
-            }
-        },
+            "dispatch_action": True,
+			"type": "input",
+			"element": {
+				"type": "plain_text_input",
+				"action_id": "yellow"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "YELLOW",
+				"emoji": True
+			}
+		},
         {
             "type": "divider"
         }
     ]
-
 
     try:
         result = client.chat_postMessage(
@@ -225,10 +225,7 @@ def send_WARNING_message_to_slack_channel(channel_id, title_message, sub_title, 
 
 
 
-
-
-
-# send_NEWS_message_to_slack_channel(channel_id='C071142J72R',
+# print(send_NEWS_message_to_slack_channel(channel_id='C071142J72R',
 #                                    title='Gold rally continues with buyers eyeing $2,400 as inflation recedes',
 #                                    article_url='https://www.fxstreet.com/news/gold-price-soars-to-three-week-high-amid-easing-inflation-rate-cut-hopes-202405151942',
 #                                    content="""
@@ -241,7 +238,7 @@ def send_WARNING_message_to_slack_channel(channel_id, title_message, sub_title, 
 
 # Inflation Data: The US Bureau of Labor Statistics (BLS) reported that inflation is showing signs of easing, which raises expectations for a potential Federal Reserve rate cut in 2024. This has made gold more attractive as lower interest rates reduce the opportunity cost of holding non-yielding assets like gold.
 
-# US Dollar Weakness: The US Dollar Index (DXY) dropped to its lowest level in five weeks. A weaker dollar makes gold cheaper for holders of other currencies, thereby boosting demand.
+# US Dollar Weakness: The US Dollar Index (DXY) dropped to its lowest level ¸in five weeks. A weaker dollar makes gold cheaper for holders of other currencies, thereby boosting demand.
 
 # Declining Treasury Yields: US Treasury bond yields, particularly along the short and long ends of the curve, have plunged between 8 and 10 basis points. Lower yields diminish the attractiveness of fixed-income securities relative to gold.
 
@@ -296,8 +293,8 @@ def send_WARNING_message_to_slack_channel(channel_id, title_message, sub_title, 
 # The recent surge in gold prices to a three-week high of $2,390 reflects a complex interplay of factors, including declining US Treasury bond yields, a weaker US Dollar, and evolving expectations around Federal Reserve monetary policy. Key economic indicators, such as slowing inflation and stagnant retail sales, have significant implications for future interest rate decisions. Fed officials' comments and market expectations suggest a cautious but growing sentiment towards potential rate cuts in 2024. This analysis underscores the importance of monitoring economic data and central bank communications to understand the drivers of gold prices and broader market trends.
 # """,
 #                                    used_keywords=['Gold', 'Federal Reserve'],
-#                                    image='https://apparticleimages.s3.us-east-2.amazonaws.com/Crypto Market Outlook for 2024: Trends and Predictions.jpg'
-#                                    )
+#                                    image='https://sitesnewsposters.s3.us-east-2.amazonaws.com/mtmtgoxgoxmovesmoves3b3bbitcoinbitcointotonewnewwalletwallet130m130mtotobitstampbitstampexchangeexchange.jpg'
+#                                    ))
 
 # Example usage
 # ts_list = ['1715877213.683879']

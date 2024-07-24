@@ -9,7 +9,7 @@ def fetch_urls(url: str) -> Dict:
     print(f"\n[INFO] Starting URL fetch from: {url}")
     base_url = "https://news.google.com"
     result = {'success': False, 'data': [], 'errors': [], 'title': None}
-    max_links = 10
+    max_links = 30
 
     root_dir = os.path.abspath(os.path.dirname(__file__))
     user_data_dir = os.path.join(root_dir, 'tmp/playwright')
