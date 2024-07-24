@@ -203,10 +203,10 @@ def create_article():
     db.session.add(new_article)
     db.session.commit()
     
-    #search Category slack channel.
+    # Search Category slack channel.
     category = Category.query.filter_by(id=category_id).first()
     channel_slack = category.slack_channel
-    print("channel", channel_slack)
+    
     # Notify on Slack about the article
     send_NEWS_message_to_slack_channel(channel_id=channel_slack, 
                                            title=new_article.title,

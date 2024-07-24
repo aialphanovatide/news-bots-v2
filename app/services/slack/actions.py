@@ -34,10 +34,10 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
             }
         },
         {
-			"type": "image",
-			"image_url": f"{image}",
-			"alt_text": f"{title}"
-		},
+            "type": "image",
+            "image_url": f"{image}",
+            "alt_text": f"{title}"
+        },
         {
             "type": "section",
             "fields": [
@@ -66,65 +66,66 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
             ]
         },
         {
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": f"*Send to AI Alpha App*"
-			},
-			"accessory": {
-				"type": "button",
-				"text": {
-					"type": "plain_text",
-					"text": "ADD AS TOP STORY",
-					"emoji": True
-				},
-				"value": f"link_to_article: {article_url}",
-				"action_id": "add_to_top_story"
-			}
-		},
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "*Send to AI Alpha App*"
+            },
+            "accessory": {
+                "type": "button",
+                "text": {
+                    "type": "plain_text",
+                    "text": "ADD AS TOP STORY",
+                    "emoji": True
+                },
+                "value": f"link_to_article:{article_url}",
+                "action_id": "add_to_top_story"
+            }
+        },
         {
-            "dispatch_action": True,
-			"type": "input",
-			"element": {
-				"type": "plain_text_input",
-				"action_id": "green"
-			},
-			"label": {
-				"type": "plain_text",
-				"text": "GREEN",
-				"emoji": True
-			}
-		},
+            "type": "input",
+            "block_id": "green_block",
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "green_input"
+            },
+            "label": {
+                "type": "plain_text",
+                "text": "GREEN",
+                "emoji": True
+            }
+        },
         {
-            "dispatch_action": True,
-			"type": "input",
-			"element": {
-				"type": "plain_text_input",
-				"action_id": "red"
-			},
-			"label": {
-				"type": "plain_text",
-				"text": "RED",
-				"emoji": True
-			}
-		},
+            "type": "input",
+            "block_id": "red_block",
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "red_input"
+            },
+            "label": {
+                "type": "plain_text",
+                "text": "RED",
+                "emoji": True
+            }
+        },
         {
-            "dispatch_action": True,
-			"type": "input",
-			"element": {
-				"type": "plain_text_input",
-				"action_id": "yellow"
-			},
-			"label": {
-				"type": "plain_text",
-				"text": "YELLOW",
-				"emoji": True
-			}
-		},
+            "type": "input",
+            "block_id": "yellow_block",
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "yellow_input"
+            },
+            "label": {
+                "type": "plain_text",
+                "text": "YELLOW",
+                "emoji": True
+            }
+        },
         {
             "type": "divider"
         }
     ]
+
 
     try:
         result = client.chat_postMessage(
