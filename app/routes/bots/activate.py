@@ -139,7 +139,7 @@ def activate_bots_by_category():
             bot_id = bot.id
             bot_name = bot.name
 
-            minutes = interval_base + 20 * index
+            minutes = category_interval + 20 * index
 
             scheduler.add_job(
                 id=str(bot_name),
