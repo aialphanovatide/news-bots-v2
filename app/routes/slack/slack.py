@@ -68,23 +68,12 @@ slack_action_bp = Blueprint(
 #         response = create_response(error=str(e))
 #         return jsonify(response), 500
     
-
 @slack_action_bp.route("/slack/events", methods=["POST"])
 @measure_execution_time
 @handle_db_session
 def slack_events():
-    """
-    Endpoint to receive Slack events and handle block actions.
-    
-    Returns:
-        tuple: A tuple containing a JSON response and HTTP status code.
-            - 200: Success response.
-            - 400: Bad request with error details.
-            - 500: Internal server error.
-    """
     try:
         payload = request.form.get('payload')
-
         if not payload:
             return jsonify(create_response(success=False, error='Missing payload')), 400
 
@@ -116,6 +105,20 @@ def slack_events():
     except Exception as e:
         return jsonify(create_response(success=False, error=f'Internal server error: {str(e)}')), 500
 
+def clean_url(url):
+    """
+    Cleans the URL by removing unwanted characters.
+
+    Args:
+        url (str): The URL to clean.
+
+    Returns:
+        str: The cleaned URL.
+    """
+    if url:
+        return url.replace('<', '').replace('>', '')
+    return url
+
 
 def handle_block_actions(data):
     """
@@ -143,9 +146,10 @@ def handle_block_actions(data):
                 article_data['action_id'] = action_id
                 article_data['value'] = value
 
+
         # Extract the URL from the message blocks
         url = extract_url_from_blocks(data['message']['blocks'])
-
+        url = clean_url(url)
         if not url:
             return {'success': False, 'error': 'No valid URL found in the slack message'}
 
@@ -159,8 +163,7 @@ def handle_block_actions(data):
             existing_article.is_top_story = True
             message = 'Article added to top story successfully'
         elif article_data['action_id'] in ['green', 'red', 'yellow']:
-            existing_article.is_article_efficient = f"{article_data['action_id']} - {article_data['value']}"
-            existing_article.additional_comments = article_data.get('additional_comments', '')
+            existing_article.is_article_efficent = f"{article_data['action_id']} - {article_data['value']}"
             message = f'Article updated with: {article_data["value"]} as feedback and additional comments'
         else:
             return {'success': False, 'error': f'Unknown action ID: {article_data["action_id"]} while updating the article'}
@@ -176,6 +179,7 @@ def handle_block_actions(data):
 
     except Exception as e:
         return {'success': False, 'error': f'Internal server error: {str(e)}'}
+
 
 def extract_url_from_blocks(blocks):
     """
@@ -205,8 +209,10 @@ def extract_url_from_text(text):
     Returns:
         str or None: The extracted URL, or None if no URL is found.
     """
-    url_pattern = r'<(https?://[^\s]+)>'
+    url_pattern = r'https?://[^\s"]+'  
     match = re.search(url_pattern, text)
     if match:
-        return match.group(1)
+        return match.group(0)
     return None
+
+

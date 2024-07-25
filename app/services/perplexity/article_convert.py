@@ -20,7 +20,7 @@ def article_perplexity_remaker(content, category_id):
         
         bot_prompt_final = (
             bot_prompt +
-            " Please ensure the following: 1) Do NOT include phrases like 'Here is a rewritten headline and summary of the article:' "
+            " Please ensure the following: 1) NEVER - don't include phrases like 'Here is a rewritten headline and summary of the article:', or Here is the rewritten headline and summary of the article:  "
             "or similar at the start of the article. 2) The article should directly start with the content without any prefatory "
             "statements. 3) Maintain a professional tone appropriate for a knowledgeable audience."
         )

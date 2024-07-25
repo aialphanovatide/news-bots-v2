@@ -139,7 +139,7 @@ def activate_bots_by_category():
             bot_id = bot.id
             bot_name = bot.name
 
-            minutes = category_interval + 10 * index
+            minutes = category_interval + 20 * index
 
             scheduler.add_job(
                 id=str(bot_name),
@@ -148,7 +148,7 @@ def activate_bots_by_category():
                 replace_existing=True,
                 args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category_slack_channel],
                 trigger='interval',
-                minutes=1
+                minutes=minutes
             )
             
         category.is_active = True

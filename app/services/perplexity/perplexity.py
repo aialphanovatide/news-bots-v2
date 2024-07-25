@@ -38,7 +38,9 @@ def perplexity_api_request(content, prompt):
                 
                 unwanted_phrases = [
                     "Here is the rewritten headline and summary:",
-                    "Here is a rewritten headline and summary of the article:"
+                    "Here is a rewritten headline and summary of the article:",
+                    "Here is the rewritten headline and summary of the article:",
+                    "Headline:", "Summary:"
                 ]
                 for phrase in unwanted_phrases:
                     content_response = content_response.replace(phrase, "").strip()
