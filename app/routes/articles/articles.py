@@ -411,3 +411,7 @@ def extract_content():
         return jsonify(result), 200
     except Exception as e:
         return jsonify({'response': f'An error occurred: {str(e)}', 'success': False}), 500
+    
+
+
+
