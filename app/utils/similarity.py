@@ -18,7 +18,7 @@ def cosine_similarity_modified(content_1, content_2):
 
         cosine_sim = cosine_similarity(vectors)
 
-        similarity_threshold = 0.8
+        similarity_threshold = 0.85
         similarity_score = cosine_sim[0][1] 
         if similarity_score >= similarity_threshold:
             print(f"Content similar, score: {similarity_score}")
@@ -49,7 +49,7 @@ def cosine_similarity_with_openai_classification(content_1, content_2):
         
         similarity_score = cosine_sim[0][1]
         
-        similarity_threshold = 0.9
+        similarity_threshold = 0.85
         if similarity_score >= similarity_threshold:
             print(f"Content similar, score: {similarity_score}")
             return similarity_score 
@@ -60,7 +60,5 @@ def cosine_similarity_with_openai_classification(content_1, content_2):
     except Exception as e:
         print(f"Exception occurred: {str(e)}")
         return None  # Devuelve None en caso de excepción
-
-
 
 

@@ -59,253 +59,7 @@ def validate_yahoo_date(html: BeautifulSoup) -> bool:
         except ValueError as e:
             print(f"Error parsing date: {e}")
     return False 
-  
-# def validate_and_save_article(news_link, article_title, article_content, category_id, bot_id, bot_name, category_slack_channel):
-#     articles_saved = 0
-#     unwanted_articles_saved = 0
-#     raw_article_content = article_content
-#     try:
-#         # Check if the URL has already been analyzed
-#         existing_unwanted_article = UnwantedArticle.query.filter_by(bot_id=bot_id, url=news_link).first()
-#         existing_article = Article.query.filter_by(bot_id=bot_id, url=news_link).first()
 
-#         if existing_unwanted_article or existing_article:
-#             return {'error': 'article already analyzed', 
-#                     'articles_saved': articles_saved,
-#                     'unwanted_articles_saved': unwanted_articles_saved}
-        
-#         # Ensure article_content is a single string
-#         if isinstance(article_content, list):
-#             article_content = " ".join(article_content)
-        
-#         # Retrieve the last 10 articles
-#         last_10_articles = Article.query.filter_by(bot_id=bot_id).order_by(Article.date.desc()).limit(10).all()
-#         last_10_contents = [article.content for article in last_10_articles]
-
-#         # Check for high similarity using OpenAI cosine similarity function
-#         for content in last_10_contents:
-#             try:
-#                 similarity_score = cosine_similarity_with_openai_classification(content, article_content)
-                
-#                 # Ensure similarity_score is a valid number before proceeding
-#                 if similarity_score >= 0.9:
-#                     unwanted_article = UnwantedArticle(
-#                         title=article_title,
-#                         content=raw_article_content,
-#                         url=news_link,
-#                         date=datetime.now(),
-#                         reason='article content too similar to recent articles',
-#                         bot_id=bot_id,
-#                         created_at=datetime.now(),
-#                         updated_at=datetime.now()
-#                     )
-#                     db.session.add(unwanted_article)
-#                     db.session.commit()
-
-#                     unwanted_articles_saved += 1
-#                     return {'error': f"article {article_title} is too similar to a recent article", 
-#                             'articles_saved': articles_saved,
-#                             'unwanted_articles_saved': unwanted_articles_saved}
-            
-#             except Exception as e:
-#                 print(f"Exception occurred during similarity check: {str(e)}")
-
-#         # Retrieve keywords related to the bot from the database
-#         bot_keywords = Keyword.query.filter_by(bot_id=bot_id).all()
-#         bot_keyword_names = [keyword.name for keyword in bot_keywords]
-
-#         bot_bl_keywords = Blacklist.query.filter_by(bot_id=bot_id).all()
-#         bot_bl_keyword_names = [bl_keyword.name for bl_keyword in bot_bl_keywords]
-
-#         # Check for used keywords within the article content
-#         used_keywords = [keyword for keyword in bot_keyword_names if keyword.lower() in article_content.lower()]
-
-#         # Check for blacklist keywords within the article content
-#         used_blacklist_keywords = [bl_keyword for bl_keyword in bot_bl_keyword_names if bl_keyword.lower() in article_content.lower()]
-
-#         if not used_keywords or used_blacklist_keywords:
-#             # Save article as unwanted because it didn't match any keyword or contains blacklist keywords
-#             unwanted_article = UnwantedArticle(
-#                 title=article_title,
-#                 content=raw_article_content,
-#                 url=news_link,
-#                 date=datetime.now(),
-#                 reason='article did not match any keyword or contains blacklist keyword',
-#                 bot_id=bot_id,
-#                 created_at=datetime.now(),
-#                 updated_at=datetime.now()
-#             )
-#             db.session.add(unwanted_article)
-#             db.session.commit()
-
-#             unwanted_articles_saved += 1
-#             return {'error': f"article {article_title} didn't match any keyword or contains blacklist keyword", 
-#                     'articles_saved': articles_saved,
-#                     'unwanted_articles_saved': unwanted_articles_saved}
-
-#         # Perform perplexity summary on the article
-#         perplexity_result = article_perplexity_remaker(content=article_content, category_id=category_id)
-
-#         # if there's no summary, then return so the bot tries in the next execution
-#         if not perplexity_result['success']:
-#             return {'error': f'There is no summary, perplexity error {perplexity_result["error"]}', 
-#                     'articles_saved': articles_saved,
-#                     'unwanted_articles_saved': unwanted_articles_saved}
-
-#         new_article_summary = perplexity_result['response']
-#         final_summary = clean_text(new_article_summary)
-        
-#         # Extract title from perplexity results, if present
-#         title_match = re.search(r"\*\*(.*?)\*\*", final_summary)
-#         new_article_title = article_title
-#         if title_match:
-#             new_article_title = title_match.group(1)
-#             final_summary = re.sub(r"\*\*.*?\*\*", "", final_summary, count=1).strip()
-
-#         # Check if the Content has already been analyzed
-#         old_unwanted_article = UnwantedArticle.query.filter_by(bot_id=bot_id, title=new_article_title).first()
-#         old_article = Article.query.filter_by(bot_id=bot_id, title=new_article_title).first()
-
-#         if old_unwanted_article or old_article:
-#             return {'error': 'article already analyzed', 
-#                     'articles_saved': articles_saved,
-#                     'unwanted_articles_saved': unwanted_articles_saved}
-        
-#         image = generate_poster_prompt(article=new_article_summary, bot_id=bot_id)
-#         # if image generation fails, then return so the bot tries in the next execution
-#         if not image['success']:
-#             return {'error': f'Image couldn\'t be generated: {image["error"]}', 
-#                     'articles_saved': articles_saved,           
-#                     'unwanted_articles_saved': unwanted_articles_saved}
-
-#         image = image['response']
-#         article_id = transform_string(new_article_title)
-#         final_filename = re.sub(r'[^a-zA-Z0-9]', '', article_id)
-#         image_filename = f"{final_filename}.jpg"
-#         image_url = f'https://sitesnewsposters.s3.us-east-2.amazonaws.com/{image_filename}'     
-
-#         try:
-#             # Resize and upload the image to S3
-#             resized_image_url = resize_and_upload_image_to_s3(image, 'appnewsposters', image_filename)
-#             if not resized_image_url['success']:
-#                 return {'error': f'Image couldn\'t be uploaded to AWS: {resized_image_url["error"]}', 
-#                         'articles_saved': articles_saved,
-#                         'unwanted_articles_saved': unwanted_articles_saved}
-#         except Exception as e:
-#             return {'error': 'Unexpected error while uploading image to AWS', 
-#                     'articles_saved': articles_saved,
-#                     'unwanted_articles_saved': unwanted_articles_saved}
-
-#         # Save the article to the database
-#         new_article = Article(
-#             title=new_article_title,
-#             content=final_summary,
-#             image=image_filename,
-#             date=datetime.now(),
-#             url=news_link,
-#             used_keywords=', '.join(used_keywords),
-#             bot_id=bot_id,
-#             created_at=datetime.now(),
-#             updated_at=datetime.now()
-#         )
-#         db.session.add(new_article)
-#         db.session.commit()
-#         articles_saved += 1
-
-
-#         # Notify on Slack about the article
-#         send_NEWS_message_to_slack_channel(channel_id=category_slack_channel, 
-#                                            title=new_article_title,
-#                                            article_url=news_link,
-#                                            content=final_summary, 
-#                                            used_keywords=used_keywords, 
-#                                            image=image_url)
-
-#         return {'message': f'article {new_article_title} validated and saved', 
-#                 'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
-
-#     except Exception as e:
-#         return {'error': f"An unexpected error occurred during keyword validation: {str(e)}", 
-#                 'articles_saved': articles_saved, 'unwanted_articles_saved': unwanted_articles_saved}
-
-# def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: int, bot_name: str, category_slack_channel) -> Dict[str, Any]:
-#     try:
-#         # Send HTTP GET request
-#         response = requests.get(news_link)
-#         if response.status_code != 200:
-#             return {
-#                 'success': False,
-#                 'url': news_link,
-#                 'title': None,
-#                 'paragraphs': [],
-#                 'error': f"HTTP error: {response.status_code} - {response.reason}"
-#             }
-
-#         content_type = response.headers.get('Content-Type', '').lower()
-#         if 'text/html' not in content_type:
-#             return {'success': False, 'url': news_link, 'title': None, 
-#                     'paragraphs': [], 'error': "Content is not HTML"}
-
-#         text = response.text
-
-#         # Parse HTML content with BeautifulSoup
-#         html = BeautifulSoup(text, 'html.parser')
-
-#         # If the article is from Yahoo, validate the date
-#         if 'yahoo' in news_link.lower():
-#             if not validate_yahoo_date(html):
-#                 return {'success': False, 'url': news_link, 'title': title, 
-#                         'paragraphs': [], 'error': 'Yahoo article is older than 24 hours'}
-
-#         # Extract article title
-#         title_element = html.find('h1')
-#         article_title = title_element.text.strip() if title_element else title  # Fallback to the passed title if h1 not found
-
-#         # Extract paragraphs from the article
-#         paragraphs = html.find_all('p')
-#         article_content = [p.text.strip() for p in paragraphs]
-
-#         # Extract publication date (general approach)
-#         publication_date = None
-#         date_elements = html.find_all(['span', 'date', 'time'])
-#         for date_element in date_elements:
-#             date_text = date_element.get('datetime') or date_element.text.strip()
-#             try:
-#                 # Try to parse the date text
-#                 publication_date = datetime.strptime(date_text, '%b %d, %Y at %I:%M %p')
-#                 break  # Exit loop if date is successfully parsed
-#             except (ValueError, TypeError):
-#                 try:
-#                     # Try another common date format
-#                     publication_date = datetime.strptime(date_text, '%Y-%m-%d')
-#                     break
-#                 except (ValueError, TypeError):
-#                     continue  # Continue if parsing fails
-
-#         # Check if the publication date is within the last 24 hours
-#         if publication_date and datetime.now() - publication_date > timedelta(days=1):
-#             return {'success': False, 'url': news_link, 'title': article_title, 
-#                     'paragraphs': article_content, 'error': 'Article is older than 24 hours'}
-#         # Validate and process the content
-#         result = validate_and_save_article(news_link, article_title, article_content, 
-#                                            category_id, bot_id, bot_name, category_slack_channel)
-         
-#         if 'error' in result:
-#             return {'success': False, 'url': news_link, 'title': article_title, 
-#                     'paragraphs': article_content, 'error': result['error']}
-
-#         return {'success': True, 'url': news_link, 'title': article_title, 
-#                 'paragraphs': article_content, 'message': result['message']}
-
-#     except requests.RequestException as e:
-#         return {'success': False, 'url': news_link, 'title': None, 
-#                     'paragraphs': [], 'error': f"Request error: {e}"}
-#     except Exception as e:
-#         return {'success': False, 'url': news_link, 'title': None, 
-#                     'paragraphs': [], 'error': f'Error while getting article content: {str(e)}'}
-
-
-# ____________________________________________________________
 
 def validate_and_save_article(news_link, article_title, article_content, category_id, bot_id, bot_name, category_slack_channel):
     print(f"\n[INFO] Validating and saving article: {news_link}")
@@ -340,7 +94,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
             for content in last_10_contents:
                 try:
                     similarity_score = cosine_similarity_with_openai_classification(content, article_content)
-                    if similarity_score >= 0.9:
+                    if similarity_score >= 0.85:
                         print(f"[INFO] Article too similar to recent articles: {news_link}")
                         unwanted_article = UnwantedArticle(
                             title=article_title,
@@ -375,7 +129,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
 
             # Check for blacklist keywords within the article content
             used_blacklist_keywords = [bl_keyword for bl_keyword in bot_bl_keyword_names if bl_keyword.lower() in article_content.lower()]
-
+        
             if not used_keywords or used_blacklist_keywords:
                 print(f"[INFO] Article did not match any keyword or contains blacklist keyword: {news_link}")
                 unwanted_article = UnwantedArticle(
@@ -478,14 +232,14 @@ def validate_and_save_article(news_link, article_title, article_content, categor
             db.session.add(new_article)
             db.session.commit()
             articles_saved += 1
-
-            # Notify on Slack about the article
+  
+                # Notify on Slack about the article
             send_NEWS_message_to_slack_channel(channel_id=category_slack_channel, 
-                                               title=new_article_title,
-                                               article_url=news_link,
-                                               content=final_summary, 
-                                               used_keywords=used_keywords, 
-                                               image=image_url)
+                                            title=new_article_title,
+                                            article_url=news_link,
+                                                content=final_summary, 
+                                                used_keywords=used_keywords, 
+                                                image=image_url)
 
             print(f"[SUCCESS] Article {new_article_title} validated and saved")
             return {
@@ -587,3 +341,5 @@ def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: 
         print(f"[ERROR] Unexpected error while processing {news_link}: {e}")
         return {'success': False, 'url': news_link, 'title': None, 
                 'paragraphs': [], 'error': f'Error while getting article content: {str(e)}'}
+
+

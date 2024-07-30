@@ -1,14 +1,25 @@
 import asyncio
 import os
-from playwright.async_api import async_playwright
+from typing import Dict, List
+from playwright.async_api import async_playwright, Page, Browser
+import datetime
 
-root_dir = os.path.abspath(os.path.dirname(__file__))
-user_data_dir = os.path.join(root_dir, 'tmp/playwright')
+async def search_coin_news(coin_name: str) -> List[Dict[str, str]]:
+    """
+    Searches for the latest news about a specific cryptocurrency using Grok on X.com.
 
-if not os.path.exists(user_data_dir):
+    Args:
+        coin_name (str): The name of the cryptocurrency to search news for.
+
+    Returns:
+        List[Dict[str, str]]: A list of dictionaries, each containing a news item.
+    """
+    root_dir = os.path.abspath(os.path.dirname(__file__))
+    user_data_dir = os.path.join(root_dir, 'tmp', 'playwright')
     os.makedirs(user_data_dir, exist_ok=True)
 
-async def search_bitcoin_news():
+    grok_news = []
+
     async with async_playwright() as p:
         browser = await p.chromium.launch_persistent_context(user_data_dir, headless=False, slow_mo=2000)
         page = await browser.new_page()
@@ -16,39 +27,137 @@ async def search_bitcoin_news():
 
         # Wait for the textarea to be available
         await page.wait_for_selector("textarea[placeholder='Grok something']")
-     
+        
         # Find the text input element
         textarea = await page.query_selector("textarea[placeholder='Grok something']")
-
+        coin_name_upper = coin_name.upper()
         # Write the query in the input field
-        await textarea.fill("give me the lastest bitcoin news, in a list style. Make sure to share the complete content news")
-
-        # Find the "Grok something" button
-        grok_button = await page.query_selector("button[aria-label='Grok something']")
-        if not grok_button:
-            print("Grok button not found")
-            await browser.close()
-            return
-
+        await textarea.fill(f"""
+        Give me in a list style format the/today’s latest ${coin_name_upper} token/coin news - no more than 10
+        Each list news item includes the following labels: Title: Content: Published Date: mm/dd/yyyy - Each news item must be at least 140 words long. 
+        Make sure to share the complete content of each news item and NEVER REPEAT news. Please exclude any news related to the price action of ${coin_name_upper} and instead focus on news-related stories such as the support of new assets, new collaborations, and any news that doesn't refer to trading volume or price action.
+        """)
+        
         # Press the "Enter" key to submit the query
         await textarea.press("Enter")
         
-        await asyncio.sleep(25)
+        await asyncio.sleep(125)
 
         # Wait for the response to load
         await page.wait_for_selector("li")
 
         # Get the response content
         response_content = await page.query_selector_all("li")
-        response_text = ""
-        for li in response_content:
-            news_text = await li.inner_text()
-            response_text += news_text + "\n"
+        today_date = datetime.datetime.now().strftime("%m/%d/%Y")
+        for index, li in enumerate(response_content[:10], 1):  # Limit to 10 news items
+            try:
+                news_text = await li.inner_text()
+            except Exception as e:
+                print(f"Error fetching inner text for item {index}: {e}")
+                continue  # Skip to the siguiente item si hay un error
 
-        # Print the response
-        print(response_text)
+            lines = news_text.split('\n')
+            
+            # Extract title, content, and published date
+            title = lines[0].replace("news: Title:", "").strip()
+            title = title.replace("Title:", "").strip()
+            content = ' '.join(line.strip() for line in lines[1:] if line.strip() and not line.startswith("Published Date:"))
+            content = content.replace("Content:", "").strip()
+            
+            published_date = "Unknown Date"
+            for line in lines:
+                if line.startswith("Published Date: "):
+                    published_date = line.replace("Published Date:", "").strip()
+                    break
 
+        # Validar la fecha
+            if published_date != today_date:
+                print(f"[INFO] Article {title} not saved: Invalid date")
+                continue  
+                            
+            # Create news item dictionary
+            news_item = {
+                "id": index,
+                "title": title,
+                "content": content,
+                "published_date": published_date,
+                "url": "Grok AI Generated",
+                "source": "Grok AI"
+            }
+            
+            grok_news.append(news_item)
+
+
+        # Close the browser after processing all news items
         await browser.close()
+        print(grok_news)
 
-# Run the function
-asyncio.run(search_bitcoin_news())
+        
+    return grok_news
+
+async def launch_browser(playwright, user_data_dir: str) -> Browser:
+    
+    """
+    Launches a persistent Chromium browser.
+
+    Args:
+        playwright: The Playwright instance.
+        user_data_dir (str): Directory for storing user data.
+
+    Returns:
+        Browser: The launched browser instance.
+    """
+    return await playwright.chromium.launch_persistent_context(
+        user_data_dir, 
+        headless=False, 
+        slow_mo=2000
+    )
+
+async def navigate_to_grok(page: Page) -> None:
+    """
+    Navigates to the Grok page on X.com.
+
+    Args:
+        page (Page): The Playwright page object.
+    """
+    await page.goto("https://x.com/i/grok")
+    await page.wait_for_selector("textarea[placeholder='Grok something']")
+
+async def input_query(page: Page, coin_name: str) -> None:
+    """
+    Inputs the cryptocurrency news query into Grok.
+
+    Args:
+        page (Page): The Playwright page object.
+        coin_name (str): The name of the cryptocurrency to search news for.
+    """
+    textarea = await page.query_selector("textarea[placeholder='Grok something']")
+    await textarea.fill(f"Give me the latest {coin_name} news, in a list style. Make sure to share the complete content news.")
+    await textarea.press("Enter")
+
+async def get_response(page: Page) -> str:
+    """
+    Retrieves the response from Grok.
+
+    Args:
+        page (Page): The Playwright page object.
+
+    Returns:
+        str: The concatenated response text.
+    """
+    await asyncio.sleep(35)
+    await page.wait_for_selector("li")
+    response_content = await page.query_selector_all("li")
+    return "\n".join([await li.inner_text() for li in response_content])
+
+# Ejemplo de uso
+if __name__ == "__main__":
+    coin_name = "ethereum" 
+    news_array = asyncio.run(search_coin_news(coin_name))
+    # print(f"\nTotal news items: {len(news_array)}")
+    # for news in news_array:
+    #     print(f"\nID: {news['id']}")
+    #     print(f"Title: {news['title']}")
+    #     print(f"Content: {news['content']}")
+    #     print(f"URL: {news['url']}")
+    #     print(f"Source: {news['source']}")
