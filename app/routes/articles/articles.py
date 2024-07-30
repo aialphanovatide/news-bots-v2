@@ -348,7 +348,7 @@ def extract_text_from_google_docs(link):
     """
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(headless=False)
             context = browser.new_context()
             page = context.new_page()
             page.goto(link)
@@ -361,7 +361,7 @@ def extract_text_from_google_docs(link):
                 page.keyboard.press('Control+A')
                 page.keyboard.press('Control+C')
 
-            page.wait_for_timeout(2000)
+            page.wait_for_timeout(4000)
             content = pyperclip.paste()
             browser.close()
             return content

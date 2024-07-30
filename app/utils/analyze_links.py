@@ -466,7 +466,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
             new_article = Article(
                 title=new_article_title,
                 content=final_summary,
-                image=image_url,
+                image=image_filename,
                 date=datetime.now(),
                 url=news_link,
                 used_keywords=', '.join(used_keywords),
