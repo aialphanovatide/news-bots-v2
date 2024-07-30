@@ -11,7 +11,7 @@ __pycache__/
 .idea/
 
 # Dependency directories
-venv/
+venv/ 
 env/
 
 # Logs
