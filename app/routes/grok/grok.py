@@ -33,7 +33,7 @@ async def search_coin_news(coin_name: str) -> List[Dict[str, str]]:
         coin_name_upper = coin_name.upper()
         # Write the query in the input field
         await textarea.fill(f"""
-        Give me in a list style format the/today’s latest ${coin_name_upper} token/coin news - no more than 10
+        Give me in a list style format the today’s latest ${coin_name_upper} token/coin news - no more than 10
         Each list news item includes the following labels: Title: Content: Published Date: mm/dd/yyyy - Each news item must be at least 140 words long. 
         Make sure to share the complete content of each news item and NEVER REPEAT news. Please exclude any news related to the price action of ${coin_name_upper} and instead focus on news-related stories such as the support of new assets, new collaborations, and any news that doesn't refer to trading volume or price action.
         """)
@@ -49,6 +49,7 @@ async def search_coin_news(coin_name: str) -> List[Dict[str, str]]:
         # Get the response content
         response_content = await page.query_selector_all("li")
         today_date = datetime.datetime.now().strftime("%m/%d/%Y")
+        yesterday_date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%m/%d/%Y")
         for index, li in enumerate(response_content[:10], 1):  # Limit to 10 news items
             try:
                 news_text = await li.inner_text()
@@ -70,10 +71,9 @@ async def search_coin_news(coin_name: str) -> List[Dict[str, str]]:
                     published_date = line.replace("Published Date:", "").strip()
                     break
 
-        # Validar la fecha
-            if published_date != today_date:
+            if published_date not in (today_date, yesterday_date):
                 print(f"[INFO] Article {title} not saved: Invalid date")
-                continue  
+                continue   
                             
             # Create news item dictionary
             news_item = {
