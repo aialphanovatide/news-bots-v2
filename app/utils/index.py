@@ -20,7 +20,7 @@ def fetch_urls(url: str) -> Dict:
 
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch_persistent_context(user_data_dir, headless=True, slow_mo=2000)
+            browser = p.chromium.launch_persistent_context(user_data_dir, headless=False, slow_mo=2000)
             page = browser.new_page()
             page.goto(url)
             page.wait_for_load_state("domcontentloaded", timeout=70000)
@@ -28,23 +28,20 @@ def fetch_urls(url: str) -> Dict:
             news_links = []
             unique_urls = set()
 
-            links = page.query_selector_all('a[href*="/articles/"]')
+            links = page.query_selector_all('a[href*="./read/"]')
             for link in links:
                 href = link.get_attribute('href').removeprefix('.')
                 title = link.text_content().strip()
-
                 if title:
                     full_link = base_url + href
                     if full_link not in unique_urls:
                         unique_urls.add(full_link)
                         news_links.append({'title': title, 'url': full_link})
-                        
                     if len(news_links) >= max_links:
                         break
 
             result['data'] = news_links
             result['success'] = len(news_links) > 0
-
             browser.close()
             print(f"[INFO] URL fetch completed. Found {len(news_links)} unique links.")
             return result
@@ -174,3 +171,4 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
     execution_time = end_time - start_time
     print(f'[INFO] Total execution time: {execution_time}')
     return result
+

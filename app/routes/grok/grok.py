@@ -3,6 +3,7 @@ import os
 from typing import Dict, List
 from playwright.async_api import async_playwright, Page, Browser
 import datetime
+# from config import Bot, db
 
 async def search_coin_news(coin_name: str) -> List[Dict[str, str]]:
     """
@@ -30,22 +31,23 @@ async def search_coin_news(coin_name: str) -> List[Dict[str, str]]:
         
         # Find the text input element
         textarea = await page.query_selector("textarea[placeholder='Grok something']")
-        coin_name_upper = coin_name.upper()
-        # Write the query in the input field
-        print("coin name", coin_name)
-
-        if coin_name=='gold':
-            await textarea.fill(f"""
-        Give me in a list style format, the today’s latest {coin_name_upper} / XAU news - no more than 10
-        Each list news item includes the following labels: Title: Content: Published Date: mm/dd/yyyy - Each news item must be at least 140 words long. 
-        Make sure to share the complete content of each news item and NEVER REPEAT news. Please exclude any news related to the price action of {coin_name_upper} and instead focus on news-related stories such as the support of new assets, new collaborations, and any news that doesn't refer to trading volume or price action.
-        """)
-        else:
-            await textarea.fill(f"""
-            Give me in a list style format, the today’s latest ${coin_name_upper} token/coin news - no more than 10
-            Each list news item includes the following labels: Title: Content: Published Date: mm/dd/yyyy - Each news item must be at least 140 words long. 
-            Make sure to share the complete content of each news item and NEVER REPEAT news. Please exclude any news related to the price action of ${coin_name_upper} and instead focus on news-related stories such as the support of new assets, new collaborations, and any news that doesn't refer to trading volume or price action.
-            """)
+        today_date = datetime.datetime.now().strftime("%m/%d/%Y")
+        yesterday_date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%m/%d/%Y")
+        # bot = db.session.query(Bot).filter_by(name=coin_name).first()
+        # if bot:
+        #     prompt = bot.grok_prompt
+        # else:
+        prompt = f"""
+                Write in a list style format Tweets from {yesterday_date} to {today_date} about ${coin_name.upper()}'s token/coin news in a list style format
+                For each tweet plase write more than 120 words, in the following format in a list style:
+                Title: 
+                Content: 
+                Published Date: mm/dd/yyyy
+                
+                Ensure each Tweet item is unique and avoid repetition. Exclude any Tweet related to price analysis, price prediction, the price action or trading volume of ${coin_name.upper()}.
+                """
+        
+        await textarea.fill(prompt)
         
         # Press the "Enter" key to submit the query
         await textarea.press("Enter")
@@ -64,7 +66,7 @@ async def search_coin_news(coin_name: str) -> List[Dict[str, str]]:
                 news_text = await li.inner_text()
             except Exception as e:
                 print(f"Error fetching inner text for item {index}: {e}")
-                continue  # Skip to the siguiente item si hay un error
+                continue  # Skip to the next item if there's an error
 
             lines = news_text.split('\n')
             
@@ -160,13 +162,13 @@ async def get_response(page: Page) -> str:
     return "\n".join([await li.inner_text() for li in response_content])
 
 # Ejemplo de uso
-if __name__ == "__main__":
-    coin_name = "ethereum" 
-    news_array = asyncio.run(search_coin_news(coin_name))
-    # print(f"\nTotal news items: {len(news_array)}")
-    # for news in news_array:
-    #     print(f"\nID: {news['id']}")
-    #     print(f"Title: {news['title']}")
-    #     print(f"Content: {news['content']}")
-    #     print(f"URL: {news['url']}")
-    #     print(f"Source: {news['source']}")
+# if __name__ == "__main__":
+#     coin_name = "cake" 
+#     news_array = asyncio.run(search_coin_news(coin_name))
+#     print(f"\nTotal news items: {len(news_array)}")
+#     for news in news_array:
+#         print(f"\nID: {news['id']}")
+#         print(f"Title: {news['title']}")
+#         print(f"Content: {news['content']}")
+#         print(f"URL: {news['url']}")
+#         print(f"Source: {news['source']}")

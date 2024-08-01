@@ -426,3 +426,559 @@ def initialize_sites_data():
 
 
 
+
+
+
+
+
+# def initialize_fixed_data():
+#     try:
+#         # Check if data already exists
+#         bots_fixed = [
+#                 { 'name': 'btc', 'category_id': 1, 'grok_prompt': """
+                
+#                 """},
+#                 { 'name': 'eth', 'category_id': 2, 'grok_prompt': """
+                
+#                 """},
+#                 { 'name': 'hacks', 'category_id': 3, 'grok_prompt': """
+                
+#                 """},
+#                 { 'name': 'ldo', 'category_id': 4, 'grok_prompt': """
+                
+#                 """},
+#                 { 'name': 'rpl', 'category_id': 4, 'grok_prompt': """
+                
+#                 """},
+#                 { 'name': 'fxs', 'category_id': 4, 'grok_prompt': """
+                
+#                 """},
+#                 { 'name': 'atom', 'category_id': 5, 'grok_prompt': """
+                
+#                 """},
+#                 { 'name': 'dot', 'category_id': 5, 'grok_prompt': """
+                
+#                 """},
+#                 { 'name': 'qnt', 'category_id': 5, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'ada', 'category_id': 6, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'sol', 'category_id': 6, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'avax', 'category_id': 6, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'near', 'category_id': 7, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'ftm', 'category_id': 7, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'kas', 'category_id': 7, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'arb', 'category_id': 8, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'op', 'category_id': 8, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'polygon', 'category_id': 8, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'link', 'category_id': 9, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'api3', 'category_id': 9, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'band', 'category_id': 9, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'xlm', 'category_id': 10, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'algo', 'category_id': 10, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'xrp', 'category_id': 10, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'dydx', 'category_id': 11, 'grok_prompt': """
+#                 Show me Tweets about the last day $DYDX's token/coin news, up to a maximum of 10 items in a list style format.
+#                 For each news item, provide the following details:
+#                     For each news item, provide the following details:
+                
+#                     Title:
+#                     Content: (minimum 240 words)
+#                     Published Date: mm/dd/yyyy
+                    
+#                     News/item sample:
+                    
+#                     Title: dYdX Domain Faces Repeated DNS Hijacking Incidents
+#                     Content: dYdX's domain suffered multiple DNS hijacking attacks due to vulnerabilities in Squarespace's OAuth and account recovery protocols, highlighting broader security concerns.
+#                     dYdX, a prominent decentralized trading platform, recently faced multiple DNS hijacking incidents impacting its domain dydx.exchange. These attacks have raised significant concerns about the security protocols of domain registrars and the broader implications for the  crypto industry.
+#                     In 2023, Squarespace acquired the rights to all domains from the now-defunct Google Domains, migrating them over several months. The dydx.exchange domain was transferred on June 15, 2024. However, on July 9, attackers managed to gain access to this domain, changing its DNS Nameservers from Cloudflare to DDoS-Guard. The attack was mitigated by DNSSEC settings, which blocked unauthorized access.
+#                     Following the initial incident, dYdX worked with Squarespace to restore access and rotated all security credentials. Despite these measures, similar attacks were reported on other crypto-specific domains migrated from Google Domains to Squarespace. SEAL, a crypto security team, initiated an investigation, revealing potential technical vulnerabilities within Squarespace.
+#                     On July 18, Squarespace confirmed an  exploited security issue with OAuth logins, which was fixed by July 12. Despite this, dYdX decided to change domain registrars, though they believed Squarespace had addressed the vulnerability.
+#                     On July 23, the dydx.exchange domain was compromised again. Attackers changed the DNS Nameservers and removed DNSSEC settings, hosting a malicious site to steal funds from connected wallets. dYdX collaborated with SEAL and wallet providers like Metamask and Phantom to block the malicious site. Approximately $31,000 was lost by two users during this period.                 
+#                     Upon recovery, it was discovered that the attacker had used a social-engineering attack to reset the domain admin  email to their own, bypassing 2FA due to Squarespace’s account-recovery process. Squarespace customer service had reset the account without reaching out to other listed admins.
+#                     As a response to these incidents, dYdX transferred the domain registration to Cloudflare on July 24, completing the process in six hours. No security issues with dYdX’s smart contracts, backend systems, or the dYdX Chain were found as a result of these incidents.
+#                     These incidents underscore the importance of robust security measures for domain registrars, especially for crypto-related domains. The vulnerabilities in Squarespace’s OAuth and account-recovery protocols highlight the need for continuous improvement in security practices to prevent such attacks.
+#                     dYdX aims to democratize access to financial opportunities, with the dYdX Chain representing a significant step forward in this mission. For more information, visit dydx.exchange.
+
+#                     Published Date: mm/dd/yyyy
+                
+                
+#                 Requirements:
+                
+#                 Ensure each Tweet item is unique and avoid repetition.
+#                 Exclude any Tweet related to price analysis, price prediction, the price action or trading volume of $DYDX.
+#                 """},
+#                 {  'name': 'velo', 'category_id': 11, 'grok_prompt': """
+#                 Show me Tweets about the last day $VELO's token/coin news, up to a maximum of 10 items in a list style format.
+#                 For each news item, provide the following details:
+#                     For each news item, provide the following details:
+                
+#                     Title:
+#                     Content: (minimum 240 words)
+#                     Published Date: mm/dd/yyyy
+                    
+#                     News/item sample:
+                    
+#                     Title: VELO announces the launch of the revolutionary “Digital Gold” whitepaper
+#                     Content: Velo Labs is excited to release its innovative whitepaper for the "Digital Gold" project, titled "Paciﬁc Lightnet Gold Token (PLG): Revolutionizing Gold Investments." This document presents a new way to own gold through secure, digitized tokens, set to transform investor interactions with this classic asset.
+
+#                     Integration with the Solana Foundation
+
+#                     Building on a recent Memorandum of Understanding with the Solana Foundation, this initiative employs Solana as the blockchain settlement layer, with Velo as the infrastructure backbone and clearing house for Laos' digital gold transactions. This partnership boosts the efﬁciency and security of PLG Gold transactions, ensuring strong interoperability and connectivity across blockchain networks.
+
+#                     Key partnerships
+
+#                     Paciﬁc Bullion Import-Export: This key partner securely stores the physical gold reserves that back the PLG tokens, ensuring their integrity and authenticity. Their role is crucial in maintaining compliance with storage and reporting requirements related to precious metals.
+#                     Lightnet: Velo's collaboration with Lightnet facilitates the conversion of digital tokens back into ﬁat currency, enhancing the redemption process with liquidity and transparency. This partnership plays a vital role in providing on-ramp and off-ramp facilities for assets on the blockchain, strengthening the framework for digital asset transactions across the region.
+#                     Highlights from the Whitepaper
+
+#                     Digital ownership: The PLG token represents direct ownership of one ﬁne troy ounce of investment-grade gold per token, backed by physical gold bars stored securely in vaults.
+#                     24/7 accessibility: Investors can trade PLG tokens any time of day, providing ﬂexibility unmatched by traditional gold markets.
+#                     Physical redemption: Token holders can exchange their digital tokens for physical gold bars, enhancing transparency and trust.
+#                     Low transaction costs & high liquidity: PLG tokens ensure low-cost trading and high liquidity in secondary markets, making gold investment more accessible and efﬁcient.
+#                     Blockchain Technology: Leveraging blockchain for security and transparency, PLG tokens can be seamlessly converted into physical gold or ﬁat currency as needed.
+#                     Additional beneﬁts of PLG tokens
+
+#                     Enables the delivery of physical gold bars at the redemption window located in the vault, ensuring transparency and authenticity.
+#                     Offers low transaction costs, enhancing the affordability of transactions.
+#                     Provides easy accessibility and fractional ownership, allowing both small and large investors to partake in gold investments without the typical complexities of physical ownership.
+#                     Ensures ease of conversion between digital assets and physical gold or ﬁat currencies, catering to diverse investor needs.
+#                     About Velo Labs
+
+#                     Velo Labs is a global pioneer in Web3-based ﬁnancial solutions, offering a cutting-edge liquidity and settlement network for secure, efﬁcient value transfers. Backed by Stellar Network and CP Group, our reach has expanded beyond Southeast Asia and the Paciﬁc, now serving partners worldwide. We connect and complement the gap between traditional banking infrastructure and Web3, leading the way in blockchain mass adoption. Our extensive Web3-based payment network and Lightnet, our licensed settlement partner, position us as a global heavyweight. Velo Labs offers a diverse range of Web3-based products, notably Orbit, tailored for individuals, merchants, corporations, and enterprises worldwide — dedicated to empowering global ﬁnancial connectivity and expanding accessibility globally.
+                    
+#                     Published Date: mm/dd/yyyy
+                
+                
+#                 Requirements:
+                
+#                 Ensure each Tweet item is unique and avoid repetition.
+#                 Exclude any Tweet related to price analysis, price prediction, the price action or trading volume of $VELO.
+#                 """},
+#                 {  'name': 'gmx', 'category_id': 11, 'grok_prompt': """
+#                 Show me Tweets about the last day $GMX's token/coin news, up to a maximum of 10 items in a list style format.
+#                 For each news item, provide the following details:
+            
+#                     Title:
+#                     Content: (minimum 240 words)
+#                     Published Date: mm/dd/yyyy
+                    
+#                     News/item sample:
+                    
+#                     Title: GMX proposal to change revenue model proceeds to on-chain vote stage
+#                     Content: The snapshot vote for the new ‘Buyback GMX and Distribute GMX’ proposal passed, the platform announced. Due to this, the proposal has moved to the next stage – on-chain voting that will see the GMX DAO community have until August 4 to approve or reject it.
+
+#                     If approved, GMX will drop the current revenue distribution model of “buyback ETH and distribute ETH”. Other than boosting the native token’s value, a buyback for GMX instead of ETH will also preserve real-yield advantages for users.
+#                     The “buyback GMX and distribute GMX” proposal will, however, have an option for users to convert distributed GMX to ETH. It means network fees will be stored in GMX and distributed in the same token, with users able to convert directly.
+
+#                     According to details of the proposal, the buyback contract will allocate a seventh of fees towards the purchase of GMX. This will occur every day for seven days, with the buyback price based on GMX’s Chainlink oracle price on Arbitrum Arbitrum
+#                     ARB
+#                     -5.11%
+#                     Arbitrum and Avalanche Avalanche
+#                     AVAX
+#                     -5.39%
+#                     Avalanche.
+
+#                     The buyback contract will also enforce a premium to the revenue model, with this set to gradually increase from 0% to 5% across the week.
+
+#                     GMX’s trading model allows liquidity providers to earn fees from spreads, funding fees, and liquidations. DeFiLlama currently ranks GMX as the 45th largest chain by revenue and fees. Rival protocols include dYdX and Jupiter Perpetual Exchange.
+#                     Published Date: mm/dd/yyyy
+                
+            
+#                 Requirements:
+                
+#                 Ensure each Tweet item is unique and avoid repetition.
+#                 Exclude any Tweet related to price analysis, price prediction, the price action or trading volume of $GMX.
+#                 """},
+#                 {  'name': 'uni', 'category_id': 12, 'grok_prompt': """
+#                 Show me Tweets about the last day $UNI's token/coin news, up to a maximum of 10 items in a list style format.
+#                 For each news item, provide the following details:
+            
+#                     Title:
+#                     Content: (minimum 240 words)
+#                     Published Date: mm/dd/yyyy
+                    
+#                     News/item sample:
+                    
+#                     Title: Uniswap Decline Continues Ahead of Potential United States SEC Legal Action
+#                     Content: With a market capitalization of $7.6 billion, the token ranks as the 20th largest cryptocurrency by market cap with UniSwap being the biggest decentralized exchange with a 24-hour trading volume of $1.4 billion, according to CoinGecko.
+#                     Uniswap’s UNI token experienced a sharp decline after news emerged that the decentralized exchange was being targeted by the United States Securities and Exchange Commission.
+
+#                     $UNI, which was trading above $11 on April 10 2024, has declined to $9.10 at the time of writing, losing more than 6% in the last 24 hours, according to CoinGecko.
+#                     With a market capitalization of $7.6 billion, the token ranks as the 20th largest cryptocurrency by market cap with UniSwap being the biggest decentralized exchange with a 24-hour trading volume of $1.4 billion, according to CoinGecko.
+
+#                     The United States Securities and Exchange Commission (SEC) issued a Wells notice to the decentralized exchange on April 10 2024 signalling potential regulatory action or investigation.
+#                     A Wells notice typically provides recipients with an opportunity to respond to the SEC’s allegations before any formal charges are filed. It serves as a warning that the SEC is considering legal action and allows the recipient to present their arguments or defences to the allegations.
+
+#                     The SEC has pursued various crypto companies on allegations of selling unregistered securities, including ongoing investigations into Uniswap spanning several years. However, according to Marvin Ammori, the company’s chief legal officer, its enforcement actions have been inconsistent.
+#                     According to local reports, Ammori said that the Wells notice was focused on Uniswap acting as an unregistered securities broker and unregistered securities exchange. It remains unclear whether the UNI token was implicated as a potential security in the SEC’s notice.
+
+#                     “The Uniswap Protocol, web app, and wallet don’t meet the legal definitions of securities exchange or broker,” said Ammori, adding that the protocol welcomes “regulations for crypto – and clear rule of law that we expect in the US – not arbitrary enforcement and continued abuse of power.”
+#                     The SEC has issued similar notices in the past, warning about legal actions against crypto exchanges Coinbase and Binance. Both exchanges received lawsuits in June 2023.
+                    
+                    
+#                     Published Date: mm/dd/yyyy
+                
+            
+#                 Requirements:
+                
+#                 Ensure each Tweet item is unique and avoid repetition.
+#                 Exclude any Tweet related to price analysis, price prediction, the price action or trading volume of $UNI.
+#                 """},
+#                 {  'name': 'sushi', 'category_id': 12, 'grok_prompt': """
+#                 Show me Tweets about the last day $SUSHI's token/coin news, up to a maximum of 10 items in a list style format.
+#                 For each news item, provide the following details:
+            
+#                     Title:
+#                     Content: (minimum 240 words)
+#                     Published Date: mm/dd/yyyy
+                    
+#                     News/item sample:
+                    
+#                     Title: Sushi Partners With GoPlus Security To Safeguard Users From Honeypot And Scam Tokens
+#                     Content: Sushi is excited to announce a major advancement in user security with the integration of GoPlus Security's Token Security API. This collaboration provides their users with a reliable and robust solution to safeguard their trading activities from honeypots and scam tokens, enhancing the platform's overall safety.
+#                     GoPlus Security is renowned for its comprehensive security analysis and insights for ERC20 tokens across various networks. Their Token Security API offers thorough risk assessments, transaction security checks, and detailed token information, ensuring potential threats are identified and mitigated promptly.
+#                     Sushi now uses GoPlus Security's Token Security API to identify and assess the risk of new tokens, detecting malicious ones like honeypots and scams early. This proactive approach ensures threats are quickly flagged and removed, protecting users from harmful tokens.                    Each token undergoes a thorough security assessment, including detailed analysis, transaction checks, and risk evaluations. This process ensures only secure tokens are accessible, enhancing the platform's overall security.                    When a token is deemed risky, users receive immediate popup warnings, helping them make informed decisions and avoid potential dangers. By reporting risky tokens early, Sushi reduces the risk of users falling victim to scams like rug pulls, ensuring a secure trading environment.                    This partnership highlights Sushi's unwavering commitment to user safety. By integrating GoPlus Security's advanced technology, Sushi is taking proactive steps to ensure that its users are protected from the increasing number of threats in the crypto space.                    Sushi is continually seeking ways to improve and update its security protocols. The collaboration with GoPlus Security is just one of many steps the company takes to ensure its platform remains a safe and secure place for trading. Users can expect ongoing updates and enhancements as Sushi prioritizes their safety and security.
+#                     "Sushi is setting a groundbreaking example for the industry by integrating our Token Security API. There'll be 100x more malicious actors in the future. By proactively identifying and mitigating crypto scams together, we are not only safeguarding users' investments but also reinforcing trust and security within the crypto community," said Eskil Tsu, Co-Founder of GoPlus.
+#                     "At Sushi, we're all about giving you the best DEXperience, and keeping our users safe is a big part of that. By teaming up with GoPlus Security to flag honeypot and scam tokens, we're addressing one of the biggest concerns for newcomers—security. This partnership not only enhances our product offerings but also shows how DeFi protocols can work together to make the space safer and more awesome for everyone—another great DeFi Lego best practice in action." Jared Grey, Head Chef of Sushi added.
+#                     To experience the enhanced security features, users can visit Sushi's platform and start confidently trading today.
+                    
+#                     Published Date: mm/dd/yyyy
+                
+            
+#                 Requirements:
+                
+#                 Ensure each Tweet item is unique and avoid repetition.
+#                 Exclude any Tweet related to price analysis, price prediction, the price action or trading volume of $SUSHI.
+#                 """},
+#                 {  'name': 'cake', 'category_id': 12, 'grok_prompt': """
+#                 Show me Tweets about the last day $CAKE's token/coin news, up to a maximum of 10 items in a list style format.
+#                 For each news item, provide the following details:
+            
+#                     Title:
+#                     Content: (minimum 240 words)
+#                     Published Date: mm/dd/yyyy
+                    
+#                     News/item sample:
+                    
+#                     Title: PancakeSwap Burns 8.88M Tokens Worth Over $18M, CAKE Price Gains 3%
+#                     Content: PancakeSwap has so far burned more than 78 percent of the total CAKE supply to date, thus significantly increasing the value of the existing coins.
+
+#                     Leading decentralized exchange (DEX) on the Binance Smart Chain (BSC), PancakeSwap (CAKE) burned 8,888,476 of its native tokens, worth around $18 million on Monday. According to the announcement, PamcakeSwap collected fees from its different versions, thus contributing to the latest burn.
+
+#                     PancakeSwap on a Token Burning Spree
+
+#                     The PancakeSwap team has so far burned 1.384 billion CAKE tokens, equivalent to about 4.7 million BNB coins worth around $2.79 billion. According to on-chain data, PancakeSwap conducted five major token burns in July, which is considered a top-notch marketing strategy by most web3 projects.
+
+#                     Moreover, the continued token burn amid the rising demand, from the mainstream adoption of digital assets and web3 platforms, increases the value of the existing tokens. A similar strategy is used by other projects led by BNB, and Shiba Inu (SHIB), among many others.
+
+#                     As Coinspeaker previously reported, the Binance team recently announced its quarterly burn of over 1.6 million BNB units, worth more than $971 million.
+
+#                     The notable token burns on the Binance network will play a crucial role in regaining and maintaining the fourth position as the most valuable digital assets. According to the latest market data, BNB had been outstripped by Solana (SOL) from the fourth position.
+
+#                     Growing Ecosystem
+
+#                     The PancakeSwap project has significantly benefited from the mainstream adoption of web3 technology, whereby it boasts more than 1.7 million on-chain holders. According to the latest market data, the PancakeSwap DEX has more than $1.8 billion in total value locked.
+
+#                     Over the years, the PancakeSwap team has expanded to other chains including Ethereum (ETH), Aptos (APT), and Arbitrum (ARB).
+
+#                     Currently, the PancakeSwap team is preparing to launch the V4 platform later this year to enhance community engagement in liquidity provision and security of underlying swap transactions.
+
+#                     The PancakeSwap is already facing significant competition from other DEX platforms led by Uniswap (UNI), Bakeryswap (BAKE), and Sushi Swap, among many others. Nonetheless, the PancakeSwap team has built a robust online community that guarantees its sustainable future growth prospects.
+
+#                     CAKE Price Rebounds
+
+#                     Amid the ongoing crypto rebound led by Bitcoin (BTC) price, which rallied over $69K on Monday, CAKE price has signaled an imminent bullish breakout on the horizon. According to the latest market data, CAKE price rallied over 3 percent in the past 24 hours to trade at about $2.03 on Monday during the early New York session.
+
+#                     From a technical standpoint, CAKE price has been retesting the macro bullish breakout in the last few months. Having established a multi-year logarithmic support on the weekly chart, CAKE price is on the cusp of a major bullish uproar towards double digits in the near term.
+
+
+#                     Published Date: mm/dd/yyyy
+                
+            
+#                 Requirements:
+                
+#                 Ensure each Tweet item is unique and avoid repetition.
+#                 Exclude any Tweet related to price analysis, price prediction, the price action or trading volume of $CAKE.
+#                 """},
+#                 {  'name': 'aave', 'category_id': 13, 'grok_prompt': """
+#                 Show me Tweets about the last day $PENDLE's token/coin news, up to a maximum of 10 items in a list style format.
+#                 For each news item, provide the following details:
+            
+#                     Title:
+#                     Content: (minimum 240 words)
+#                     Published Date: mm/dd/yyyy
+                    
+#                     News/item sample:
+                    
+#                     Title: HashKey Capital Increases PENDLE Holdings: A Strategic Move Amid Market Dynamics
+#                     Content: ashKey Capital’s address, hki.eth, recently withdrew 583,000 PENDLE tokens from Binance, amounting to a substantial $2.2 million.
+#                     This acquisition positions PENDLE as the top holding in the hki.eth address and marks it as the fourth-largest holding within HashKey Capital’s on-chain portfolio.
+#                     HashKey’s history with PENDLE is noteworthy. Between July 2021 and April 2022, the address received 2.71 million PENDLE tokens distributed by the Pendle project. By June 2022, all these tokens were deposited back to the exchange.
+#                     HashKey Capital has a track record of buying PENDLE at low prices and selling at peaks, resulting in a remarkable profit of approximately $9.96 million from PENDLE trades.
+#                     PENDLE is distinguished by its market characteristics, notably its fully diluted valuation (FDV) being almost equal to its market cap. This suggests that venture capital firms have minimal control over the token, offering a level of decentralization that appeals to investors. 
+#                     THIS YEAR ALONE, PENDLE HAS RECORDED MASSIVE 7X INCREASE 
+#                     This year, PENDLE has seen a significant 7x increase, entering an accumulation phase that presents a prime opportunity for buying at a dip. HashKey Capital’s recent withdrawal aligns with this strategy, indicating confidence in PENDLE’s long-term potential and market stability.
+#                     The strategic move by HashKey Capital underscores their adeptness at timing the market to maximize returns. As PENDLE continues to gain traction, HashKey’s investment actions will likely influence broader market sentiment, drawing attention to Pendle Finance’s unique positioning in the crypto landscape.
+
+#                     For investors and market watchers, HashKey Capital’s activities with PENDLE offer insights into effective market strategies and the potential for significant returns in the evolving digital asset space.
+
+#                     The ongoing developments with PENDLE and its market performance will be closely monitored, given its recent gains and strategic accumulation by major players like HashKey Capital.
+
+
+#                     Published Date: mm/dd/yyyy
+                
+            
+#                 Requirements:
+                
+#                 Ensure each Tweet item is unique and avoid repetition.
+#                 Exclude any Tweet related to price analysis, price prediction, the price action or trading volume of $PENDLE.
+#                 """},
+#                 {  'name': 'pendle', 'category_id': 13, 'grok_prompt': """
+#                 Show me Tweets about the last day $AAVE's token/coin news, up to a maximum of 10 items in a list style format.
+#                 For each news item, provide the following details:
+            
+#                     Title:
+#                     Content: (minimum 240 words)
+#                     Published Date: mm/dd/yyyy
+                    
+#                     News/item sample:
+                    
+#                     Title: Aave Launches Lido-Only V3 Deployment
+#                     Content: The new market exclusively supports liquidity pools for Lido’s stETH and wrapped stETH liquid staking token.
+#                     Aave, the largest DeFi lending market, is deepening its ties with Lido, the protocol behind the top liquid staking token, stETH.
+
+#                     On July 29, Lido announced the launch of a dedicated v3 deployment for Lido Finance’s stETH and wstETH tokens.
+
+#                     Aave noted that Lido Alliance will provide liquidity incentives for users and reward builders for “novel use cases” leveraging the market. The deployment features isolated market features and a borrowing cap of 90% — up from 78.5% on the regular v3 market for stETH — with Aave describing the new platform as the most efficient platform for recursive stETH borrowing in web3.
+
+#                     Aave added that the launch opens the door to the deployment of additional custom pools in the future. Aave also hopes to solidify itself as the preferred DeFi venue for stETH users.
+
+#                     “This first specialized market is just the beginning, leading in the future to additional optimized pools with their own unique risk profiles and making Aave and DeFi more attractive to institutions and users,” said Aave Labs Founder and CEO Stani Kulechov.
+
+#                     “These new Markets Instances allow for use-case-oriented hyper-efficient versions of Aave while keeping risk in control, it's a net benefit and a new frontier for the DeFi ecosystem," said Marc Zeller, founder of Aave Chan Initiative.
+
+#                     Aave currently hosts $4.63 billion worth of stETH, accounting for 25% of Aave v3’s $16.4 billion total value locked (TVL) on Ethereum to rank as the protocol’s largest asset pool.
+
+#                     Over the past 24 hours, AAVE's price is up 2.75% whileLido's LDO gained 2.80%, according to The Defiant'scrypto price feeds.
+
+#                     Lido Alliance
+
+#                     The news comes as Lido is looking to play a more active role in cultivating its growth via the Lido Alliance, a recently launched collective designed to bolster the adoption of stETH.
+
+#                     Lido proposed the alliance in May after suffering outflows amid the rise of EigenLayer’s restaking ecosystem. While both liquid staking and restaking offer users exposure to Ethereum staking rewards without requiring they operate a node, restaking provides additional rewards for securing third-party actively validated services (AVSs) alongside points to encourage early adoption.
+
+#                     The Lido Alliance sought to combat EigenLayer by promoting a rival restaking ecosystem centered around stETH, quickly onboarding the Symbiotic restaking protocol and Mellow liquid restaking token provider. Symbiotic is now the second-largest staking project behind EigenLayer after its (TVL) tripled to more than $1 billion within 24 hours of raising its deposit limit in early July.
+
+#                     Lido’s inflows have largely subsided since introducing the alliance, with the protocol currently holding 9.88 million ETH ($33.3 billion) after attracting 740,000 ETH ($2.5 billion) since tagging a mid-April low of 9.14 million ETH.
+
+#                     EigenLayer ranks as the second-largest DeFi protocol with 4.85 million ETH ($16.36 billion), down 10.3% from an all-time high of 5.41 million ETH in mid-June.
+
+#                     Aave’s community greenlit the custom v3 deployment in June, describing the move as “supporting the launch of the Lido Alliance.”
+
+#                     Published Date: mm/dd/yyyy
+                
+            
+#                 Requirements:
+                
+#                 Ensure each Tweet item is unique and avoid repetition.
+#                 Exclude any Tweet related to price analysis, price prediction, the price action or trading volume of $AAVE.
+#                 """},
+#                 {  'name': '1inch', 'category_id': 13, 'grok_prompt': """
+#                 Show me Tweets about the last day $1INCH's token/coin news, up to a maximum of 10 items in a list style format.
+#                 For each news item, provide the following details:
+            
+#                     Title:
+#                     Content: (minimum 240 words)
+#                     Published Date: mm/dd/yyyy
+                    
+#                     News/item sample:
+                    
+#                     Title: 1inch Network Launches Crypto Debit Card with Mastercard
+#                     Content: 1inch Card holders can easily make one-touch payments at stores supporting contactless payments and withdraw cash globally at Mastercard ATMs.
+#                     The leading DEX aggregator 1inch Network, launches a crypto debit card in partnership with Mastercard and Crypto Life. The new card offers cryptocurrency-to-fiat bridge functionality, with physical and virtual options for seamless transactions at any ATM.
+#                     Christian Rau, Mastercard’s senior vice president of crypto and fintech enablement, highlighted the importance of bridging the gap between Web3 and Web2 worlds through this card. The integration of Mastercard’s technology ensures security and convenience for users.
+
+#                     Christian Rau, said, “Leveraging Mastercard’s leading technology and standards, the 1inch Card is connecting Web2 and Web3 worlds in an innovative way.”
+
+#                     Unlike traditional methods that involve multiple steps and fees for converting crypto to fiat, the 1inch Card streamlines the process, enabling users to maintain custody of their assets with a single conversion rate during purchases.
+
+#                     1inch co-founder Segej Kunz demonstrated the card’s virtual payment capability on social media, showcasing its user-friendly and efficient nature.
+
+#                     Each card will have a number, validity date, and CVC, enabling users to pay for goods and services with fiat currency, following immediate, fast, and secure conversion from crypto when a payment is made.
+
+#                     The card can also be used to make convenient one-touch payments for everyday essentials at in-person stores that support contactless payments. And, cardholders can withdraw cash with a physical or digital 1inch Card at any ATM that accepts Mastercard around the world.
+
+#                     While currently available in the UK and European economic areas, 1inch aims to expand the card’s availability globally, pending partnerships and regulatory approvals. Orest Gavryliak, the company’s chief legal officer, hinted at future geographical expansions.
+
+
+#                     Published Date: mm/dd/yyyy
+                
+            
+#                 Requirements:
+                
+#                 Ensure each Tweet item is unique and avoid repetition.
+#                 Exclude any Tweet related to price analysis, price prediction, the price action or trading volume of $1INCH.
+#                 """},
+#                 {  'name': 'ocean', 'category_id': 14, 'grok_prompt': """
+#                 Show me Tweets about the last day $OCEAN's token/coin news, up to a maximum of 10 items in a list style format.
+#                 For each news item, provide the following details:
+            
+#                     Title:
+#                     Content: (minimum 240 words)
+#                     Published Date: mm/dd/yyyy
+                    
+#                     News/item sample:
+                    
+#                     Title: Token merger of SingularityNET, Fetch.ai, and Ocean Protocol goes live
+#                     Content: The ASI token merger integrates FET, AGIX, and OCEAN into a unified platform to advance decentralized AI technologies.
+#                     Major crypto exchanges support the new ASI token, though Coinbase opts to continue trading FET and OCEAN separately.
+#                     The Artificial Superintelligence Alliance, including SingularityNET, Fetch.ai, and Ocean Protocol, announced today the launch of a multi-coin merger. Their respective tokens, including FET, AGIX, and OCEAN, will start being merged into a single unified token called ASI.
+#                     Introduced in March, the merger is part of the alliance’s goal to build an ethical, decentralized AI ecosystem using resources and expertise from member companies. The team also expects to build a robust AI alternative that could challenge Big Tech’s control over AI development.
+#                     As previously reported by Crypto Briefing, the token merger has two phases.
+#                     Phase 1 starts with AGIX and OCEAN tokens being merged into FET. Meanwhile, FET trading continues while rebranding occurs across platforms. The migration platform is also open on the SingularityDAO dApp to facilitate the conversion of AGIX and OCEAN tokens to FET tokens.
+#                     AGIX and OCEAN tokens will start being removed from various exchanges as part of the migration process. This phase focuses on onboarding exchanges and data aggregators for a smooth transition.
+#                     Following phase 1, phase 2 is expected to take place in mid-July. This phase focuses on community onboarding and ASI token deployment.
+#                     The Fetch.ai network will undergo an upgrade to become the ASI network. The new ASI token will be introduced and deployed across multiple blockchain networks. As noted, holders of self-custodial assets will be able to convert their tokens to ASI.
+#                     In addition, new smart contracts will be available to facilitate the conversion of FET, AGIX, and OCEAN tokens to ASI tokens. Ethereum Virtual Machine (EVM) and other blockchain bridges will also be activated for ASI token transfers.
+#                     According to the ASI alliance, the migration contracts will remain open for several years. The team will release detailed instructions to ensure a smooth transition. Currently, all preparations for the second phase are in progress.
+#                     Crypto exchanges will transition their spot markets from FET to ASI tokens in the second phase. Several major exchanges have announced plans to support the ASI merger. Specifically, Bitfinex, Cooperative, Bitget, Binance, and KuCoin will pause offerings of affected tokens on July 1 or 2. Crypto.com already did that on June 28.
+#                     However, Coinbase will opt out of the ASI token merger migration. Last week, the exchange said users who wanted to participate in the merger could do it manually. Coinbase will continue to support trading for OCEAN and FET tokens “until further notice.”
+#                     Humayun Sheikh, chairman of the Artificial Superintelligence Alliance and CEO of Fetch.ai, said the merger aims to set new standards for collaboration and openness within the AI industry.
+#                     “Today’s token merger underscores our commitment to advancing safe artificial intelligence,” said Sheikh. “By merging our tokens, we aim to enhance operational efficiency and seamlessly integrate decentralized AI systems, ensuring broad access to cutting-edge AI technologies.”
+#                     Ben Goertzel, CEO of the Artificial Superintelligence Alliance and SingularityNET, believes the merger will foster product collaborations, helping them achieve beneficial superintelligence.
+#                     “We’re excited to have reached this milestone along the path to realizing our vision of an Artificial Superintelligence Alliance capable of winning the AGI and ASI race for the decentralized ecosystem,” said Goertzel.
+#                     Bruce Pon, Council Board Director of Artificial Superintelligence Alliance and founder of Ocean Protocol, said the token merger will pave the way for future user-centric products.
+#                     “We’re grateful to the community, exchanges and other partners for accommodating this token merger. We’re really looking forward to focusing on our users and products that increase adoption,” said Pon.                                
+                                                            
+#                     Published Date: mm/dd/yyyy
+                
+            
+#                 Requirements:
+                
+#                 Ensure each Tweet item is unique and avoid repetition.
+#                 Exclude any Tweet related to price analysis, price prediction, the price action or trading volume of $OCEAN.
+#                 """},
+#                 {  'name': 'fet', 'category_id': 14, 'grok_prompt': """
+#                 Show me Tweets about the last day $FET's token/coin news, up to a maximum of 10 items in a list style format.
+#                 For each news item, provide the following details:
+            
+#                     Title:
+#                     Content: (minimum 240 words)
+#                     Published Date: mm/dd/yyyy
+                    
+#                     News/item sample:
+                    
+#                     Title: Fetch.ai CEO Says AI Token Merger Going Ahead Despite Coinbase Snub, Tells FET Holders To Do Nothing
+#                     Content: The CEO of artificial intelligence (AI)-focused Fetch.ai (FET) says its planned token merger will still take place despite not being supported by Coinbase.
+
+#                     In a new thread on the social media platform X, Fetch.ai chief executive Humayun Sheikh says that the planned AI token merger between FET, Ocean Protocol (OCEAN) and SingularityNet (AGIX) is still slated to happen.
+#                     “OCEAN and AGIX are merging into FET. Centralized exchanges (CEXs) don’t need to delist or relist FET. It is there already. If you hold FET, do nothing. We are working hard to resolve any issues please bear with us.
+
+#                     The timeline has not changed. Coinbase has only announced that the swap will be via custodial wallets. All exchanges have their own reasons and methods but the merger is going ahead and we are seeing huge support from all.”
+
+#                     Earlier this week, top US-based crypto exchange Coinbase announced that it would not be supporting the token merger between the three altcoins. At the time, Coinbase said that customers would have to initiate the merger on their own.
+
+#                     “Ocean and Fetch.ai have announced a merger to form the Artificial Superintelligence Alliance (ASI). Coinbase will not execute the migration of these assets on behalf of users…
+
+#                     Once the migration has launched, users will be able to migrate their OCEAN and FET to ASI using a self-custodial wallet, such as Coinbase Wallet. The ASI token merger will be compatible with all major software wallets.”
+
+#                     First announced in March, the merger aims to form a Superintelligence Alliance designed to change the game on how AI is “created, shared and used by everyone.”
+
+#                     Phase I of the merger is scheduled to take place on July 1st. 
+                            
+#                     Published Date: mm/dd/yyyy
+                
+            
+#                 Requirements:
+                
+#                 Ensure each Tweet item is unique and avoid repetition.
+#                 Exclude any Tweet related to price analysis, price prediction, the price action or trading volume of $FET.
+#                 """},
+#                 {  'name': 'rndr', 'category_id': 14, 'grok_prompt': """
+#                 Show me Tweets about the last day $RNDR's token/coin news, up to a maximum of 10 items in a list style format.
+#                 For each news item, provide the following details:
+            
+#                     Title:
+#                     Content: (minimum 240 words)
+#                     Published Date: mm/dd/yyyy
+                    
+#                     News/item sample:
+                    
+#                     Title: Fetch.ai CEO Says AI Token Merger Going Ahead Despite Coinbase Snub, Tells FET Holders To Do Nothing
+#                     Content: OKX announces support for RNDR token migration to RENDER, following Render Network's official plan, with a detailed schedule.
+#                     Migration Schedule
+#                     The migration process is slated to commence on July 9, 2024. As part of the procedure, all pending orders for RNDR  tokens will be canceled, and the RNDR spot trading pairs RNDR/USDT and RNDR/USDC will be suspended at 8:00 am UTC on the same day. Subsequently, RNDR transfers, deposits, and withdrawals will be halted at 10:00 am UTC.
+
+#                     An account snapshot, which is crucial for the migration, will take place at 4:00 pm UTC. This snapshot will include both OKX funding and trading accounts. Following the migration, new token RENDER deposits, withdrawals, and spot trading will be enabled, with the specific opening time to be announced separately.
+
+                            
+#                     Published Date: mm/dd/yyyy
+                
+            
+#                 Requirements:
+                
+#                 Ensure each Tweet item is unique and avoid repetition.
+#                 Exclude any Tweet related to price analysis, price prediction, the price action or trading volume of $RNDR.
+#                 """},
+#                 {  'name': 'total3', 'category_id': 1, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'sp500', 'category_id': 1, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'dxy', 'category_id': 1, 'grok_prompt': """
+                
+#                 """},
+#                 {  'name': 'gold', 'category_id': 15, 'grok_prompt': """
+                
+#                 """},
+#             ]
+#         for bot in bots_fixed:
+#             # Verificar si el bot ya existe
+#                 existing_bot = db.session.query(Bot).filter_by(name=bot['name']).first()
+#                 if existing_bot:
+#                     # Solo actualizar si grok_prompt es null
+#                     if existing_bot.grok_prompt is None:
+#                         existing_bot.grok_prompt = bot['grok_prompt']
+#                         db.session.commit()  # Guardar cambios en la base de datos
+#                 else:
+#                     # Si no existe, insertar el nuevo bot
+#                     new_bot = Bot(name=bot['name'], category_id=bot['category_id'], grok_prompt=bot['grok_prompt'])
+#                     db.session.add(new_bot)
+
+#         db.session.commit()  # Guardar cambios en la base de datos            
+            
+#     except Exception as e:
+#         db.session.rollback()  # Revertir cambios en caso de error
+#         print(f"Ocurrió un error: {e}")
