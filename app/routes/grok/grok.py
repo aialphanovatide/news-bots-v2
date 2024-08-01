@@ -32,11 +32,20 @@ async def search_coin_news(coin_name: str) -> List[Dict[str, str]]:
         textarea = await page.query_selector("textarea[placeholder='Grok something']")
         coin_name_upper = coin_name.upper()
         # Write the query in the input field
-        await textarea.fill(f"""
-        Give me in a list style format the today’s latest ${coin_name_upper} token/coin news - no more than 10
+        print("coin name", coin_name)
+
+        if coin_name=='gold':
+            await textarea.fill(f"""
+        Give me in a list style format, the today’s latest {coin_name_upper} / XAU news - no more than 10
         Each list news item includes the following labels: Title: Content: Published Date: mm/dd/yyyy - Each news item must be at least 140 words long. 
-        Make sure to share the complete content of each news item and NEVER REPEAT news. Please exclude any news related to the price action of ${coin_name_upper} and instead focus on news-related stories such as the support of new assets, new collaborations, and any news that doesn't refer to trading volume or price action.
+        Make sure to share the complete content of each news item and NEVER REPEAT news. Please exclude any news related to the price action of {coin_name_upper} and instead focus on news-related stories such as the support of new assets, new collaborations, and any news that doesn't refer to trading volume or price action.
         """)
+        else:
+            await textarea.fill(f"""
+            Give me in a list style format, the today’s latest ${coin_name_upper} token/coin news - no more than 10
+            Each list news item includes the following labels: Title: Content: Published Date: mm/dd/yyyy - Each news item must be at least 140 words long. 
+            Make sure to share the complete content of each news item and NEVER REPEAT news. Please exclude any news related to the price action of ${coin_name_upper} and instead focus on news-related stories such as the support of new assets, new collaborations, and any news that doesn't refer to trading volume or price action.
+            """)
         
         # Press the "Enter" key to submit the query
         await textarea.press("Enter")

@@ -11,7 +11,7 @@ __pycache__/
 .idea/
 
 # Dependency directories
-venv/
+venv/ 
 env/
 
 # Logs
@@ -38,4 +38,9 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
-
+app/routes/grok/tmp
+/app/routes/grok/tmp
+.app/routes/grok/tmp
+# Ignora archivos temporales y de caché
+app/routes/grok/tmp/
+app/routes/grok/tmp/
