@@ -4,7 +4,7 @@ import requests
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from typing import Dict, Any
-from flask import current_app
+from flask import app, current_app
 from app.utils.helpers import transform_string
 from app.utils.similarity import cosine_similarity_with_openai_classification
 from config import Blacklist, Keyword, UnwantedArticle, Article, db
@@ -258,7 +258,6 @@ def validate_and_save_article(news_link, article_title, article_content, categor
 
 def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: int, bot_name: str, category_slack_channel) -> Dict[str, Any]:
     print(f"\n[INFO] Fetching article content for: {news_link}")
-    
     try:
         # Send HTTP GET request
         response = requests.get(news_link, timeout=10)
@@ -296,8 +295,6 @@ def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: 
         article_content = [p.text.strip() for p in paragraphs if p.text.strip()]
         print(f"[INFO] Extracted {len(article_content)} paragraphs")
 
-       
-        
         publication_date = None
         date_elements = html.find_all(['span', 'date', 'time'])
         for date_element in date_elements:
@@ -313,7 +310,7 @@ def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: 
                     break
                 except (ValueError, TypeError):
                     continue  # Continue if parsing fails
-        
+
         print(f"[INFO] Datetime: {publication_date}")
         # Check if the publication date is within the last 24 hours
         if publication_date and datetime.now() - publication_date > timedelta(days=1):
@@ -322,9 +319,10 @@ def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: 
                     'paragraphs': article_content, 'error': 'Article is older than 24 hours'}
 
         # Validate and process the content
-        result = validate_and_save_article(news_link, article_title, article_content, 
-                                           category_id, bot_id, bot_name, category_slack_channel)
-         
+        with current_app.app_context():
+            result = validate_and_save_article(news_link, article_title, article_content, 
+                                            category_id, bot_id, bot_name, category_slack_channel)
+
         if 'error' in result:
             return {'success': False, 'url': news_link, 'title': article_title, 
                     'paragraphs': article_content, 'error': result['error']}
@@ -341,5 +339,4 @@ def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: 
         print(f"[ERROR] Unexpected error while processing {news_link}: {e}")
         return {'success': False, 'url': news_link, 'title': None, 
                 'paragraphs': [], 'error': f'Error while getting article content: {str(e)}'}
-
 
