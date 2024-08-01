@@ -1,9 +1,0 @@
-<<<<<<< HEAD
-2024/08/01-02:21:54.357 a503 Reusing MANIFEST /Users/amananand/Desktop/AI Alpha/news-bots-v2/app/routes/grok/tmp/playwright/Default/Sync Data/LevelDB/MANIFEST-000001
-2024/08/01-02:21:54.362 a503 Recovering log #3
-2024/08/01-02:21:54.366 a503 Reusing old log /Users/amananand/Desktop/AI Alpha/news-bots-v2/app/routes/grok/tmp/playwright/Default/Sync Data/LevelDB/000003.log 
-=======
-2024/08/01-19:08:26.363 9a03 Reusing MANIFEST /Users/agustinbustamante/news-bots-v2/app/routes/grok/tmp/playwright/Default/Sync Data/LevelDB/MANIFEST-000001
-2024/08/01-19:08:26.364 9a03 Recovering log #3
-2024/08/01-19:08:26.364 9a03 Reusing old log /Users/agustinbustamante/news-bots-v2/app/routes/grok/tmp/playwright/Default/Sync Data/LevelDB/000003.log 
->>>>>>> d93d3a3feaf88936c26bdb2343665e7ef8b8926f

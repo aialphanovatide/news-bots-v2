@@ -1,9 +1,0 @@
-<<<<<<< HEAD
-2024/08/01-02:17:26.346 8203 Reusing MANIFEST /Users/amananand/Desktop/AI Alpha/news-bots-v2/app/routes/grok/tmp/playwright/Default/shared_proto_db/MANIFEST-000001
-2024/08/01-02:17:26.347 8203 Recovering log #4
-2024/08/01-02:17:26.349 8203 Reusing old log /Users/amananand/Desktop/AI Alpha/news-bots-v2/app/routes/grok/tmp/playwright/Default/shared_proto_db/000004.log 
-=======
-2024/08/01-19:05:20.529 b703 Reusing MANIFEST /Users/agustinbustamante/news-bots-v2/app/routes/grok/tmp/playwright/Default/shared_proto_db/MANIFEST-000001
-2024/08/01-19:05:20.530 b703 Recovering log #4
-2024/08/01-19:05:20.530 b703 Reusing old log /Users/agustinbustamante/news-bots-v2/app/routes/grok/tmp/playwright/Default/shared_proto_db/000004.log 
->>>>>>> d93d3a3feaf88936c26bdb2343665e7ef8b8926f
