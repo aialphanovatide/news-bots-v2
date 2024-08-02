@@ -20,7 +20,7 @@ def fetch_urls(url: str) -> Dict:
 
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch_persistent_context(user_data_dir, headless=False, slow_mo=2000)
+            browser = p.chromium.launch_persistent_context(user_data_dir, headless=True, slow_mo=2000)
             page = browser.new_page()
             page.goto(url)
             page.wait_for_load_state("domcontentloaded", timeout=70000)
