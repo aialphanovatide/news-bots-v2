@@ -44,6 +44,3 @@ app/routes/grok/tmp
 # Ignora archivos temporales y de caché
 app/routes/grok/tmp/
 app/routes/grok/tmp/
-# Playwright temporary files
-app/routes/grok/tmp/playwright/
-grok.py.save

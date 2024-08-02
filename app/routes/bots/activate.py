@@ -1,10 +1,11 @@
 from flask import Blueprint, jsonify, request
 from config import Blacklist, Category, Bot, Site, db
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.utils.index import fetch_news_links
 from scheduler_config import scheduler
 from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response, handle_db_session
+from apscheduler.triggers.interval import IntervalTrigger
 
 activate_bots_bp = Blueprint(
     'activate_bots_bp', __name__,
@@ -12,7 +13,30 @@ activate_bots_bp = Blueprint(
     static_folder='static'
 )
 
-# Function to be scheduled
+def calculate_next_execution_time(bot_name, current_time):
+    """
+    Calculate the next execution time for a job based on current time and other jobs.
+    
+    Args:
+        bot_name (str): The name of the bot/job.
+        current_time (datetime): The current time.
+    
+    Returns:
+        datetime: The calculated next execution time.
+    """
+    # Fetch all jobs and calculate the next execution time
+    jobs = scheduler.get_jobs()
+    # Sort jobs by their next execution time
+    jobs_sorted = sorted(jobs, key=lambda job: job.next_run_time if job.next_run_time else current_time)
+    
+    # Find the latest execution time among all jobs
+    last_execution_time = jobs_sorted[-1].next_run_time if jobs_sorted else current_time
+    
+    # Schedule the job to run after all existing jobs
+    next_execution_time = last_execution_time + timedelta(minutes=1)  # Adjust timedelta as needed
+
+    return next_execution_time
+
 def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, category_slack_channel):
     with scheduler.app.app_context():
         fetch_news_links(
@@ -23,10 +47,28 @@ def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, catego
             bot_id=bot_id,
             category_slack_channel=category_slack_channel
         )
+        
         try:
+            # Fetch current time for re-scheduling
+            now = datetime.now()
+            # Calculate new execution time
+            new_execution_time = calculate_next_execution_time(bot_name, now)
+            
+            # Reprogram job
+            scheduler.remove_job(bot_name)
+            scheduler.add_job(
+                id=bot_name,
+                func=scheduled_job,
+                name=bot_name,
+                replace_existing=True,
+                args=[bot_site, bot_name, bot_blacklist, category_id, bot_id, category_slack_channel],
+                trigger=IntervalTrigger(start_date=new_execution_time, minutes=1)  # Adjust interval as needed
+            )
+
+            # Update category
             category = Category.query.filter_by(id=category_id).first()
             if category:
-                category.updated_at = datetime.now()
+                category.updated_at = now
                 db.session.commit()
                 print(f'{category_id} updated successfully')
             else:
@@ -51,7 +93,7 @@ def activate_all_bots():
             return create_response(error='No categories found'), 404
 
         global_minutes = 10
-        interval_base = 23  # Changed to 23 min to keep intervals between bots activation
+        interval_base = 23  # Adjusted to keep intervals between bots activation
 
         for category in categories:
             category_id = category.id
@@ -72,15 +114,13 @@ def activate_all_bots():
                 bot_name = bot.name
 
                 # Ensure a unique interval for each bot
-                minutes = global_minutes
                 scheduler.add_job(
                     id=str(bot_name),
                     func=scheduled_job,
                     name=bot_name,
                     replace_existing=True,
                     args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category_slack_channel],
-                    trigger='interval',
-                    minutes=minutes
+                    trigger=IntervalTrigger(start_date=datetime.now() + timedelta(minutes=global_minutes), minutes=1)  # Initial trigger
                 )
 
                 # Increment global minutes for next bot
@@ -97,7 +137,6 @@ def activate_all_bots():
 
     except Exception as e:
         return create_response(error=f"Error activating all bots: {e}"), 500
-
 
 @activate_bots_bp.route('/activate_category', methods=['POST'])
 @handle_db_session
@@ -147,8 +186,7 @@ def activate_bots_by_category():
                 name=bot_name,
                 replace_existing=True,
                 args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category_slack_channel],
-                trigger='interval',
-                minutes=minutes
+                trigger=IntervalTrigger(start_date=datetime.now() + timedelta(minutes=minutes), minutes=1)  # Initial trigger
             )
             
         category.is_active = True
@@ -162,9 +200,6 @@ def activate_bots_by_category():
 
     except Exception as e:
         return create_response(error=f"Error activating bots for category '{category_name}': {e}"), 500
-
-
-
 
 @activate_bots_bp.route('/jobs', methods=['GET'])
 def list_jobs():
