@@ -361,7 +361,7 @@ def extract_text_from_google_docs(link):
                 page.keyboard.press('Control+A')
                 page.keyboard.press('Control+C')
 
-            page.wait_for_timeout(2000)
+            page.wait_for_timeout(4000)
             content = pyperclip.paste()
             browser.close()
             return content
