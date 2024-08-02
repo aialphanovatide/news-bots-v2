@@ -22,7 +22,7 @@ async def search_coin_news(coin_name: str) -> List[Dict[str, str]]:
     grok_news = []
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch_persistent_context(user_data_dir, headless=True, slow_mo=2000)
+        browser = await p.chromium.launch_persistent_context(user_data_dir, headless=False, slow_mo=2000)
         page = await browser.new_page()
         await page.goto("https://x.com/i/grok")
 

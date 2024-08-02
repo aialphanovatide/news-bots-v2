@@ -132,7 +132,6 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
             text=title,
             blocks=blocks
         )
-
         response = result['ok']
         ts = result['ts']
         print(f'Slack message timestamp:', ts)
@@ -142,8 +141,10 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
         return {'error': 'Response error from slack API', 'success': False}
 
     except SlackApiError as e:
+        print(f'---Slack API Error Details---: {e.response}\n{e.response.data}\n{e.response.headers}')
         return {'error': f'Slack API Error: {str(e)}', 'success': False}
     except Exception as e:
+        print(f'---General Error Details---: {str(e)}')
         return {'error': f'Error while sending message to slack: {str(e)}', 'success': False}
 
 
