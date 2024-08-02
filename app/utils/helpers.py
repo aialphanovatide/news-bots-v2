@@ -25,7 +25,7 @@ def resolve_redirects_playwright(url: str) -> str:
     try:
         with sync_playwright() as p:
             # Launch Chromium in non-headless mode
-            browser = p.chromium.launch_persistent_context(user_data_dir, headless=False, slow_mo=2000)
+            browser = p.chromium.launch_persistent_context(user_data_dir, headless=True, slow_mo=2000)
             page = browser.new_page()
             page.goto(url)
             time.sleep(7)
