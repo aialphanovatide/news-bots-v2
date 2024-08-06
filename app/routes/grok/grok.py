@@ -22,7 +22,7 @@ async def search_coin_news(coin_name: str) -> List[Dict[str, str]]:
     grok_news = []
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch_persistent_context(user_data_dir, headless=True, slow_mo=2000)
+        browser = await p.chromium.launch_persistent_context(user_data_dir, headless=False, slow_mo=2000)
         page = await browser.new_page()
         await page.goto("https://x.com/i/grok")
 
@@ -162,13 +162,13 @@ async def get_response(page: Page) -> str:
     return "\n".join([await li.inner_text() for li in response_content])
 
 # Ejemplo de uso
-# if __name__ == "__main__":
-#     coin_name = "cake" 
-#     news_array = asyncio.run(search_coin_news(coin_name))
-#     print(f"\nTotal news items: {len(news_array)}")
-#     for news in news_array:
-#         print(f"\nID: {news['id']}")
-#         print(f"Title: {news['title']}")
-#         print(f"Content: {news['content']}")
-#         print(f"URL: {news['url']}")
-#         print(f"Source: {news['source']}")
+if __name__ == "__main__":
+    coin_name = "cake" 
+    news_array = asyncio.run(search_coin_news(coin_name))
+    print(f"\nTotal news items: {len(news_array)}")
+    for news in news_array:
+        print(f"\nID: {news['id']}")
+        print(f"Title: {news['title']}")
+        print(f"Content: {news['content']}")
+        print(f"URL: {news['url']}")
+        print(f"Source: {news['source']}")

@@ -438,3 +438,22 @@ def extract_content():
         return jsonify(result), 200
     except Exception as e:
         return jsonify({'response': f'An error occurred: {str(e)}', 'success': False}), 500
+    
+@articles_bp.route('/api/update/top-story/<int:article_id>', methods=['PUT'])
+def update_top_story(article_id):
+    try:
+        # Buscar el artículo en la tabla Article
+        article = db.session.query(Article).filter(Article.id == article_id).first()
+
+        if not article:
+            return jsonify({'message': 'No article found'}), 404
+        
+        # Cambiar la columna is_top_story a False
+        article.is_top_story = False
+        db.session.commit()
+
+        return jsonify({'message': 'Article updated to not be a top story'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'An error occurred updating the article: {str(e)}'}), 500

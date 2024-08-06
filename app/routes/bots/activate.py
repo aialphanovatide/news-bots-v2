@@ -32,7 +32,7 @@ def calculate_next_execution_time(bot_name, current_time):
     last_execution_time = jobs_sorted[-1].next_run_time if jobs_sorted else current_time
     
     # Schedule the job to run after the last job
-    next_execution_time = last_execution_time + timedelta(minutes=50)  # Adjust timedelta as needed
+    next_execution_time = last_execution_time + timedelta(minutes=30)  # Adjust timedelta as needed
 
     return next_execution_time
 
@@ -90,7 +90,7 @@ def activate_all_bots():
             return create_response(error='No categories found'), 404
 
         global_minutes = 10
-        interval_base = 23  # Adjust interval base as needed
+        interval_base = 13  # Adjust interval base as needed
 
         for category in categories:
             category_id = category.id
