@@ -90,7 +90,7 @@ def activate_all_bots():
             return create_response(error='No categories found'), 404
 
         global_minutes = 10
-        interval_base = 23  # Adjust interval base as needed
+        interval_base = 13  # Adjust interval base as needed
 
         for category in categories:
             category_id = category.id
