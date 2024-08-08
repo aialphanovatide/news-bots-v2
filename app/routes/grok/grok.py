@@ -162,13 +162,13 @@ async def get_response(page: Page) -> str:
     return "\n".join([await li.inner_text() for li in response_content])
 
 # Ejemplo de uso
-if __name__ == "__main__":
-    coin_name = "cake" 
-    news_array = asyncio.run(search_coin_news(coin_name))
-    print(f"\nTotal news items: {len(news_array)}")
-    for news in news_array:
-        print(f"\nID: {news['id']}")
-        print(f"Title: {news['title']}")
-        print(f"Content: {news['content']}")
-        print(f"URL: {news['url']}")
-        print(f"Source: {news['source']}")
+# if __name__ == "__main__":
+#     coin_name = "cake" 
+#     news_array = asyncio.run(search_coin_news(coin_name))
+#     print(f"\nTotal news items: {len(news_array)}")
+#     for news in news_array:
+#         print(f"\nID: {news['id']}")
+#         print(f"Title: {news['title']}")
+#         print(f"Content: {news['content']}")
+#         print(f"URL: {news['url']}")
+#         print(f"Source: {news['source']}")
