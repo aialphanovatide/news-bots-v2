@@ -147,7 +147,6 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
     print(f'[INFO] Fetching additional news from Grok for {bot_name.upper()}')
     grok_news = asyncio.run(fetch_grok_news(bot_name))
     
-    test = 'C071142J72R'
     for index, grok_item in enumerate(grok_news, 1):
         print(f'[INFO] Processing Grok news item {index}/{len(grok_news)}')
         article_info = validate_and_save_article(
@@ -156,7 +155,7 @@ def fetch_news_links(url: str, bot_name: str, blacklist: List[str], category_id:
             bot_id=bot_id,
             bot_name=bot_name,
             article_title=grok_item['title'],
-            category_slack_channel=test,
+            category_slack_channel=category_slack_channel,
             article_content=grok_item['content'],
         )
         
