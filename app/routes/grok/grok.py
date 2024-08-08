@@ -33,19 +33,35 @@ async def search_coin_news(coin_name: str) -> List[Dict[str, str]]:
         textarea = await page.query_selector("textarea[placeholder='Grok something']")
         today_date = datetime.datetime.now().strftime("%m/%d/%Y")
         yesterday_date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%m/%d/%Y")
-        # bot = db.session.query(Bot).filter_by(name=coin_name).first()
-        # if bot:
-        #     prompt = bot.grok_prompt
-        # else:
-        prompt = f"""
-                Write in a list style format Tweets from {yesterday_date} to {today_date} about ${coin_name.upper()}'s token/coin news in a list style format
-                For each tweet plase write more than 120 words, in the following format in a list style:
-                Title: 
-                Content: 
-                Published Date: mm/dd/yyyy
+        if coin_name == 'gold':
+            prompt = f"""
+                    Write in a list style format Tweets from {yesterday_date} to {today_date} about XAU/USD and GOLD news in a list style format
+                    For each tweet plase write more than 120 words, in the following format in a list style:
+                    Title: 
+                    Content: 
+                    Published Date: mm/dd/yyyy
+                    
+                    Ensure each Tweet item is unique and avoid repetition. Exclude any Tweet related to price analysis, price prediction, the price action or trading volume.
+                    """
+        elif coin_name == 'hacks':
+            prompt = f"""
+                    Write in a list style format Tweets from {yesterday_date} to {today_date} about crypto hacks news in a list style format
+                    For each tweet plase write more than 120 words, in the following format in a list style:
+                    Title: 
+                    Content: 
+                    Published Date: mm/dd/yyyy
                 
-                Ensure each Tweet item is unique and avoid repetition. Exclude any Tweet related to price analysis, price prediction, the price action or trading volume of ${coin_name.upper()}.
-                """
+                    """
+        else:
+            prompt = f"""
+                    Write in a list style format Tweets from {yesterday_date} to {today_date} about ${coin_name.upper()}'s token/coin news in a list style format
+                    For each tweet plase write more than 120 words, in the following format in a list style:
+                    Title: 
+                    Content: 
+                    Published Date: mm/dd/yyyy
+                    
+                    Ensure each Tweet item is unique and avoid repetition. Exclude any Tweet related to price analysis, price prediction, the price action or trading volume of ${coin_name.upper()}.
+                    """
         
         await textarea.fill(prompt)
         
@@ -162,13 +178,13 @@ async def get_response(page: Page) -> str:
     return "\n".join([await li.inner_text() for li in response_content])
 
 # Ejemplo de uso
-# if __name__ == "__main__":
-#     coin_name = "cake" 
-#     news_array = asyncio.run(search_coin_news(coin_name))
-#     print(f"\nTotal news items: {len(news_array)}")
-#     for news in news_array:
-#         print(f"\nID: {news['id']}")
-#         print(f"Title: {news['title']}")
-#         print(f"Content: {news['content']}")
-#         print(f"URL: {news['url']}")
-#         print(f"Source: {news['source']}")
+if __name__ == "__main__":
+    coin_name = "gold" 
+    news_array = asyncio.run(search_coin_news(coin_name))
+    print(f"\nTotal news items: {len(news_array)}")
+    for news in news_array:
+        print(f"\nID: {news['id']}")
+        print(f"Title: {news['title']}")
+        print(f"Content: {news['content']}")
+        print(f"URL: {news['url']}")
+        print(f"Source: {news['source']}")

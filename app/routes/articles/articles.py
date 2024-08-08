@@ -442,13 +442,11 @@ def extract_content():
 @articles_bp.route('/api/update/top-story/<int:article_id>', methods=['PUT'])
 def update_top_story(article_id):
     try:
-        # Buscar el artículo en la tabla Article
         article = db.session.query(Article).filter(Article.id == article_id).first()
 
         if not article:
             return jsonify({'message': 'No article found'}), 404
         
-        # Cambiar la columna is_top_story a False
         article.is_top_story = False
         db.session.commit()
 
