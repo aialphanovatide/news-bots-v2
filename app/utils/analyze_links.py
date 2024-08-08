@@ -94,7 +94,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
             for content in last_10_contents:
                 try:
                     similarity_score = cosine_similarity_with_openai_classification(content, article_content)
-                    if similarity_score >= 0.85:
+                    if similarity_score >= 0.9:
                         print(f"[INFO] Article too similar to recent articles: {news_link}")
                         unwanted_article = UnwantedArticle(
                             title=article_title,
