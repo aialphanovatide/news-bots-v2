@@ -24,7 +24,7 @@ def get_unwanted_articles_by_bot():
     """
     try:
         bot_id = request.args.get('bot_id')
-        limit = request.args.get('limit', default=20, type=int)
+        limit = request.args.get('limit', default=200, type=int)
 
         if limit < 1:
             response = create_response(error='Limit must be a positive integer')
