@@ -9,6 +9,7 @@ import boto3
 import pyperclip
 import requests
 from app.routes.routes_utils import create_response, handle_db_session
+from app.services.google_drive.g_drive import upload_file
 from app.services.perplexity.perplexity import perplexity_api_request
 from app.services.slack.actions import send_NEWS_message_to_slack_channel
 from app.utils.analyze_links import clean_text
@@ -16,6 +17,7 @@ from config import Article, Bot, Category, db
 from app.services.d3.dalle3 import generate_poster_prompt
 from sqlalchemy.exc import SQLAlchemyError
 from playwright.sync_api import sync_playwright
+from werkzeug.utils import secure_filename
 
 
 load_dotenv()
@@ -455,3 +457,46 @@ def update_top_story(article_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'An error occurred updating the article: {str(e)}'}), 500
+
+
+@articles_bp.route('/upload', methods=['POST'])
+def upload_file_to_drive():
+    """
+    Upload a file to Google Drive.
+
+    Expected Form Data:
+        folderName (str): The name of the folder in Google Drive where the file should be uploaded.
+        file (File): The file to be uploaded.
+        fileName (str): The name with which the file should be saved on Google Drive.
+
+    Returns:
+        JSON response indicating the success of the operation or an error message.
+    """
+    try:
+        folder_name = request.form.get('folderName')
+        file = request.files.get('file')
+        file_name = request.form.get('fileName')
+
+        if not folder_name or not file or not file_name:
+            response = create_response(success=False, error='Missing required data: folderName, file, and fileName are necessary')
+            return jsonify(response), 400
+
+        filename = secure_filename(file.filename)
+        temp_path = os.path.join('/tmp', filename)
+        file.save(temp_path)
+
+        try:
+            upload_file(folder_name, file_name, temp_path)
+        except Exception as e:
+            response = create_response(success=False, error=f'Failed to upload file to Google Drive: {str(e)}')
+            return jsonify(response), 500
+        finally:
+            os.remove(temp_path)
+
+        # Responder con éxito si todo ha salido bien
+        response = create_response(success=True, message='File uploaded successfully')
+        return jsonify(response), 200
+
+    except Exception as e:
+        response = create_response(success=False, error=f'An unexpected error occurred: {str(e)}')
+        return jsonify(response), 500
