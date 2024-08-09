@@ -150,7 +150,7 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
 
 
 # Deletes a message in Slack
-def delete_messages_in_channel(ts_messages_list, channel_id="C071142J72R"):
+def delete_messages_in_channel(ts_messages_list, channel_id="C05UB8G8B0F"):
     try:
         for message in ts_messages_list:
             response = client.chat_delete(
@@ -298,7 +298,7 @@ def send_WARNING_message_to_slack_channel(channel_id, title_message, sub_title, 
 #                                    ))
 
 # Example usage
-# ts_list = ['1715877213.683879']
+# ts_list = ['1723201177.023519']
 # delete_messages_in_channel(ts_messages_list=ts_list)
 
 
