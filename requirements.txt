@@ -20,3 +20,4 @@ flasgger
 Flask-APScheduler
 sklearn
 pyperclip
+google-api-python-client                     
