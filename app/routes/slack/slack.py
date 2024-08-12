@@ -98,6 +98,7 @@ def handle_block_actions(data):
 
         # Extract the URL from the message blocks
         url = extract_url_from_blocks(data['message']['blocks'])
+        print(url)
         url = clean_url(url)
         if not url:
             return {'success': False, 'error': 'No valid URL found in the slack message'}
