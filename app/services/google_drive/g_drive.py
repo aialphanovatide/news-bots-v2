@@ -44,7 +44,7 @@ def upload_file(folder_name, file_name, file_path):
     service = build('drive', 'v3', credentials=creds)
     
     # ID de la carpeta padre NewsCreatorFiles
-    parent_folder_id = '1dGoWDtM3QR-Yi8qEBroxesTDdF3E5sZW'
+    parent_folder_id = '1i5VknejUYO5_nppii8G6FTOqT-WIz2No'
     
     # Crea la carpeta dentro de NewsCreatorFiles si no existe
     folder_id = create_folder(service, folder_name, parent_folder_id)
