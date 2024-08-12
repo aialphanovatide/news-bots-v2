@@ -19,7 +19,7 @@ def get_usage():
         500: Internal server error.
     """
     try:
-        api_key = os.getenv('COINGECKO_APIKEY')
+        api_key = os.getenv('COINGECKO_API_KEY')
         usage_data = get_coingecko_usage(api_key)
         
         if 'error' in usage_data:

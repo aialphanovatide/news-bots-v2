@@ -3,7 +3,7 @@ from google.oauth2 import service_account
 from googleapiclient.http import MediaFileUpload
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
-SERVICE_ACCOUNT_FILE = '/Users/agustinbustamante/news-bots-v2/app/services/google_drive/animated-bay-419919-a83a8335f711.json'
+SERVICE_ACCOUNT_FILE = '/Users/amananand/Desktop/AI Alpha/news-bots-v2/app/services/google_drive/animated-bay-419919-a83a8335f711.json'
 
 def authenticate():
     creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
@@ -44,7 +44,7 @@ def upload_file(folder_name, file_name, file_path):
     service = build('drive', 'v3', credentials=creds)
     
     # ID de la carpeta padre NewsCreatorFiles
-    parent_folder_id = '1dGoWDtM3QR-Yi8qEBroxesTDdF3E5sZW'
+    parent_folder_id = '1i5VknejUYO5_nppii8G6FTOqT-WIz2No'
     
     # Crea la carpeta dentro de NewsCreatorFiles si no existe
     folder_id = create_folder(service, folder_name, parent_folder_id)
