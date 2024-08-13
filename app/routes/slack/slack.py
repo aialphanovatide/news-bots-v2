@@ -68,7 +68,6 @@ def clean_url(url):
         return url.replace('<', '').replace('>', '')
     return url
 
-
 def handle_block_actions(data):
     """
     Handles block actions received from Slack messages to modify articles in the database.
@@ -81,7 +80,6 @@ def handle_block_actions(data):
     """
     try:
         actions = data.get('actions', [])
-
         if not actions:
             return {'success': False, 'error': 'No actions found in the slack message'}
         
@@ -95,16 +93,23 @@ def handle_block_actions(data):
                 article_data['action_id'] = action_id
                 article_data['value'] = value
 
-
+        value = actions[0]['value']
+        grok_title = value.split('link_to_article: Grok AI -')[1].strip()
         # Extract the URL from the message blocks
         url = extract_url_from_blocks(data['message']['blocks'])
         print(url)
         url = clean_url(url)
-        if not url:
-            return {'success': False, 'error': 'No valid URL found in the slack message'}
+        pre_grok_fix = 'Grok AI - '
+        final_grok_url = f'{pre_grok_fix}{grok_title}'
 
-        # Find the article in the database using the extracted URL
-        existing_article = Article.query.filter_by(url=url).first()
+        # Find the article in the database using the extracted URL or Grok title
+        existing_article = None
+
+        if url:
+            existing_article = Article.query.filter_by(url=url).first()
+        if not existing_article:
+            existing_article = Article.query.filter_by(url=final_grok_url).first()
+
         if not existing_article:
             return {'success': False, 'error': 'Article not found in the database'}
 
