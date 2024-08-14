@@ -27,10 +27,10 @@ async def search_coin_news(coin_name: str) -> List[Dict[str, str]]:
         await page.goto("https://x.com/i/grok")
 
         # Wait for the textarea to be available
-        await page.wait_for_selector("textarea[placeholder='Grok something']")
+        textarea= await page.wait_for_selector("textarea[placeholder='Ask anything']")
         
         # Find the text input element
-        textarea = await page.query_selector("textarea[placeholder='Grok something']")
+        # textarea = await page.query_selector("textarea[placeholder='Grok something']")
         today_date = datetime.datetime.now().strftime("%m/%d/%Y")
         yesterday_date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%m/%d/%Y")
         if coin_name == 'gold':
