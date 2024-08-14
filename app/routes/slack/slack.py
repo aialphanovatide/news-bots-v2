@@ -35,12 +35,12 @@ def slack_events():
         response = handle_block_actions(data)
 
         if not response.get('success'):
-            send_WARNING_message_to_slack_channel(
-                channel_id=NEWS_BOT_ERRORS_SLACK_CHANNEL,
-                title_message='Error in Slack Action',
-                sub_title='Reason',
-                message=response.get('error', 'Unknown error occurred')
-            )
+            # send_WARNING_message_to_slack_channel(
+            #     channel_id=NEWS_BOT_ERRORS_SLACK_CHANNEL,
+            #     title_message='Error in Slack Action',
+            #     sub_title='Reason',
+            #     message=response.get('error', 'Unknown error occurred')
+            # )
             return jsonify(create_response(success=False, error=response.get('error'))), 400
 
         return jsonify(create_response(
@@ -92,14 +92,12 @@ def handle_block_actions(data):
             if action_id and value:
                 article_data['action_id'] = action_id
                 article_data['value'] = value
-
-        value = actions[0]['value']
-        grok_title = value.split('link_to_article: Grok AI -')[1].strip()
+    
         # Extract the URL from the message blocks
         url = extract_url_from_blocks(data['message']['blocks'])
+
         url = clean_url(url)
-        pre_grok_fix = 'Grok AI - '
-        final_grok_url = f'{pre_grok_fix}{grok_title}'
+
 
         # Find the article in the database using the extracted URL or Grok title
         existing_article = None
@@ -107,6 +105,10 @@ def handle_block_actions(data):
         if url:
             existing_article = Article.query.filter_by(url=url).first()
         if not existing_article:
+            value = actions[0]['value']
+            grok_title = value.split('link_to_article: Grok AI -')[1].strip()
+            pre_grok_fix = 'Grok AI - '
+            final_grok_url = f'{pre_grok_fix}{grok_title}'
             existing_article = Article.query.filter_by(url=final_grok_url).first()
 
         if not existing_article:
@@ -133,6 +135,7 @@ def handle_block_actions(data):
 
     except Exception as e:
         return {'success': False, 'error': f'Internal server error: {str(e)}'}
+    
 
 
 def extract_url_from_blocks(blocks):
@@ -146,27 +149,33 @@ def extract_url_from_blocks(blocks):
         str or None: Extracted URL or None if not found.
     """
     for block in blocks:
-        if block.get('type') == 'section' and 'fields' in block:
-            for field in block['fields']:
-                url = extract_url_from_text(field.get('text', ''))
+        if block.get('type') == 'section':
+            if 'fields' in block:
+                for field in block['fields']:
+                    url = extract_url_from_text(field.get('text', ''))
+                    if url:
+                        print(f"URL extracted: {url}") 
+                        return url
+            if 'text' in block:
+                url = extract_url_from_text(block['text'].get('text', ''))
                 if url:
                     return url
     return None
 
+
 def extract_url_from_text(text):
     """
     Extracts a URL from the given text using a regular expression.
-    
+
     Args:
         text (str): The text from which to extract the URL.
-    
+
     Returns:
         str or None: The extracted URL, or None if no URL is found.
     """
-    url_pattern = r'https?://[^\s"]+'  
+    # El patrón para buscar URLs
+    url_pattern = r'<(https?://[^\s]+)>'  
     match = re.search(url_pattern, text)
     if match:
-        return match.group(0)
+        return match.group(1)  # Retornamos solo la URL sin los corchetes
     return None
-
-
