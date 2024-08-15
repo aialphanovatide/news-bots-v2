@@ -95,6 +95,7 @@ def handle_block_actions(data):
     
         # Extract the URL from the message blocks
         url = extract_url_from_blocks(data['message']['blocks'])
+
         url = clean_url(url)
 
 
