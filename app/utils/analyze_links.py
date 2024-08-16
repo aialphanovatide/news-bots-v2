@@ -254,12 +254,12 @@ def validate_and_save_article(news_link, article_title, article_content, categor
             articles_saved += 1
   
             # Notify on Slack about the article
-            # send_NEWS_message_to_slack_channel(channel_id=category_slack_channel, 
-            #                                 title=new_article_title,
-            #                                 article_url=news_link,
-            #                                     content=final_summary, 
-            #                                     used_keywords=used_keywords, 
-            #                                     image=image_url)
+            send_NEWS_message_to_slack_channel(channel_id=category_slack_channel, 
+                                            title=new_article_title,
+                                            article_url=news_link,
+                                                content=final_summary, 
+                                                used_keywords=used_keywords, 
+                                                image=image_url)
 
             print(f"[SUCCESS] Article {new_article_title} validated and saved")
             return {
