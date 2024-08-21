@@ -27,12 +27,11 @@ def resolve_redirects_playwright(url: str) -> str:
             # Launch Chromium in non-headless mode
             browser = p.chromium.launch_persistent_context(user_data_dir, headless=True, slow_mo=2000)
             page = browser.new_page()
-            page.goto(url, wait_until='networkidle')
+            page.goto(url)
             time.sleep(7)
 
             # Get the final URL
             final_url = page.url
-
             browser.close()
             return final_url
 
@@ -78,3 +77,7 @@ def measure_execution_time(func):
         print(f"Execution time for {func.__name__}: {execution_time} seconds")
         return result
     return wrapper
+
+
+
+

@@ -1,10 +1,11 @@
 from flask import Blueprint, jsonify, request
 from config import Blacklist, Category, Bot, Site, db
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.utils.index import fetch_news_links
 from scheduler_config import scheduler
 from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response, handle_db_session
+from apscheduler.triggers.date import DateTrigger
 
 activate_bots_bp = Blueprint(
     'activate_bots_bp', __name__,
@@ -12,7 +13,29 @@ activate_bots_bp = Blueprint(
     static_folder='static'
 )
 
-# Function to be scheduled
+def calculate_next_execution_time(bot_name, current_time):
+    """
+    Calculate the next execution time for a job based on the current time and the next job.
+    
+    Args:
+        bot_name (str): The name of the bot/job.
+        current_time (datetime): The current time.
+    
+    Returns:
+        datetime: The calculated next execution time.
+    """
+    jobs = scheduler.get_jobs()
+    # Sort jobs by their next execution time
+    jobs_sorted = sorted(jobs, key=lambda job: job.next_run_time if job.next_run_time else current_time)
+    
+    # Find the last execution time among all jobs
+    last_execution_time = jobs_sorted[-1].next_run_time if jobs_sorted else current_time
+    
+    # Schedule the job to run after the last job
+    next_execution_time = last_execution_time + timedelta(minutes=30)  # Adjust timedelta as needed
+
+    return next_execution_time
+
 def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, category_slack_channel):
     with scheduler.app.app_context():
         fetch_news_links(
@@ -23,10 +46,26 @@ def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, catego
             bot_id=bot_id,
             category_slack_channel=category_slack_channel
         )
+        
         try:
+            # Fetch current time for re-scheduling
+            now = datetime.now()
+            # Calculate new execution time
+            new_execution_time = calculate_next_execution_time(bot_name, now)
+            print("next time to run: ", bot_name,"Time: ",new_execution_time )
+            scheduler.add_job(
+                id=bot_name,
+                func=scheduled_job,
+                name=bot_name,
+                replace_existing=True,
+                args=[bot_site, bot_name, bot_blacklist, category_id, bot_id, category_slack_channel],
+                trigger=DateTrigger(run_date=new_execution_time)  # Schedule with a specific time
+            )
+
+            # Update category
             category = Category.query.filter_by(id=category_id).first()
             if category:
-                category.updated_at = datetime.now()
+                category.updated_at = now
                 db.session.commit()
                 print(f'{category_id} updated successfully')
             else:
@@ -51,7 +90,7 @@ def activate_all_bots():
             return create_response(error='No categories found'), 404
 
         global_minutes = 10
-        interval_base = 23  # Changed to 23 min to keep intervals between bots activation
+        interval_base = 13  # Adjust interval base as needed
 
         for category in categories:
             category_id = category.id
@@ -60,6 +99,9 @@ def activate_all_bots():
             bots = Bot.query.filter_by(category_id=category_id).all()
             if not bots:
                 continue
+
+            # Initialize last execution time
+            last_execution_time = datetime.now()
 
             for bot in bots:
                 site = Site.query.filter_by(bot_id=bot.id).first()
@@ -71,19 +113,23 @@ def activate_all_bots():
                 bot_id = bot.id
                 bot_name = bot.name
 
-                # Ensure a unique interval for each bot
-                minutes = global_minutes
+                # Calculate next execution time based on the last execution time
+                next_execution_time = last_execution_time + timedelta(minutes=global_minutes)
+                
+                # Add the job with DateTrigger
                 scheduler.add_job(
                     id=str(bot_name),
                     func=scheduled_job,
                     name=bot_name,
                     replace_existing=True,
                     args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category_slack_channel],
-                    trigger='interval',
-                    minutes=minutes
+                    trigger=DateTrigger(run_date=next_execution_time)
                 )
 
-                # Increment global minutes for next bot
+                # Update the last execution time
+                last_execution_time = next_execution_time
+
+                # Increment global minutes for the next bot
                 global_minutes += interval_base
 
                 category.is_active = True
@@ -129,6 +175,9 @@ def activate_bots_by_category():
         bots = Bot.query.filter_by(category_id=category.id).all()
         interval_base = 20  # Base interval in minutes
 
+        # Initialize last execution time
+        last_execution_time = datetime.now()
+
         for index, bot in enumerate(bots):
             site = Site.query.filter_by(bot_id=bot.id).first()
             if not site or not site.url:
@@ -139,7 +188,8 @@ def activate_bots_by_category():
             bot_id = bot.id
             bot_name = bot.name
 
-            minutes = category_interval + 20 * index
+            minutes = category_interval + interval_base * index
+            next_execution_time = last_execution_time + timedelta(minutes=minutes)
 
             scheduler.add_job(
                 id=str(bot_name),
@@ -147,10 +197,12 @@ def activate_bots_by_category():
                 name=bot_name,
                 replace_existing=True,
                 args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category_slack_channel],
-                trigger='interval',
-                minutes=minutes
+                trigger=DateTrigger(run_date=next_execution_time)
             )
             
+            # Update the last execution time
+            last_execution_time = next_execution_time
+
         category.is_active = True
         db.session.commit()
 
@@ -162,8 +214,6 @@ def activate_bots_by_category():
 
     except Exception as e:
         return create_response(error=f"Error activating bots for category '{category_name}': {e}"), 500
-
-
 
 
 @activate_bots_bp.route('/jobs', methods=['GET'])
