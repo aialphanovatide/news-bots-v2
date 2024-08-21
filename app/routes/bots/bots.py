@@ -59,7 +59,7 @@ def get_complete_bots():
 
 @bots_bp.route('/create_bot', methods=['POST'])
 @handle_db_session
-async def create_bot():
+def create_bot():
     """
     Create and schedule a new news bot.
     Args (JSON):

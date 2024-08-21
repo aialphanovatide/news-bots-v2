@@ -28,7 +28,7 @@ def resolve_redirects_playwright(url: str) -> str:
             browser = p.chromium.launch_persistent_context(user_data_dir, headless=True, slow_mo=2000)
             page = browser.new_page()
             page.goto(url)
-            time.sleep(7)
+            time.sleep(12)
 
             # Get the final URL
             final_url = page.url

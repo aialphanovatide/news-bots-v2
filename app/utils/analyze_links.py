@@ -60,7 +60,6 @@ def validate_yahoo_date(html: BeautifulSoup) -> bool:
             print(f"Error parsing date: {e}")
     return False 
 
-
 def validate_and_save_article(news_link, article_title, article_content, category_id, bot_id, bot_name, category_slack_channel):
     print(f"\n[INFO] Validating and saving article: {news_link}")
 
@@ -131,25 +130,46 @@ def validate_and_save_article(news_link, article_title, article_content, categor
             used_blacklist_keywords = [bl_keyword for bl_keyword in bot_bl_keyword_names if bl_keyword.lower() in article_content.lower()]
         
             if not used_keywords or used_blacklist_keywords:
-                print(f"[INFO] Article did not match any keyword or contains blacklist keyword: {news_link}")
-                unwanted_article = UnwantedArticle(
-                    title=article_title,
-                    content=raw_article_content,
-                    url=news_link,
-                    date=datetime.now(),
-                    reason='article did not match any keyword or contains blacklist keyword',
-                    bot_id=bot_id,
-                    created_at=datetime.now(),
-                    updated_at=datetime.now()
-                )
-                db.session.add(unwanted_article)
-                db.session.commit()
-                unwanted_articles_saved += 1
-                return {
-                    'error': f"article {article_title} didn't match any keyword or contains blacklist keyword",
-                    'articles_saved': articles_saved,
-                    'unwanted_articles_saved': unwanted_articles_saved
-                }
+                if not used_keywords:
+                    print(f"[INFO] Article did not match any keywords, link: {news_link}")
+                    unwanted_article = UnwantedArticle(
+                        title=article_title,
+                        content=raw_article_content,
+                        url=news_link,
+                        date=datetime.now(),
+                        reason='article did not match any keyword',
+                        bot_id=bot_id,
+                        created_at=datetime.now(),
+                        updated_at=datetime.now()
+                    )
+                    db.session.add(unwanted_article)
+                    db.session.commit()
+                    unwanted_articles_saved += 1
+                    return {
+                        'error': f"article {article_title} didn't match any keyword",
+                        'articles_saved': articles_saved,
+                        'unwanted_articles_saved': unwanted_articles_saved
+                    }
+                elif used_blacklist_keywords:
+                    print(f"[INFO] Article contains blacklist keyword, link: {news_link}")
+                    unwanted_article = UnwantedArticle(
+                        title=article_title,
+                        content=raw_article_content,
+                        url=news_link,
+                        date=datetime.now(),
+                        reason='article contains blacklist keyword',
+                        bot_id=bot_id,
+                        created_at=datetime.now(),
+                        updated_at=datetime.now()
+                    )
+                    db.session.add(unwanted_article)
+                    db.session.commit()
+                    unwanted_articles_saved += 1
+                    return {
+                        'error': f"article {article_title} contains blacklist keyword",
+                        'articles_saved': articles_saved,
+                        'unwanted_articles_saved': unwanted_articles_saved
+                    }
 
             # Perform perplexity summary on the article
             perplexity_result = article_perplexity_remaker(content=article_content, category_id=category_id)
@@ -233,7 +253,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
             db.session.commit()
             articles_saved += 1
   
-                # Notify on Slack about the article
+            # Notify on Slack about the article
             send_NEWS_message_to_slack_channel(channel_id=category_slack_channel, 
                                             title=new_article_title,
                                             article_url=news_link,
@@ -255,6 +275,7 @@ def validate_and_save_article(news_link, article_title, article_content, categor
             'articles_saved': articles_saved,
             'unwanted_articles_saved': unwanted_articles_saved
         }
+
 
 def fetch_article_content(news_link: str, category_id: int, title: str, bot_id: int, bot_name: str, category_slack_channel) -> Dict[str, Any]:
     print(f"\n[INFO] Fetching article content for: {news_link}")
