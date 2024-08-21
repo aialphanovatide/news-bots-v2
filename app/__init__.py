@@ -17,7 +17,8 @@ from app.routes.used_keywords.u_k import news_bots_features_bp
 from app.routes.top_stories.top_stories import top_stories_bp
 from app.routes.unwanted_articles.unwanted_article import unwanted_articles_bp
 from app.routes.news.news import website_news_bp
-from app.routes.coingeko.coingeko_usage import coingeko_bp
+from app.routes.coingeko.coingeko_usage import coingecko_bp
+from app.routes.perplexity.perplexity_usage import perplexity_bp
 from app.routes.openai.openai_usage import openai_bp
 from data import initialize_categories, initialize_fixed_data, initialize_keywords, initialize_sites_data
 
@@ -61,6 +62,7 @@ def create_app():
     app.register_blueprint(activate_bots_bp)
     app.register_blueprint(news_bots_features_bp)
     app.register_blueprint(website_news_bp)
-    app.register_blueprint(coingeko_bp)
+    app.register_blueprint(coingecko_bp)
     app.register_blueprint(openai_bp)
+    app.register_blueprint(perplexity_bp)
     return app

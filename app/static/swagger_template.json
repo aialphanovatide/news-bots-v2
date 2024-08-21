@@ -1709,7 +1709,62 @@
           }
         }
       }
-    }
+    },
+    "/coingecko/usage": {
+      "get": {
+          "summary": "Retrieve the API usage details from the CoinGecko Pro API",
+          "tags": ["API Monitor"],
+          "responses": {
+              "200": {
+                  "description": "Successful response",
+                  "content": {
+                      "application/json": {
+                          "schema": {
+                              "type": "object",
+                              "properties": {
+                                  "success": {
+                                      "type": "boolean"
+                                  },
+                                  "data": {
+                                      "type": "object",
+                                      "properties": {
+                                          "usage_limit": {
+                                              "type": "integer"
+                                          },
+                                          "usage_count": {
+                                              "type": "integer"
+                                          }
+                                      }
+                                  },
+                                  "error": {
+                                      "type": "string"
+                                  }
+                              }
+                          }
+                      }
+                  }
+              },
+              "500": {
+                  "description": "Internal server error",
+                  "content": {
+                      "application/json": {
+                          "schema": {
+                              "type": "object",
+                              "properties": {
+                                  "success": {
+                                      "type": "boolean"
+                                  },
+                                  "error": {
+                                      "type": "string"
+                                  }
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+      }
+  }
   },
   "components": {
     "schemas": {

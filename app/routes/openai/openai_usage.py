@@ -9,12 +9,12 @@ load_dotenv()
 
 openai_bp = Blueprint('openai_bp', __name__)
 
+
 @openai_bp.route('/api/openai-usage', methods=['GET'])
 @handle_db_session
 def get_usage():
     """
     Retrieve API usage details from OpenAI.
-    
     Response:
         200: Usage details retrieved successfully.
         500: Internal server error.
