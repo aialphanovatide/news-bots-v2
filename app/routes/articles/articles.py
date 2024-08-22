@@ -12,6 +12,7 @@ from app.routes.routes_utils import create_response, handle_db_session
 from app.services.google_drive.g_drive import upload_file
 from app.services.perplexity.perplexity import perplexity_api_request
 from app.services.slack.actions import send_NEWS_message_to_slack_channel
+from app.utils.analyze_links import clean_text
 from config import Article, Bot, Category, db
 from app.services.d3.dalle3 import generate_poster_prompt
 from sqlalchemy.exc import SQLAlchemyError
@@ -30,26 +31,6 @@ root_dir = os.path.abspath(os.path.dirname(__file__))
 user_data_dir = os.path.join(root_dir, 'tmp/playwright')
 os.makedirs(user_data_dir, exist_ok=True)
 
-
-
-def clean_text(text: str) -> str:
-    """
-    Cleans up the given text by removing certain patterns.
-
-    Args:
-        text (str): The text to clean.
-
-    Returns:
-        str: The cleaned text.
-    """
-    # Remove specific patterns from the text
-    text = re.sub(r'Headline:\n', '', text)
-    text = re.sub(r'Summary:\n', '', text)
-    text = re.sub(r'Summary:', '', text)
-    text = re.sub(r'\*\*', '', text, flags=re.MULTILINE)
-    text = re.sub(r'\*\*\s*\*\*', '', text, flags=re.MULTILINE)
-    text = re.sub(r'\#\#\#', '', text, flags=re.MULTILINE)
-    return text
 
 @articles_bp.route('/get_all_articles', methods=['GET'])
 @handle_db_session
