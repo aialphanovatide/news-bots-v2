@@ -58,10 +58,15 @@ def create_category():
         if existing_category:
             return jsonify(create_response(error=f'Category {data["name"]} already exists')), 400
 
-        # Upload the image to S3
+        # Handle the SVG image file
         if 'image' in request.files:
             image_file = request.files['image']
-            image_filename = f'{data["alias"]}.png'
+            
+            if not image_file.filename.lower().endswith('.svg'):
+                return jsonify(create_response(error='Only SVG files are allowed')), 400
+            
+            # Upload the SVG file to S3
+            image_filename = f'{data["alias"]}.svg'
             s3.upload_fileobj(image_file, 'aialphaicons', image_filename)
             image_url = f'https://aialphaicons.s3.amazonaws.com/{image_filename}'
         else:
@@ -76,7 +81,7 @@ def create_category():
             time_interval=data.get('time_interval', 3),
             is_active=data.get('is_active', False),
             border_color=data.get('border_color', None),
-            icon=image_url,
+            icon=image_url,  # URL of the SVG file in S3
             created_at=datetime.now(),
         )
 
@@ -92,6 +97,7 @@ def create_category():
 
     except Exception as e:
         return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
+
 
 
 @categories_bp.route('/categories/<int:category_id>', methods=['DELETE'])

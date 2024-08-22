@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
+from app.news_bot.index import NewsBot
 from config import Blacklist, Category, Bot, Site, db
 from datetime import datetime, timedelta
-from app.utils.index import fetch_news_links
 from scheduler_config import scheduler
 from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response, handle_db_session
@@ -38,22 +38,28 @@ def calculate_next_execution_time(bot_name, current_time):
     return next_execution_time
 
 def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, category_slack_channel):
-    with scheduler.app.app_context():
-        fetch_news_links(
-            url=bot_site,
-            bot_name=bot_name,
-            blacklist=bot_blacklist,
-            category_id=category_id,
+    try:
+        bot_instance = NewsBot(
             bot_id=bot_id,
-            category_slack_channel=category_slack_channel
+            bot_name=bot_name,
+            db_session=db.session
         )
         
-        try:
+        with scheduler.app.app_context():
+            bot_instance.fetch_news_links(
+                url=bot_site,
+                bot_name=bot_name,
+                blacklist=bot_blacklist,
+                category_id=category_id,
+                bot_id=bot_id,
+                category_slack_channel=category_slack_channel
+            )
+            
             # Fetch current time for re-scheduling
             now = datetime.now()
             # Calculate new execution time
             new_execution_time = calculate_next_execution_time(bot_name, now)
-            print("next time to run: ", bot_name,"Time: ",new_execution_time )
+            print("next time to run: ", bot_name, "Time: ", new_execution_time)
             scheduler.add_job(
                 id=bot_name,
                 func=scheduled_job,
@@ -71,8 +77,8 @@ def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, catego
                 print(f'{category_id} updated successfully')
             else:
                 print(f'Category {category_id} not found in the database')
-        except Exception as e:
-            print(f'Error updating {category_id}: {str(e)}')
+    except Exception as e:
+        print(f'Error updating {category_id}: {str(e)}')
 
 @activate_bots_bp.route('/activate_all_categories', methods=['POST'])
 @handle_db_session
