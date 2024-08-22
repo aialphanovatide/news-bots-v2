@@ -2,10 +2,10 @@ import re
 from datetime import datetime
 from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import SQLAlchemyError
+from app.news_bot.index import NewsBot
 from app.utils.helpers import measure_execution_time
 from scheduler_config import scheduler
 from config import Blacklist, Bot, Keyword, Site, db, Category
-from app.utils.index import fetch_news_links
 from app.routes.routes_utils import create_response, handle_db_session
 
 bots_bp = Blueprint(
@@ -26,8 +26,14 @@ def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, catego
         bot_id (int): ID of the bot.
         category_slack_channel (str): Slack channel for category notifications.
     """
+    
+    bot_instance = NewsBot(
+            bot_id=bot_id,
+            bot_name=bot_name,
+            db_session=db.session
+        )
     with scheduler.app.app_context():
-        fetch_news_links(
+        bot_instance.fetch_news_links(
             url=bot_site,
             bot_name=bot_name,
             blacklist=bot_blacklist,

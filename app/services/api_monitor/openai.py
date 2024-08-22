@@ -1,6 +1,12 @@
-import requests
-import datetime
+import os
 import time
+import requests
+from dotenv import load_dotenv
+from datetime import datetime, timedelta
+
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 
 def get_openai_usage(api_key):
     """
@@ -77,3 +83,95 @@ def get_openai_usage(api_key):
         "total_images_dalle3": total_images_dalle3,
         "total_cost_dalle3": total_cost_dalle3
     }
+
+
+
+# ____________________ Working version by David 21/08/2024 _________________________
+
+
+
+def group_data(data, prices):
+    usage_by_snapshot = {}
+
+    if "data" in data:
+        for item in data["data"]:
+            snapshot_id = item["snapshot_id"]
+            if snapshot_id not in usage_by_snapshot:
+                usage_by_snapshot[snapshot_id] = {
+                    "operation": item["operation"],
+                    "n_requests": 0,
+                    "n_context_tokens_total": 0,
+                    "n_generated_tokens_total": 0,
+                    "cost_context_plus_generated": 0
+                }
+
+            usage_by_snapshot[snapshot_id]["n_requests"] += item["n_requests"]
+            usage_by_snapshot[snapshot_id]["n_context_tokens_total"] += item["n_context_tokens_total"]
+            usage_by_snapshot[snapshot_id]["n_generated_tokens_total"] += item["n_generated_tokens_total"]
+
+
+    if "dalle_api_data" in data:
+        for item in data["dalle_api_data"]:
+            model_id = item["model_id"]
+            if model_id not in usage_by_snapshot:
+                usage_by_snapshot[model_id] = {
+                    "operation": item["operation"],
+                    "num_requests": 0,
+                    "num_images": 0,
+                    "cost": 0
+                }
+            
+            usage_by_snapshot[model_id]["num_requests"] += item["num_requests"]
+            usage_by_snapshot[model_id]["num_images"] += item["num_images"]
+
+
+    return usage_by_snapshot
+
+def openai_usage_endpoint(days_ago=30):
+    url = "https://api.openai.com/v1/usage"
+    
+    # Calculate date range
+    end_date = datetime.now().date()
+    start_date = end_date - timedelta(days=days_ago)
+    
+    params = {
+        "date": end_date.isoformat()
+    }
+    
+    headers = {
+        "Authorization": f"Bearer {OPENAI_API_KEY}"
+    }
+
+    # Define cost per token/image for each model
+    prices = {
+        "gpt-4o-2024-05-13_input": 0.005,  # per 1K tokens
+        "gpt-4o-2024-05-13_output": 0.015,  # per 1K tokens
+        "gpt-4-0613_input": 0.03,  # per 1K tokens
+        "gpt-4-0613_output": 0.06,  # per 1K tokens
+        "text-embedding-ada-002-v2": 0.0001,  # per 1K tokens
+        "dall-e-3": 0.080  # per image
+    }
+   
+    try:
+        response = requests.get(url, params=params, headers=headers)
+        
+        if response.status_code == 200:
+            usage_data = response.json()
+            grouped_data = group_data(usage_data, prices)
+
+            # Uncomment when you want to see the raw data from OpenAI
+            # with open("openai-usage-raw.json", "w") as f:
+            #     json.dump(usage_data, f, indent=2)
+            # print("API request successful. Grouped usage data saved to openai-usage.json")
+            
+            return grouped_data
+        else:
+            print(f"API request failed with status code: {response.status_code}")
+            print(f"Error message: {response.text}")
+            return None
+    
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
+        return None
+
+

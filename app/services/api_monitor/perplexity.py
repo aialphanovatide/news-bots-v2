@@ -4,7 +4,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def get_perplexity_usage():
+PERPLEXITY_API_KEY = os.getenv('PERPLEXITY_API_KEY')
+
+def get_perplexity_api_usage():
     """
     Retrieves API credit usage details from the Perplexity API.
 
@@ -12,25 +14,19 @@ def get_perplexity_usage():
         dict: A dictionary containing the usage details if successful, 
               or an error message if the request fails.
     """
-    api_key = os.getenv('PERPLEXITY_API_KEY')
-    if not api_key:
-        return {"error": "API key not found in environment variables"}
 
     url = "https://api.perplexity.ai/v1/credits/usage"
     headers = {
-        'Authorization': f'Bearer {api_key}',
+        'Authorization': f'Bearer {PERPLEXITY_API_KEY}',
         'Content-Type': 'application/json'
     }
-    
-    session = requests.Session()
-    session.headers.update(headers)
-    
+
     try:
-        response = session.get(url, timeout=10)
+        response = requests.get(url, timeout=10, headers=headers)
         response.raise_for_status()
 
         if response.headers.get('Content-Type') == 'application/json':
-            return response.json()
+            return {"data": response.json()}
         else:
             return {"error": "Unexpected content type"}
     except requests.exceptions.HTTPError as errh:
@@ -43,6 +39,3 @@ def get_perplexity_usage():
         return {"error": f"Request Error: {err}"}
     
     
-
-uso_creditos = get_perplexity_usage()
-print(uso_creditos)

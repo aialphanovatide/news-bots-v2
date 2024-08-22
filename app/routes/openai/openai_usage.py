@@ -9,6 +9,7 @@ load_dotenv()
 
 openai_bp = Blueprint('openai_bp', __name__)
 
+
 @openai_bp.route('/api/openai-usage', methods=['GET'])
 @handle_db_session
 def get_usage():

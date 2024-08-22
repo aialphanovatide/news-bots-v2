@@ -1,11 +1,12 @@
 from flask import Blueprint, jsonify, request
+from app.news_bot.index import NewsBot
 from config import Blacklist, Category, Bot, Site, db
 from datetime import datetime, timedelta
-from app.utils.index import fetch_news_links
 from scheduler_config import scheduler
 from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response, handle_db_session
 from apscheduler.triggers.date import DateTrigger
+from concurrent.futures import ThreadPoolExecutor
 
 activate_bots_bp = Blueprint(
     'activate_bots_bp', __name__,
@@ -37,22 +38,28 @@ def calculate_next_execution_time(bot_name, current_time):
     return next_execution_time
 
 def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, category_slack_channel):
-    with scheduler.app.app_context():
-        fetch_news_links(
-            url=bot_site,
-            bot_name=bot_name,
-            blacklist=bot_blacklist,
-            category_id=category_id,
+    try:
+        bot_instance = NewsBot(
             bot_id=bot_id,
-            category_slack_channel=category_slack_channel
+            bot_name=bot_name,
+            db_session=db.session
         )
         
-        try:
+        with scheduler.app.app_context():
+            bot_instance.fetch_news_links(
+                url=bot_site,
+                bot_name=bot_name,
+                blacklist=bot_blacklist,
+                category_id=category_id,
+                bot_id=bot_id,
+                category_slack_channel=category_slack_channel
+            )
+            
             # Fetch current time for re-scheduling
             now = datetime.now()
             # Calculate new execution time
             new_execution_time = calculate_next_execution_time(bot_name, now)
-            print("next time to run: ", bot_name,"Time: ",new_execution_time )
+            print("next time to run: ", bot_name, "Time: ", new_execution_time)
             scheduler.add_job(
                 id=bot_name,
                 func=scheduled_job,
@@ -70,8 +77,8 @@ def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, catego
                 print(f'{category_id} updated successfully')
             else:
                 print(f'Category {category_id} not found in the database')
-        except Exception as e:
-            print(f'Error updating {category_id}: {str(e)}')
+    except Exception as e:
+        print(f'Error updating {category_id}: {str(e)}')
 
 @activate_bots_bp.route('/activate_all_categories', methods=['POST'])
 @handle_db_session
@@ -89,61 +96,71 @@ def activate_all_bots():
         if not categories:
             return create_response(error='No categories found'), 404
 
-        global_minutes = 5
-        interval_base = 5  # Adjust interval base as needed
+        global_minutes = 1
+        interval_base = 4  # Adjust interval base as needed
 
-        for category in categories:
-            category_id = category.id
-            category_slack_channel = category.slack_channel
+        # Initialize ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = []
 
-            bots = Bot.query.filter_by(category_id=category_id).all()
-            if not bots:
-                continue
+            for category in categories:
+                category_id = category.id
+                category_slack_channel = category.slack_channel
 
-            # Initialize last execution time
-            last_execution_time = datetime.now()
-
-            for bot in bots:
-                site = Site.query.filter_by(bot_id=bot.id).first()
-                if not site or not site.url:
+                bots = Bot.query.filter_by(category_id=category_id).all()
+                if not bots:
                     continue
 
-                bot_site = site.url
-                bot_blacklist = [bl.name for bl in Blacklist.query.filter_by(bot_id=bot.id).all()]
-                bot_id = bot.id
-                bot_name = bot.name
+                # Initialize last execution time
+                last_execution_time = datetime.now()
 
-                # Calculate next execution time based on the last execution time
-                next_execution_time = last_execution_time + timedelta(minutes=global_minutes)
-                
-                # Add the job with DateTrigger
-                scheduler.add_job(
-                    id=str(bot_name),
-                    func=scheduled_job,
-                    name=bot_name,
-                    replace_existing=True,
-                    args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category_slack_channel],
-                    trigger=DateTrigger(run_date=next_execution_time)
-                )
+                for bot in bots:
+                    site = Site.query.filter_by(bot_id=bot.id).first()
+                    if not site or not site.url:
+                        continue
 
-                # Update the last execution time
-                last_execution_time = next_execution_time
+                    bot_site = site.url
+                    bot_blacklist = [bl.name for bl in Blacklist.query.filter_by(bot_id=bot.id).all()]
+                    bot_id = bot.id
+                    bot_name = bot.name
 
-                # Increment global minutes for the next bot
-                global_minutes += interval_base
+                    # Calculate next execution time based on the last execution time
+                    next_execution_time = last_execution_time + timedelta(minutes=global_minutes)
 
+                    # Submit the job to the executor
+                    future = executor.submit(
+                        scheduler.add_job,
+                        id=str(bot_name),
+                        func=scheduled_job,
+                        name=bot_name,
+                        replace_existing=True,
+                        args=[bot_site, bot_name, bot_blacklist, category_id, bot_id, category_slack_channel],
+                        trigger=DateTrigger(run_date=next_execution_time)
+                    )
+                    futures.append(future)
+
+                    # Update the last execution time
+                    last_execution_time = next_execution_time
+
+                    # Increment global minutes for the next bot
+                    global_minutes += interval_base
+
+                # Mark category as active
                 category.is_active = True
                 db.session.commit()
 
+            # Wait for all futures to complete
+            for future in futures:
+                future.result()  # Wait for the job to finish
+
         return create_response(success=True, message='All categories activated'), 200
-    
+
     except SQLAlchemyError as e:
         db.session.rollback()
         return create_response(error=f'Database error: {str(e)}'), 500
 
     except Exception as e:
         return create_response(error=f"Error activating all bots: {e}"), 500
-
 
 @activate_bots_bp.route('/activate_category', methods=['POST'])
 @handle_db_session
@@ -178,36 +195,48 @@ def activate_bots_by_category():
         # Initialize last execution time
         last_execution_time = datetime.now()
 
-        for index, bot in enumerate(bots):
-            site = Site.query.filter_by(bot_id=bot.id).first()
-            if not site or not site.url:
-                continue
+        # Initialize ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = []
 
-            bot_site = site.url
-            bot_blacklist = [bl.name for bl in Blacklist.query.filter_by(bot_id=bot.id).all()]
-            bot_id = bot.id
-            bot_name = bot.name
+            for index, bot in enumerate(bots):
+                site = Site.query.filter_by(bot_id=bot.id).first()
+                if not site or not site.url:
+                    continue
 
-            minutes = category_interval + interval_base * index
-            next_execution_time = last_execution_time + timedelta(minutes=minutes)
+                bot_site = site.url
+                bot_blacklist = [bl.name for bl in Blacklist.query.filter_by(bot_id=bot.id).all()]
+                bot_id = bot.id
+                bot_name = bot.name
 
-            scheduler.add_job(
-                id=str(bot_name),
-                func=scheduled_job,
-                name=bot_name,
-                replace_existing=True,
-                args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category_slack_channel],
-                trigger=DateTrigger(run_date=next_execution_time)
-            )
-            
-            # Update the last execution time
-            last_execution_time = next_execution_time
+                minutes = category_interval + interval_base * index
+                next_execution_time = last_execution_time + timedelta(minutes=minutes)
 
+                # Submit the job to the executor
+                future = executor.submit(
+                    scheduler.add_job,
+                    id=str(bot_name),
+                    func=scheduled_job,
+                    name=bot_name,
+                    replace_existing=True,
+                    args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category_slack_channel],
+                    trigger=DateTrigger(run_date=next_execution_time)
+                )
+                futures.append(future)
+
+                # Update the last execution time
+                last_execution_time = next_execution_time
+
+            # Wait for all futures to complete
+            for future in futures:
+                future.result()  # Wait for the job to finish
+
+        # Mark category as active
         category.is_active = True
         db.session.commit()
 
         return create_response(success=True, message=f'{category_name} category was activated successfully'), 200
-    
+
     except SQLAlchemyError as e:
         db.session.rollback()
         return create_response(error=f'Database error: {str(e)}'), 500
