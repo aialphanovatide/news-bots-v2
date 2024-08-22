@@ -96,7 +96,7 @@ def activate_all_bots():
         if not categories:
             return create_response(error='No categories found'), 404
 
-        global_minutes = 1
+        global_minutes = 6
         interval_base = 4  # Adjust interval base as needed
 
         # Initialize ThreadPoolExecutor
@@ -134,7 +134,7 @@ def activate_all_bots():
                         func=scheduled_job,
                         name=bot_name,
                         replace_existing=True,
-                        args=[bot_site, bot_name, bot_blacklist, category_id, bot_id, category_slack_channel],
+                        args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category_slack_channel],
                         trigger=DateTrigger(run_date=next_execution_time)
                     )
                     futures.append(future)
