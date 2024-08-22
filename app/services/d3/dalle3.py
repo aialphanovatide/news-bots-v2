@@ -1,3 +1,14 @@
+
+    
+#     # postfinalprompt = bot.dalle_prompt
+
+#     if 1 <= bot_id <= 39:
+#         postfinalprompt = 'depicting an anime style.'
+#     else:
+#         postfinalprompt = 'Generate realistic, photograph-style images, using natural lighting and a professional color palette to convey credibility and authority.'
+
+    
+
 import os
 import json
 import boto3
@@ -22,6 +33,7 @@ client = OpenAI(
 
 
 def generate_poster_prompt(article, bot_id):
+    
     prompt = f'Generate a DALL-E prompt related to this {article}. It should be 400 characters or less and avoid specific names focused on abstract image without mention letters, numbers or words.'
     api_url = 'https://api.openai.com/v1/images/generations'
     
@@ -33,16 +45,20 @@ def generate_poster_prompt(article, bot_id):
         max_tokens=1024,
     )
 
-    if not poster_response_prompt or not poster_response_prompt.choices:
+    if not poster_response_prompt:
         return {'error': 'No poster prompt given', 'success': False}
     
     final_prompt = poster_response_prompt.choices[0].message.content[:450]
-
+    
     bot_record = Bot.query.filter_by(id=bot_id).first()
+    
+    
     if bot_record:
         postfinalprompt = bot_record.dalle_prompt
     else:
         postfinalprompt = 'Generate realistic, photograph-style images, using natural lighting and a professional color palette to convey credibility and authority.'
+
+    print("Final post prompt: ", postfinalprompt)
 
     headers = {
         'Content-Type': 'application/json',
@@ -56,6 +72,7 @@ def generate_poster_prompt(article, bot_id):
     }
     
     response = requests.post(api_url, headers=headers, data=json.dumps(data))
+
     if response.status_code == 200:
         result = response.json()
         image_url = result['data'][0]['url']
@@ -64,11 +81,11 @@ def generate_poster_prompt(article, bot_id):
         return {'error': response.text, 'success': False}
 
 
-
 # Resize the image and uploads to two different Buckets, one for the MKT sites and other for the App
-def resize_and_upload_image_to_s3(image_url, bucket_name, image_filename, target_size=(512, 512)):
+def resize_and_upload_image_to_s3(image_data, bucket_name, image_filename, target_size=(512, 512)):
     try:
-        response = requests.get(image_url)
+        response = requests.get(image_data)
+
         if response.status_code != 200:
             return {'error': response.text, 'success': False}
         
@@ -99,6 +116,9 @@ def resize_and_upload_image_to_s3(image_url, bucket_name, image_filename, target
     
     except Exception as e:
         return {'error': f'Error while uploading Image to AWS: {str(e)}', 'success': False}
+    
+
+
 
 
 # print(generate_poster_prompt(bot_id=1,article="""
