@@ -183,14 +183,15 @@ def validate_and_save_article(news_link, article_title, article_content, categor
 
             new_article_summary = perplexity_result['response']
             final_summary = clean_text(new_article_summary)
+            # Dividir el final_summary en líneas
+            lines = final_summary.splitlines()
 
-            # Extract title from perplexity results, if present
-            title_match = re.search(r"\*\*(.*?)\*\*", final_summary)
-            new_article_title = article_title
-            if title_match:
-                new_article_title = title_match.group(1)
-                final_summary = re.sub(r"\*\*.*?\*\*", "", final_summary, count=1).strip()
-
+            # La primera línea será el título
+            if lines:
+                new_article_title = lines[0].strip() 
+                final_summary = "\n".join(lines[1:]).strip()  
+            else:
+                new_article_title = article_title 
             # Check if the Content has already been analyzed
             old_unwanted_article = UnwantedArticle.query.filter_by(bot_id=bot_id, title=new_article_title).first()
             old_article = Article.query.filter_by(bot_id=bot_id, title=new_article_title).first()
