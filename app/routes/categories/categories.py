@@ -5,7 +5,6 @@ import json
 import os
 from flask import Blueprint, jsonify, request
 import requests
-from app.utils.helpers import measure_execution_time
 from config import Article, Blacklist, Bot, Category, Keyword, Site, UnwantedArticle, UsedKeywords, db
 from dotenv import load_dotenv
 import boto3
@@ -19,7 +18,7 @@ load_dotenv()
 SERVER_LINK = os.getenv('SERVER_LINK')
 load_dotenv()
 
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+OPENAI_APIKEY = os.getenv('OPENAI_APIKEY')
 AWS_ACCESS = os.getenv('AWS_ACCESS')
 AWS_SECRET_KEY = os.getenv('AWS_SECRET_KEY')
 
@@ -37,13 +36,12 @@ s3 = boto3.client(
 )
 
 @categories_bp.route('/add_new_category', methods=['POST'])
-@measure_execution_time
 @handle_db_session
 def create_category():
     """
     Create a new category.
     Data:
-        Form data with 'name' (str), 'alias' (str), 'prompt' (str), 'time_interval' (int),
+        Form data with 'name' (str), 'alias' (str), 'prompt' (str),
         'slack_channel' (str), optional 'is_active' (bool), 'border_color' (str), and an optional image file.
     Response:
         201: Category created successfully.
@@ -59,7 +57,6 @@ def create_category():
         if missing_fields:
             return jsonify(create_response(error=f'Missing required fields: {", ".join(missing_fields)}')), 400
 
-        # Check if the category already exists
         existing_category = Category.query.filter_by(name=str(data['name']).casefold()).first()
         if existing_category:
             return jsonify(create_response(error=f'Category {data["name"]} already exists')), 400
@@ -109,7 +106,6 @@ def create_category():
         return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
 
 @categories_bp.route('/categories/<int:category_id>', methods=['DELETE'])
-@measure_execution_time
 @handle_db_session
 def delete_category(category_id):
     """
@@ -160,7 +156,6 @@ def delete_category(category_id):
 
 
 @categories_bp.route('/categories', methods=['GET'])
-@measure_execution_time
 @handle_db_session
 def get_categories():
     """
@@ -216,7 +211,6 @@ def get_categories():
         return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
 
 @categories_bp.route('/get_all_bots', methods=['GET'])
-@measure_execution_time
 @handle_db_session
 def get_bots():
     """
@@ -250,7 +244,6 @@ def get_bots():
 
 
 @categories_bp.route('/update_category/<int:category_id>', methods=['PUT'])
-@measure_execution_time
 @handle_db_session
 def update_category(category_id):
     """

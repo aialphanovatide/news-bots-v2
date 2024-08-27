@@ -6,9 +6,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+OPENAI_APIKEY = os.getenv('OPENAI_APIKEY')
 
-api_key = OPENAI_API_KEY
+api_key = OPENAI_APIKEY
 
 
 def cosine_similarity_modified(content_1, content_2):
@@ -60,5 +60,4 @@ def cosine_similarity_with_openai_classification(content_1, content_2):
     except Exception as e:
         print(f"Exception occurred: {str(e)}")
         return None  # Devuelve None en caso de excepción
-
 

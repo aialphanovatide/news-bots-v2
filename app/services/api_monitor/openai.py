@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
 load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_APIKEY = os.getenv("OPENAI_APIKEY")
 
 
 def get_openai_usage(api_key):
@@ -139,7 +139,7 @@ def openai_usage_endpoint(days_ago=30):
     }
     
     headers = {
-        "Authorization": f"Bearer {OPENAI_API_KEY}"
+        "Authorization": f"Bearer {OPENAI_APIKEY}"
     }
 
     # Define cost per token/image for each model

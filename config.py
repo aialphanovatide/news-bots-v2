@@ -21,7 +21,6 @@ class Category(db.Model):
     name = db.Column(db.String)
     alias = db.Column(db.String)
     slack_channel = db.Column(db.String)
-    time_interval = db.Column(db.Integer)  
     icon = db.Column(db.String) 
     prompt = db.Column(db.String)
     is_active = db.Column(db.Boolean)

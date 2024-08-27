@@ -23,12 +23,12 @@ from config import Bot
 
 load_dotenv()
 
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+OPENAI_APIKEY = os.getenv('OPENAI_APIKEY')
 AWS_ACCESS = os.getenv('AWS_ACCESS')
 AWS_SECRET_KEY = os.getenv('AWS_SECRET_KEY')
 
 client = OpenAI(
-    api_key=OPENAI_API_KEY,
+    api_key=OPENAI_APIKEY,
 )
 
 
@@ -62,7 +62,7 @@ def generate_poster_prompt(article, bot_id):
 
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': f'Bearer {OPENAI_API_KEY}'
+        'Authorization': f'Bearer {OPENAI_APIKEY}'
     }
     data = {
         "model": "dall-e-3",

@@ -20,7 +20,7 @@ def get_usage():
         500: Internal server error.
     """
     try:
-        api_key = os.getenv('OPENAI_API_KEY')
+        api_key = os.getenv('OPENAI_APIKEY')
         usage_data = get_openai_usage(api_key)
         
         if 'error' in usage_data:

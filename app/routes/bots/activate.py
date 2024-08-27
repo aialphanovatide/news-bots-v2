@@ -178,7 +178,6 @@ def activate_bots_by_category():
         if not category:
             return create_response(error='Category not found'), 404
 
-        category_interval = category.time_interval
         category_slack_channel = category.slack_channel
         if category.is_active:
             return create_response(success=True, message=f"{category_name} category is already active"), 200
@@ -203,7 +202,7 @@ def activate_bots_by_category():
                 bot_id = bot.id
                 bot_name = bot.name
 
-                minutes = category_interval + interval_base * index
+                minutes = 50 + interval_base * index
                 next_execution_time = last_execution_time + timedelta(minutes=minutes)
 
                 # Submit the job to the executor
