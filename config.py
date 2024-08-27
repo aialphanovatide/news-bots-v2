@@ -16,23 +16,20 @@ db_uri = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
 class Category(db.Model):
     __tablename__ = 'category'
-
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String)
     alias = db.Column(db.String)
     slack_channel = db.Column(db.String)
-    icon = db.Column(db.String) 
+    icon = db.Column(db.String)
     prompt = db.Column(db.String)
     is_active = db.Column(db.Boolean)
     border_color = db.Column(db.String)
     updated_at = db.Column(db.TIMESTAMP)
     created_at = db.Column(db.TIMESTAMP)
-
     bots = db.relationship("Bot", backref="category", cascade="all, delete-orphan")
 
     def as_dict(self):
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
-
 
 class Bot(db.Model):
     __tablename__ = 'bot'

@@ -102,11 +102,11 @@ def delete_category(category_id):
     """
     Delete a single category by its ID and all related entries.
     Args:
-        category_id (int): ID of the category to delete.
+    category_id (int): ID of the category to delete.
     Response:
-        200: Category and related entries deleted successfully.
-        404: Category not found.
-        500: Internal server error or database error.
+    200: Category and related entries deleted successfully.
+    404: Category not found.
+    500: Internal server error or database error.
     """
     try:
         # Fetch the category to delete
@@ -114,22 +114,7 @@ def delete_category(category_id):
         if not category:
             return jsonify(create_response(error=f'Category with ID {category_id} not found')), 404
 
-        # Collect bot IDs associated with the category
-        bot_ids = [bot.id for bot in category.bots]
-
-        # Delete related entries in other tables if any bots exist
-        if bot_ids:
-            Site.query.filter(Site.bot_id.in_(bot_ids)).delete(synchronize_session=False)
-            Keyword.query.filter(Keyword.bot_id.in_(bot_ids)).delete(synchronize_session=False)
-            Blacklist.query.filter(Blacklist.bot_id.in_(bot_ids)).delete(synchronize_session=False)
-            Article.query.filter(Article.bot_id.in_(bot_ids)).delete(synchronize_session=False)
-            UnwantedArticle.query.filter(UnwantedArticle.bot_id.in_(bot_ids)).delete(synchronize_session=False)
-            UsedKeywords.query.filter(UsedKeywords.bot_id.in_(bot_ids)).delete(synchronize_session=False)
-
-            # Delete the bots themselves
-            Bot.query.filter(Bot.id.in_(bot_ids)).delete(synchronize_session=False)
-
-        # Finally, delete the category
+        # Delete the category (this will trigger cascading deletes)
         db.session.delete(category)
 
         # Commit the transaction
@@ -140,10 +125,8 @@ def delete_category(category_id):
     except SQLAlchemyError as e:
         db.session.rollback()
         return jsonify(create_response(error=f'Database error: {str(e)}')), 500
-
     except Exception as e:
         return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
-
 
 @categories_bp.route('/categories', methods=['GET'])
 @handle_db_session
@@ -185,6 +168,8 @@ def get_categories():
         return jsonify(create_response(error=f'Database error: {str(e)}')), 500
     except Exception as e:
         return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
+    
+    
 @categories_bp.route('/get_all_bots', methods=['GET'])
 @handle_db_session
 def get_bots():
