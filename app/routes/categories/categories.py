@@ -3,6 +3,7 @@
 from datetime import datetime
 import json
 import os
+from scheduler_config import scheduler
 from flask import Blueprint, jsonify, request
 import requests
 from app.routes.categories.utils import get_s3_url, upload_file_to_s3
@@ -202,7 +203,6 @@ def get_bots():
         return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
 
 
-
 @categories_bp.route('/update_category/<int:category_id>', methods=['PUT'])
 @handle_db_session
 def update_category(category_id):
@@ -211,28 +211,23 @@ def update_category(category_id):
     Args:
         category_id (int): ID of the category to update.
     Data:
-        JSON with optional fields to update (name, alias, prompt, slack_channel, icon, time_interval, is_active, border_color).
+        JSON with optional fields to update (name, alias, prompt, slack_channel, icon, is_active, border_color).
     Response:
         200: Category updated successfully.
-        400: Invalid request data or missing fields.
         404: Category not found.
         500: Internal server error or database error.
     """
     try:
         data = request.get_json()
-
-        # Fetch the category to update
         category = Category.query.get(category_id)
         if not category:
             return jsonify(create_response(error=f'Category with ID {category_id} not found')), 404
 
-        # Deactivate the category by calling the external route
-        response = requests.post(
-            f'{SERVER_LINK}/deactivate_category',
-            json={'category_name': category.name}
+        # Check if critical fields are being updated
+        needs_reschedule = any(
+            data.get(field) != getattr(category, field)
+            for field in ['name', 'alias', 'prompt']
         )
-        if response.status_code != 200:
-            return jsonify(create_response(error=f'Failed to deactivate category: {response.json().get("error")}')), 500
 
         # Update category fields
         for key, value in data.items():
@@ -242,19 +237,22 @@ def update_category(category_id):
         # Commit the changes to the category
         db.session.commit()
 
-        # Reactivate the category by calling the external route
-        response = requests.post(
-            f'{SERVER_LINK}/activate_category',
-            json={'category_name': category.name}
-        )
-        if response.status_code != 200:
-            return jsonify(create_response(error=f'Failed to activate category: {response.json().get("error")}')), 500
+        # If critical fields were updated, reschedule all bots in the category
+        if needs_reschedule:
+            bots = Bot.query.filter_by(category_id=category_id).all()
+            for bot in bots:
+                job = scheduler.get_job(bot.name)
+                if job:
+                    # Assuming the job is scheduled with a cron trigger and you want to keep the same schedule
+                    job.reschedule(trigger='cron', **job.trigger.fields)
+                    print(f"Rescheduled job for bot: {bot.name}")
+                else:
+                    print(f"No job found for bot: {bot.name}")
 
         return jsonify(create_response(success=True, data=category.as_dict())), 200
 
     except SQLAlchemyError as e:
         db.session.rollback()
         return jsonify(create_response(error=f'Database error: {str(e)}')), 500
-
     except Exception as e:
         return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
