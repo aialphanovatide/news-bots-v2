@@ -154,62 +154,46 @@ def delete_category(category_id):
         return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
 
 
-
 @categories_bp.route('/categories', methods=['GET'])
 @handle_db_session
 def get_categories():
     """
     Get all available categories along with their associated bots and bot details.
     Response:
-        200: Successfully retrieved categories with their bots.
-        404: No categories found.
-        500: Internal server error or database error.
+    200: Successfully retrieved categories with their bots.
+    404: No categories found.
+    500: Internal server error or database error.
     """
     try:
-        # Cargar todas las categorías con sus bots relacionados
         categories = Category.query.options(db.joinedload(Category.bots)).all()
-
+        
         if not categories:
             return jsonify(create_response(error='No categories found')), 404
-
-        categories_with_bots = [
-            {
-                'id': category.id,
-                'name': category.name,
-                'alias': category.alias,
-                'prompt': category.prompt,
-                'slack_channel': category.slack_channel,
-                'icon': category.icon,
-                'time_interval': category.time_interval,
-                'is_active': category.is_active,
-                'border_color': category.border_color,
-                'updated_at': category.updated_at,
-                'created_at': category.created_at,
-                'bots': [
-                    {
-                        'id': bot.id,
-                        'name': bot.name,
-                        'dalle_prompt': bot.dalle_prompt,
-                        'created_at': bot.created_at,
-                        'updated_at': bot.updated_at,
-                        'sites': [site.as_dict() for site in bot.sites],
-                        'keywords': [keyword.as_dict() for keyword in bot.keywords],
-                        'blacklist': [blacklist.as_dict() for blacklist in bot.blacklist],
-                        'articles': [article.as_dict() for article in bot.articles],
-                        'unwanted_articles': [unwanted_article.as_dict() for unwanted_article in bot.unwanted_articles],
-                    } for bot in category.bots
-                ]
-            } for category in categories
-        ]
+        
+        categories_with_bots = []
+        for category in categories:
+            category_dict = category.as_dict()
+            category_dict['bots'] = [bot.as_dict() for bot in category.bots]
+            
+            # Agregar detalles adicionales de los bots que no están en as_dict()
+            for bot_dict, bot in zip(category_dict['bots'], category.bots):
+                bot_dict.update({
+                    'sites': [site.as_dict() for site in bot.sites],
+                    'keywords': [keyword.as_dict() for keyword in bot.keywords],
+                    'blacklist': [blacklist.as_dict() for blacklist in bot.blacklist],
+                    'articles': [article.as_dict() for article in bot.articles],
+                    'unwanted_articles': [unwanted_article.as_dict() for unwanted_article in bot.unwanted_articles],
+                })
+            
+            categories_with_bots.append(category_dict)
+        
         return jsonify(create_response(success=True, data={'categories': categories_with_bots})), 200
-
+    
     except SQLAlchemyError as e:
         db.session.rollback()
         return jsonify(create_response(error=f'Database error: {str(e)}')), 500
-
     except Exception as e:
         return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
-
 @categories_bp.route('/get_all_bots', methods=['GET'])
 @handle_db_session
 def get_bots():
