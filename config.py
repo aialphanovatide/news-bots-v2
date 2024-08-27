@@ -93,8 +93,7 @@ class Blacklist(db.Model):
     # relationship
     bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'))
     created_at = db.Column(db.TIMESTAMP)
-    updated_at = db.Column(db.TIMESTAMP)
-
+    updated_at = db.Column(db.TIMESTAMP, default=datetime.now)
     def as_dict(self):
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
@@ -132,8 +131,7 @@ class Article(db.Model):
     # relationship
     bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'))
     created_at = db.Column(db.TIMESTAMP)
-    updated_at = db.Column(db.TIMESTAMP)
-
+    updated_at = db.Column(db.TIMESTAMP, default=datetime.now)
 
     def as_dict(self):
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
@@ -150,7 +148,7 @@ class UnwantedArticle(db.Model):
     # relationship
     bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'))
     created_at = db.Column(db.TIMESTAMP)
-    updated_at = db.Column(db.TIMESTAMP)
+    updated_at = db.Column(db.TIMESTAMP, default=datetime.now)
 
     def as_dict(self):
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
@@ -168,6 +166,6 @@ class UsedKeywords(db.Model):
     article_id = db.Column(db.Integer, db.ForeignKey('article.id'))
     bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'))
     created_at = db.Column(db.TIMESTAMP, default=datetime.now)
-
+    updated_at = db.Column(db.TIMESTAMP, default=datetime.now)
     def as_dict(self):
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
