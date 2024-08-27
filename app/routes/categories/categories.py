@@ -249,57 +249,7 @@ def get_bots():
 
 
 
-@categories_bp.route('/update_category/<int:category_id>', methods=['PATCH'])
-@measure_execution_time
-@handle_db_session
-def update_category(category_id):
-    """
-    Update an existing category by ID.
-    Args:
-        category_id (int): ID of the category to update.
-    Data:
-        JSON with optional fields to update (name, alias, prompt, slack_channel, icon, time_interval, is_active, border_color).
-    Response:
-        200: Category updated successfully.
-        400: Invalid request data or missing fields.
-        404: Category not found.
-        500: Internal server error or database error.
-    """
-    try:
-        data = request.get_json()
-
-        # Fetch the category to update
-        category = Category.query.get(category_id)
-        if not category:
-            return jsonify(create_response(error=f'Category with ID {category_id} not found')), 404
-
-        # Update category fields
-        for key, value in data.items():
-            if hasattr(category, key):
-                setattr(category, key, value)
-
-        # Re-schedule all bots if 'prompt' is updated
-        if 'prompt' in data:
-            for bot in category.bots:
-                # Implement rescheduling logic here
-                # For example: bot.schedule_prompt_update()
-                pass
-
-        # Commit the update
-        db.session.commit()
-
-        return jsonify(create_response(success=True, data=category.as_dict())), 200
-
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        return jsonify(create_response(error=f'Database error: {str(e)}')), 500
-
-    except Exception as e:
-        return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
-
-
-
-@categories_bp.route('/update_category/<int:category_id>', methods=['PATCH'])
+@categories_bp.route('/update_category/<int:category_id>', methods=['PUT'])
 @measure_execution_time
 @handle_db_session
 def update_category(category_id):

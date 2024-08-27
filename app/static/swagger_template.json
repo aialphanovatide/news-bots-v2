@@ -657,394 +657,560 @@
         }
       }
     },
-    "/categories": {
-      "get": {
-        "summary": "Get all available categories",
-        "tags": ["Category"],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "data": {
-                  "type": "object",
-                  "properties": {
-                    "categories": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "time_interval": {
-                            "type": "integer"
-                          },
-                          "is_active": {
-                            "type": "boolean"
+      "/add_new_category": {
+        "post": {
+          "summary": "Create a new category",
+          "tags": ["Category"],
+          "parameters": [
+            {
+              "name": "data",
+              "in": "formData",
+              "required": true,
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "alias": {
+                    "type": "string"
+                  },
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "time_interval": {
+                    "type": "integer",
+                    "default": 3
+                  },
+                  "slack_channel": {
+                    "type": "string"
+                  },
+                  "is_active": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "border_color": {
+                    "type": "string"
+                  },
+                  "image": {
+                    "type": "file",
+                    "description": "Optional image file"
+                  }
+                },
+                "required": ["name", "alias", "prompt", "time_interval", "slack_channel"]
+              }
+            }
+          ],
+          "responses": {
+            "201": {
+              "description": "Category created successfully",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "alias": {
+                        "type": "string"
+                      },
+                      "prompt": {
+                        "type": "string"
+                      },
+                      "time_interval": {
+                        "type": "integer"
+                      },
+                      "is_active": {
+                        "type": "boolean"
+                      },
+                      "border_color": {
+                        "type": "string"
+                      },
+                      "icon": {
+                        "type": "string"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Bad request",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "error": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Internal server error",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "error": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/categories/{category_id}": {
+        "delete": {
+          "summary": "Delete a category by ID",
+          "tags": ["Category"],
+          "parameters": [
+            {
+              "name": "category_id",
+              "in": "path",
+              "description": "ID of the category to delete",
+              "required": true,
+              "type": "integer"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Category deleted successfully",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "type": "object",
+                    "properties": {
+                      "deleted_id": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "Category not found",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "error": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Internal server error",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "error": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/categories": {
+        "get": {
+          "summary": "Get all available categories",
+          "tags": ["Category"],
+          "responses": {
+            "200": {
+              "description": "Successfully retrieved categories with their bots",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "type": "object",
+                    "properties": {
+                      "categories": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "alias": {
+                              "type": "string"
+                            },
+                            "prompt": {
+                              "type": "string"
+                            },
+                            "slack_channel": {
+                              "type": "string"
+                            },
+                            "icon": {
+                              "type": "string"
+                            },
+                            "time_interval": {
+                              "type": "integer"
+                            },
+                            "is_active": {
+                              "type": "boolean"
+                            },
+                            "border_color": {
+                              "type": "string"
+                            },
+                            "updated_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "created_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "bots": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "integer"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "dalle_prompt": {
+                                    "type": "string"
+                                  },
+                                  "created_at": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  },
+                                  "updated_at": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  },
+                                  "sites": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "site_property_1": {
+                                          "type": "string"
+                                        },
+                                        "site_property_2": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "keywords": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "keyword_property_1": {
+                                          "type": "string"
+                                        },
+                                        "keyword_property_2": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "blacklist": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "blacklist_property_1": {
+                                          "type": "string"
+                                        },
+                                        "blacklist_property_2": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "articles": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "article_property_1": {
+                                          "type": "string"
+                                        },
+                                        "article_property_2": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "unwanted_articles": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "unwanted_article_property_1": {
+                                          "type": "string"
+                                        },
+                                        "unwanted_article_property_2": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
                           }
                         }
                       }
                     }
                   }
-                },
-                "success": {
-                  "type": "boolean"
-                },
-                "error": {
-                  "type": "string"
+                }
+              }
+            },
+            "404": {
+              "description": "No categories found",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "error": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Internal server error",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "error": {
+                    "type": "string"
+                  }
                 }
               }
             }
-          },
-          "404": {
-            "description": "No categories found"
-          },
-          "500": {
-            "description": "Internal Server Error"
           }
         }
-      }
-    },
-    "/activate_all_categories": {
-      "post": {
-        "summary": "Activate all categories",
-        "tags": ["Category"],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "data": {
-                  "type": "null"
-                },
-                "success": {
-                  "type": "boolean"
-                },
-                "message": {
-                  "type": "string"
-                },
-                "error": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No categories found"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    },  
-    "/activate_category": {
-      "post": {
-        "summary": "Activate a single category",
-        "tags": ["Category"],
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "category_name": {
-                  "type": "string"
-                }
-              },
-              "required": ["category_name"]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "data": {
-                  "type": "null"
-                },
-                "success": {
-                  "type": "boolean"
-                },
-                "message": {
-                  "type": "string"
-                },
-                "error": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request"
-          },
-          "404": {
-            "description": "Category not found"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    }, 
-    "/deactivate_all_categories": {
-      "post": {
-        "summary": "Deactivate all categories",
-        "tags": ["Category"],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "data": {
-                  "type": "null"
-                },
-                "success": {
-                  "type": "boolean"
-                },
-                "message": {
-                  "type": "string"
-                },
-                "error": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No categories found"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    },    
-    "/deactivate_category": {
-      "post": {
-        "summary": "Deactivate a single category",
-        "tags": ["Category"],
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "category_name": {
-                  "type": "string"
-                }
-              },
-              "required": ["category_name"]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "data": {
-                  "type": "null"
-                },
-                "success": {
-                  "type": "boolean"
-                },
-                "message": {
-                  "type": "string"
-                },
-                "error": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request"
-          },
-          "404": {
-            "description": "Category not found"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    },         
-    "/add_new_category": {
-      "post": {
-        "summary": "Create a new category",
-        "tags": ["Category"],
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "alias": {
-                  "type": "string"
-                },
-                "prompt": {
-                  "type": "string"
-                },
-                "time_interval": {
-                  "type": "integer",
-                  "default": 3
-                },
-                "slack_channel": {
-                  "type": "string"
-                },
-                "border_color": {
-                  "type": "string"
-                },
-                "icon": {
-                  "type": "string"
-                },
-                "is_active": {
-                  "type": "boolean",
-                  "default": false
-                }
-              },
-              "required": ["name", "alias", "prompt", "time_interval", "slack_channel"]
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Category created successfully",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "data": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "alias": {
-                      "type": "string"
-                    },
-                    "prompt": {
-                      "type": "string"
-                    },
-                    "time_interval": {
-                      "type": "integer"
-                    },
-                    "is_active": {
-                      "type": "boolean"
-                    },
-                    "border_color": {
-                      "type": "string"
-                    },
-                    "icon": {
-                      "type": "string"
-                    },
-                    "created_at": {
-                      "type": "string",
-                      "format": "date-time"
+      },
+      "/get_all_bots": {
+        "get": {
+          "summary": "Get all bots",
+          "tags": ["Category"],
+          "responses": {
+            "200": {
+              "description": "Successfully retrieved bots",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "type": "object",
+                    "properties": {
+                      "bots": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "category": {
+                              "type": "string"
+                            },
+                            "isActive": {
+                              "type": "boolean"
+                            },
+                            "alias": {
+                              "type": "string"
+                            },
+                            "icon": {
+                              "type": "string"
+                            },
+                            "updated_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "color": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
                     }
                   }
-                },
-                "success": {
-                  "type": "boolean"
-                },
-                "error": {
-                  "type": "string"
                 }
               }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": {
-                  "type": "string"
+            },
+            "500": {
+              "description": "Internal server error",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "error": {
+                    "type": "string"
+                  }
                 }
               }
             }
           }
         }
-      }
-    },
-    "/categories/{category_id}": {
-      "delete": {
-        "summary": "Delete a category by ID",
-        "tags": ["Category"],
-        "parameters": [
-          {
-            "name": "category_id",
-            "in": "path",
-            "description": "ID of the category to delete",
-            "required": true,
-            "type": "integer"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Category deleted successfully",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "data": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer"
+      },
+      "/update_category/{category_id}": {
+        "put": {
+          "summary": "Update a category by ID",
+          "tags": ["Category"],
+          "parameters": [
+            {
+              "name": "category_id",
+              "in": "path",
+              "description": "ID of the category to update",
+              "required": true,
+              "type": "integer"
+            },
+            {
+              "name": "body",
+              "in": "body",
+              "description": "Data for updating the category",
+              "required": true,
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "alias": {
+                    "type": "string"
+                  },
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "slack_channel": {
+                    "type": "string"
+                  },
+                  "time_interval": {
+                    "type": "integer"
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  },
+                  "border_color": {
+                    "type": "string"
+                  },
+                  "icon": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Category updated successfully",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "alias": {
+                        "type": "string"
+                      },
+                      "prompt": {
+                        "type": "string"
+                      },
+                      "slack_channel": {
+                        "type": "string"
+                      },
+                      "icon": {
+                        "type": "string"
+                      },
+                      "time_interval": {
+                        "type": "integer"
+                      },
+                      "is_active": {
+                        "type": "boolean"
+                      },
+                      "border_color": {
+                        "type": "string"
+                      },
+                      "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
                     }
                   }
-                },
-                "success": {
-                  "type": "boolean"
-                },
-                "error": {
-                  "type": "string"
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid request data or missing fields",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "error": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "Category not found",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "error": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Internal server error",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "error": {
+                    "type": "string"
+                  }
                 }
               }
             }
-          },
-          "404": {
-            "description": "Category not found"
-          },
-          "500": {
-            "description": "Internal Server Error"
           }
         }
-      }
-    },    
+      },
     "/jobs": {
       "get": {
         "summary": "List all scheduled jobs",
