@@ -5,6 +5,7 @@ import json
 import os
 from flask import Blueprint, jsonify, request
 import requests
+from app.routes.categories.utils import get_s3_url, upload_file_to_s3
 from config import Article, Blacklist, Bot, Category, Keyword, Site, UnwantedArticle, UsedKeywords, db
 from dotenv import load_dotenv
 import boto3
@@ -34,23 +35,21 @@ s3 = boto3.client(
     aws_access_key_id=AWS_ACCESS,
     aws_secret_access_key=AWS_SECRET_KEY
 )
-
 @categories_bp.route('/add_new_category', methods=['POST'])
 @handle_db_session
 def create_category():
     """
     Create a new category.
     Data:
-        Form data with 'name' (str), 'alias' (str), 'prompt' (str),
-        'slack_channel' (str), optional 'is_active' (bool), 'border_color' (str), and an optional image file.
+    Form data with 'name' (str), 'alias' (str), 'prompt' (str),
+    'slack_channel' (str), optional 'is_active' (bool), 'border_color' (str), and an optional image file.
     Response:
-        201: Category created successfully.
-        400: Missing required fields or invalid request.
-        500: Internal server error or database error.
+    201: Category created successfully.
+    400: Missing required fields or invalid request.
+    500: Internal server error or database error.
     """
     try:
         data = json.loads(request.form.get('data'))
-
         # Input validation for required fields
         required_fields = ['name', 'alias', 'prompt', 'time_interval', 'slack_channel']
         missing_fields = [field for field in required_fields if field not in data]
@@ -62,22 +61,17 @@ def create_category():
             return jsonify(create_response(error=f'Category {data["name"]} already exists')), 400
 
         # Upload the image to S3
+        image_url = None
         if 'image' in request.files:
             image_file = request.files['image']
             image_filename = f'{data["alias"]}.svg'
-            # Subir el archivo a S3 con el Content-Type correcto
-            s3.upload_fileobj(
-                image_file, 
-                'aialphaicons', 
+            if upload_file_to_s3(
+                image_file,
+                'aialphaicons',
                 image_filename,
-                ExtraArgs={
-                    "ContentType": "image/svg+xml" 
-                }
-            )
-
-            image_url = f'https://aialphaicons.s3.amazonaws.com/{image_filename}'
-        else:
-            image_url = None
+                extra_args={"ContentType": "image/svg+xml"}
+            ):
+                image_url = get_s3_url('aialphaicons', image_filename)
 
         # Create a new category
         new_category = Category(
@@ -85,23 +79,20 @@ def create_category():
             alias=data['alias'],
             slack_channel=data['slack_channel'],
             prompt=data.get('prompt', ''),
-            time_interval=data.get('time_interval', 3),
             is_active=data.get('is_active', False),
             border_color=data.get('border_color', None),
             icon=image_url,
             created_at=datetime.now(),
         )
-
         db.session.add(new_category)
         db.session.commit()
 
         # Prepare the response with only necessary data
-        return jsonify(create_response(success=True, data=new_category.as_dict())), 200
+        return jsonify(create_response(success=True, data=new_category.as_dict())), 201
 
     except SQLAlchemyError as e:
         db.session.rollback()
         return jsonify(create_response(error=f'Database error: {str(e)}')), 500
-
     except Exception as e:
         return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
 
