@@ -5,6 +5,7 @@ import json
 import os
 from flask import Blueprint, jsonify, request
 import requests
+from app.routes.bots.activate import scheduled_job
 from app.utils.helpers import measure_execution_time
 from config import Article, Blacklist, Bot, Category, Keyword, Site, UnwantedArticle, UsedKeywords, db
 from dotenv import load_dotenv
@@ -13,6 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response, handle_db_session
 from dotenv import load_dotenv
 import os
+from scheduler_config import scheduler
 
 load_dotenv()
 
@@ -355,3 +357,91 @@ def update_category(category_id):
 
     except Exception as e:
         return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
+    
+    
+    
+
+@categories_bp.route('/categories/<int:category_id>/toggle-active', methods=['PATCH'])
+@handle_db_session
+def toggle_category_active(category_id):
+    """
+    Activate or deactivate all bots within the specified category.
+    Args:
+        category_id (int): The ID of the category to toggle.
+    Response:
+        200: Operation completed successfully with a summary.
+        404: Category not found.
+        500: Internal server error.
+    """
+    try:
+        category = Category.query.get(category_id)
+        if not category:
+            return jsonify(create_response(error='Category not found')), 404
+
+        bots = Bot.query.filter_by(category_id=category_id).all()
+        if not bots:
+            return jsonify(create_response(success=True, message='No bots found in this category')), 200
+
+        activation_success = 0
+        activation_failures = 0
+        failed_bot_ids = []
+
+        if category.is_active:
+            # Deactivation process
+            for bot in bots:
+                if bot.is_active:
+                    try:
+                        job = scheduler.get_job(id=str(bot.id))
+                        if job:
+                            scheduler.remove_job(id=str(bot.id))
+                        
+                        bot.is_active = False
+                        db.session.commit()
+                        activation_success += 1
+                    except Exception as e:
+                        db.session.rollback()
+                        activation_failures += 1
+                        failed_bot_ids.append(bot.id)
+                        print(f'Error deactivating bot {bot.id}: {str(e)}')
+        else:
+            # Activation process
+            for bot in bots:
+                if not bot.is_active:
+                    try:
+                        scheduler.add_job(
+                            id=str(bot.id),
+                            func=scheduled_job,
+                            name=bot.name,
+                            replace_existing=True,
+                            args=[bot.url, bot.name, [bl.name for bl in Blacklist.query.filter_by(bot_id=bot.id).all()], bot.category_id, bot.id, category.slack_channel],
+                            trigger='interval',
+                            minutes=bot.run_frequency
+                        )
+                        bot.is_active = True
+                        db.session.commit()
+                        activation_success += 1
+                    except Exception as e:
+                        db.session.rollback()
+                        activation_failures += 1
+                        failed_bot_ids.append(bot.id)
+                        print(f'Error activating bot {bot.id}: {str(e)}')
+
+        # Toggle category active status
+        category.is_active = not category.is_active
+        db.session.commit()
+
+        summary = {
+            'total_bots': len(bots),
+            'activated_count': activation_success if not category.is_active else 0,
+            'deactivated_count': activation_success if category.is_active else 0,
+            'failed_count': activation_failures,
+            'failed_bot_ids': failed_bot_ids
+        }
+
+        return jsonify(create_response(success=True, message='Category status updated successfully', data=summary)), 200
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify(create_response(error=f'Database error: {str(e)}')), 500
+    except Exception as e:
+        return jsonify(create_response(error=f'Error processing request: {str(e)}')), 500
