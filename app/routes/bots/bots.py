@@ -367,3 +367,82 @@ def get_all_coin_bots():
         return jsonify(response), 500
 
     return jsonify(response), 200
+
+
+
+@bots_bp.route('/bots/<int:bot_id>/toggle-active', methods=['PATCH'])
+@handle_db_session
+def toggle_bot_active_status(bot_id):
+    """
+    Activate or deactivate a bot by toggling its is_active status.
+    Args:
+        bot_id (int): The ID of the bot to activate or deactivate.
+    Response:
+        200: Bot status updated successfully with the new is_active status and last_run timestamp.
+        400: Invalid bot ID or scheduling/removal error.
+        404: Bot not found.
+        500: Internal server error.
+    """
+    try:
+        bot = Bot.query.get(bot_id)
+        if not bot:
+            response = create_response(error='Bot not found')
+            return jsonify(response), 404
+
+        if bot.is_active:
+            # Deactivate the bot
+            try:
+                # Remove the bot's scheduled job
+                job = scheduler.get_job(id=str(bot_id))
+                if job:
+                    scheduler.remove_job(id=str(bot_id))
+                
+                # Update bot's is_active status
+                bot.is_active = False
+                db.session.commit()
+
+                response = create_response(success=True, data=bot.as_dict(), message='Bot deactivated successfully')
+            except Exception as e:
+                db.session.rollback()
+                response = create_response(error=f'Error removing job: {str(e)}')
+                return jsonify(response), 400
+        else:
+            # Activate the bot
+            try:
+                # Fetch the category to get slack channel and other details
+                existing_category = Category.query.get(bot.category_id)
+                if not existing_category:
+                    response = create_response(error='Category not found')
+                    return jsonify(response), 404
+                
+                # Schedule the bot's job
+                scheduler.add_job(
+                    id=str(bot_id),
+                    func=scheduled_job,
+                    name=bot.name,
+                    replace_existing=True,
+                    args=[bot.url, bot.name, [bl.name for bl in Blacklist.query.filter_by(bot_id=bot.id).all()], bot.category_id, bot_id, existing_category.slack_channel],
+                    trigger='interval',
+                    minutes=bot.run_frequency
+                )
+
+                # Update bot's is_active status and log activation time
+                bot.is_active = True
+                bot.last_run = datetime.utcnow()
+                db.session.commit()
+
+                response = create_response(success=True, data=bot.as_dict(), message='Bot activated successfully')
+            except Exception as e:
+                db.session.rollback()
+                response = create_response(error=f'Error scheduling job: {str(e)}')
+                return jsonify(response), 400
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        response = create_response(error=f'Database error: {str(e)}')
+        return jsonify(response), 500
+    except Exception as e:
+        response = create_response(error=f'Error toggling bot status: {str(e)}')
+        return jsonify(response), 500
+
+    return jsonify(response), 200
