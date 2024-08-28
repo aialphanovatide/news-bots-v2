@@ -1,6 +1,7 @@
 # routes.py
 
-from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta
 import json
 import os
 from flask import Blueprint, jsonify, request
@@ -15,6 +16,7 @@ from app.routes.routes_utils import create_response, handle_db_session
 from dotenv import load_dotenv
 import os
 from scheduler_config import scheduler
+from apscheduler.triggers.date import DateTrigger
 
 load_dotenv()
 
@@ -445,3 +447,124 @@ def toggle_category_active(category_id):
         return jsonify(create_response(error=f'Database error: {str(e)}')), 500
     except Exception as e:
         return jsonify(create_response(error=f'Error processing request: {str(e)}')), 500
+    
+    
+
+
+def global_activation():
+    """
+    Activate all inactive bots in the system.
+    """
+    try:
+        bots = Bot.query.filter_by(is_active=False).all()
+        if not bots:
+            return create_response(success=True, message='No inactive bots found'), 404
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = []
+            for bot in bots:
+                site = Site.query.filter_by(bot_id=bot.id).first()
+                if not site or not site.url:
+                    continue
+
+                bot_site = site.url
+                bot_blacklist = [bl.name for bl in Blacklist.query.filter_by(bot_id=bot.id).all()]
+                bot_id = bot.id
+                bot_name = bot.name
+
+                next_execution_time = datetime.now() + timedelta(minutes=5)  # Adjust as needed
+
+                future = executor.submit(
+                    scheduler.add_job,
+                    id=str(bot_name),
+                    func=scheduled_job,
+                    name=bot_name,
+                    replace_existing=True,
+                    args=[bot_site, bot_name, bot_blacklist, None, bot_id, None],
+                    trigger=DateTrigger(run_date=next_execution_time)
+                )
+                futures.append(future)
+
+            for future in futures:
+                future.result()  # Wait for the job to finish
+
+            # Update all bots to active
+            for bot in bots:
+                bot.is_active = True
+            db.session.commit()
+
+        return create_response(success=True, message='All inactive bots have been activated'), 200
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return create_response(error=f'Database error: {str(e)}'), 500
+
+    except Exception as e:
+        return create_response(error=f"Error activating bots: {e}"), 500
+
+def global_deactivation():
+    """
+    Deactivate all active bots in the system.
+    """
+    try:
+        bots = Bot.query.filter_by(is_active=True).all()
+        if not bots:
+            return create_response(success=True, message='No active bots found'), 404
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = []
+            for bot in bots:
+                future = executor.submit(
+                    scheduler.remove_job,
+                    job_id=str(bot.name)
+                )
+                futures.append(future)
+
+            for future in futures:
+                future.result()  # Wait for the job to finish
+
+            # Update all bots to inactive
+            for bot in bots:
+                bot.is_active = False
+            db.session.commit()
+
+        return create_response(success=True, message='All active bots have been deactivated'), 200
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return create_response(error=f'Database error: {str(e)}'), 500
+
+    except Exception as e:
+        return create_response(error=f"Error deactivating bots: {e}"), 500
+
+@categories_bp.route('/toggle-all-bots', methods=['PATCH'])
+@handle_db_session
+def toggle_all_bots():
+    """
+    Toggle activation state of all bots in the system.
+    
+    Request body:
+        {
+            "action": "activate" | "deactivate"
+        }
+    
+    Response:
+        200: Operation completed successfully.
+        404: No bots found.
+        400: Invalid action specified.
+        500: Internal server error.
+    """
+    try:
+        data = request.json
+        action = data.get('action')
+        
+        if action not in ['activate', 'deactivate']:
+            return create_response(error='Invalid action specified'), 400
+
+        if action == 'activate':
+            return global_activation()
+        elif action == 'deactivate':
+            return global_deactivation()
+
+    except Exception as e:
+        return create_response(error=f"Error toggling bots: {e}"), 500
