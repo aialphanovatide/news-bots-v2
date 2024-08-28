@@ -1,6 +1,7 @@
-from flask import Blueprint, request, jsonify
+from io import StringIO
+from flask import Blueprint, request, jsonify, send_file
 from app.routes.routes_utils import create_response, handle_db_session
-from config import Blacklist, db
+from config import Blacklist, Bot, db
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -43,7 +44,50 @@ def get_blacklist_by_bot():
     except Exception as e:
         return create_response(error=f"Internal server error: {str(e)}"), 500
 
+@blacklist_bp.route('/bots/<int:bot_id>/download/blacklist', methods=['GET'])
+@handle_db_session
+def download_blacklist(bot_id):
+    """
+    Download the blacklist of a specific bot in TXT format.
 
+    Args:
+        bot_id (int): The ID of the bot to retrieve the blacklist for.
+
+    Response:
+        200: Successfully downloaded the blacklist.
+        400: Invalid bot ID or bot not found.
+        500: Internal server error.
+    """
+    try:
+        bot = Bot.query.get(bot_id)
+        if not bot:
+            response = create_response(error='Bot not found')
+            return jsonify(response), 404
+        
+        blacklist_data = Blacklist.query.filter_by(bot_id=bot_id).all()
+        if not blacklist_data:
+            response = create_response(error='No blacklist entries found')
+            return jsonify(response), 404
+        
+        # Create TXT file content
+        output = StringIO()
+        output.write(f"Blacklist for bot {bot.name}\n\n")
+        for entry in blacklist_data:
+            output.write(f"{entry.name}\n")
+        
+        output.seek(0)
+        filename = f"{bot.name.replace(' ', '_')}_blacklist_{datetime.datetime.now().strftime('%Y-%m-%d')}.txt"
+        
+        return send_file(
+            StringIO(output.getvalue()), 
+            mimetype='text/plain',
+            as_attachment=True,
+            download_name=filename
+        )
+    
+    except Exception as e:
+        response = create_response(error=f"Internal server error: {str(e)}")
+        return jsonify(response), 500
 
 @blacklist_bp.route('/add_to_blacklist', methods=['POST'])
 @handle_db_session
