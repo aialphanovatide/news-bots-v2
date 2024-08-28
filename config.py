@@ -2,6 +2,8 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
+from sqlalchemy.orm import validates
+from sqlalchemy import func
 
 db = SQLAlchemy()
 load_dotenv()
@@ -34,13 +36,27 @@ class Category(db.Model):
 class Bot(db.Model):
     __tablename__ = 'bot'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String)
-    dalle_prompt = db.Column(db.String)
-    # relationships
-    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
-    created_at = db.Column(db.TIMESTAMP)
-    updated_at = db.Column(db.TIMESTAMP)
+    name = db.Column(db.String, nullable=False)
+    dalle_prompt = db.Column(db.String, nullable=False, default='default_prompt')
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
+    
+    # Timestamps with enhancements
+    created_at = db.Column(db.TIMESTAMP, server_default=func.now(), default=datetime.now)
+    updated_at = db.Column(db.TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
+    # New fields
+    last_run = db.Column(db.TIMESTAMP)  # To track the last execution time of the bot
+    is_active = db.Column(db.Boolean, default=False)  # To indicate whether the bot is active or not, default to False
+    url = db.Column(db.String, nullable=False, default='https://default.url')  # To store the bot's associated URL
+    run_frequency = db.Column(db.Integer, nullable=False)  # To store the bot's run frequency in minutes
+
+    @validates('run_frequency')
+    def validate_run_frequency(self, key, run_frequency):
+        if run_frequency < 20:
+            raise ValueError("Run frequency cannot be less than 20 minutes")
+        return run_frequency
+
+    # Relationships
     sites = db.relationship("Site", backref="bot", cascade="all, delete-orphan")
     keywords = db.relationship("Keyword", backref="bot", cascade="all, delete-orphan")
     blacklist = db.relationship("Blacklist", backref="bot", cascade="all, delete-orphan")
@@ -49,7 +65,6 @@ class Bot(db.Model):
 
     def as_dict(self):
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
-
 
 class Site(db.Model):
     __tablename__ = 'site'
