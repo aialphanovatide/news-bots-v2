@@ -367,3 +367,94 @@ def get_all_coin_bots():
         return jsonify(response), 500
 
     return jsonify(response), 200
+
+
+
+
+@bots_bp.route('/update_bot/<int:bot_id>', methods=['PATCH'])
+@handle_db_session
+def update_bot(bot_id):
+    """
+    Update an existing bot's details.
+    Args (JSON):
+        name (str): Name of the bot.
+        dalle_prompt (str): DALLE prompt for the bot.
+        url (str): URL to fetch news from.
+        run_frequency (int): Frequency for the bot to run in minutes.
+        category_id (int): ID of the category.
+        is_active (bool): Bot's active status.
+    Response:
+        200: Bot updated and re-scheduled successfully.
+        400: Invalid input or missing fields.
+        404: Bot not found or category ID not found.
+        500: Internal server error.
+    """
+    try:
+        data = request.json
+        bot = Bot.query.get(bot_id)
+
+        if not bot:
+            response = create_response(error='Bot not found')
+            return jsonify(response), 404
+
+        # Update fields with validation
+        if 'name' in data:
+            existing_bot = Bot.query.filter_by(name=data['name']).first()
+            if existing_bot and existing_bot.id != bot_id:
+                response = create_response(error=f"A bot with the name '{data['name']}' already exists")
+                return jsonify(response), 400
+            bot.name = data['name']
+
+        if 'dalle_prompt' in data:
+            bot.dalle_prompt = data['dalle_prompt']
+
+        if 'url' in data:
+            url = data['url']
+            if not re.match(r'^https?:\/\/', url):
+                response = create_response(error='Invalid URL format')
+                return jsonify(response), 400
+            bot.url = url
+
+        if 'run_frequency' in data:
+            bot.run_frequency = data['run_frequency']
+
+        if 'category_id' in data:
+            existing_category = Category.query.get(data['category_id'])
+            if not existing_category:
+                response = create_response(error='Category ID not found')
+                return jsonify(response), 404
+            bot.category_id = existing_category.id
+
+        if 'is_active' in data:
+            bot.is_active = data['is_active']
+
+        bot.updated_at = datetime.now()
+
+        db.session.commit()
+
+        # Remove existing job and re-schedule if active
+        if bot.is_active:
+            scheduler.remove_job(str(bot_id))  # Remove existing job if it exists
+            existing_category = Category.query.get(bot.category_id)
+            scheduler.add_job(
+                id=str(bot_id),
+                func=scheduled_job,
+                name=bot.name,
+                replace_existing=True,
+                args=[bot.url, bot.name, [], bot.category_id, bot_id, existing_category.slack_channel],
+                trigger='interval',
+                minutes=bot.run_frequency
+            )
+            response = create_response(success=True, data=bot.as_dict(), message='Bot updated and re-scheduled successfully')
+        else:
+            response = create_response(success=True, data=bot.as_dict(), message='Bot updated but not re-scheduled - Set is_active to True to schedule')
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        response = create_response(error=f'Database error: {str(e)}')
+        return jsonify(response), 500
+    except Exception as e:
+        response = create_response(error=f"Error updating bot: {str(e)}")
+        return jsonify(response), 500
+
+    return jsonify(response), 200
