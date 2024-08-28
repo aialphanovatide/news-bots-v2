@@ -1,8 +1,9 @@
 # routes.py
 
-from flask import Blueprint, jsonify, request
+from io import StringIO
+from flask import Blueprint, jsonify, request, send_file
 from app.utils.helpers import measure_execution_time
-from config import Keyword, db
+from config import Bot, Keyword, db
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response, handle_db_session
@@ -149,6 +150,52 @@ def delete_keyword_from_bot():
 
     except Exception as e:
         response = create_response(error=f'Internal server error: {str(e)}')
+        return jsonify(response), 500
+
+
+@keyword_bp.route('/bots/<int:bot_id>/download/whitelist', methods=['GET'])
+@handle_db_session
+def download_whitelist(bot_id):
+    """
+    Download the whitelist of a specific bot in TXT format.
+
+    Args:
+        bot_id (int): The ID of the bot to retrieve the whitelist for.
+
+    Response:
+        200: Successfully downloaded the whitelist.
+        400: Invalid bot ID or bot not found.
+        500: Internal server error.
+    """
+    try:
+        bot = Bot.query.get(bot_id)
+        if not bot:
+            response = create_response(error='Bot not found')
+            return jsonify(response), 404
+        
+        whitelist_data = Keyword.query.filter_by(bot_id=bot_id).all()
+        if not whitelist_data:
+            response = create_response(error='No whitelist entries found')
+            return jsonify(response), 404
+        
+        # Create TXT file content
+        output = StringIO()
+        output.write(f"Whitelist for bot {bot.name}\n\n")
+        for entry in whitelist_data:
+            output.write(f"{entry.name}\n")
+        
+        output.seek(0)
+        filename = f"{bot.name.replace(' ', '_')}_whitelist_{datetime.datetime.now().strftime('%Y-%m-%d')}.txt"
+        
+        return send_file(
+            StringIO(output.getvalue()), 
+            mimetype='text/plain',
+            as_attachment=True,
+            download_name=filename
+        )
+    
+    except Exception as e:
+        response = create_response(error=f"Internal server error: {str(e)}")
         return jsonify(response), 500
 
 
