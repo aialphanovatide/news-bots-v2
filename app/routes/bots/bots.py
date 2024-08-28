@@ -217,6 +217,7 @@ def delete_bot(bot_id):
 
     return jsonify(response), 200
 
+
 @bots_bp.route('/get_all_bots', methods=['GET'])
 @handle_db_session
 def get_all_bots():
