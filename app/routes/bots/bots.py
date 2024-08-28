@@ -69,9 +69,10 @@ def create_bot():
         keywords (str): Comma-separated keywords for the bot.
         blacklist (str): Comma-separated blacklist for the bot.
         dalle_prompt (str): DALLE prompt for the bot.
+        run_frequency (int): Frequency in minutes for scheduling (optional).
     Response:
         200: Bot created (and scheduled if the category is active) successfully.
-        400: Missing required field or bot name already exists.
+        400: Missing required field, invalid URL, or bot name already exists.
         404: Category ID not found.
         500: Internal server error.
     """
@@ -86,6 +87,12 @@ def create_bot():
                 response = create_response(error=f'Missing field in request data: {field}')
                 return jsonify(response), 400
 
+        # Validate URL format and accessibility
+        url = data['url']
+        if not re.match(r'^https?://', url):
+            response = create_response(error='Invalid URL format')
+            return jsonify(response), 400
+
         # Check if bot with the same name already exists
         existing_bot = Bot.query.filter_by(name=data['name']).first()
         if existing_bot:
@@ -98,16 +105,12 @@ def create_bot():
             response = create_response(error='Category ID not found')
             return jsonify(response), 404
 
-        category_id = existing_category.id
-        category_interval = existing_category.time_interval
-        is_category_active = existing_category.is_active
-        category_slack_channel = existing_category.slack_channel
-
         # Create new bot
         new_bot = Bot(
             name=data['name'],
-            category_id=category_id,
+            category_id=existing_category.id,
             dalle_prompt=data['dalle_prompt'],
+            is_active=True,  # Ensure the bot is active
             created_at=current_time,
             updated_at=current_time
         )
@@ -115,7 +118,6 @@ def create_bot():
         db.session.commit()
 
         # Create new Site
-        url = data['url']
         site_name_match = re.search(r"https://www\.([^.]+)\.com", url)
         site_name = 'Google News' if not site_name_match else site_name_match.group(1)
 
@@ -141,7 +143,7 @@ def create_bot():
             db.session.add(new_keyword)
 
         # Add words to the bot Blacklist
-        blacklist = [keyword.strip() for keyword in data['blacklist'].split(',')]
+        blacklist = [word.strip() for word in data['blacklist'].split(',')]
         for word in blacklist:
             new_blacklist_entry = Blacklist(
                 name=word,
@@ -154,20 +156,21 @@ def create_bot():
         db.session.commit()
 
         # Schedule the bot if the category is active
-        if is_category_active:
+        if existing_category.is_active:
+            run_frequency = data.get('run_frequency', existing_category.time_interval)  # Allow setting of run_frequency
             scheduler.add_job(
                 id=str(new_bot.name),
                 func=scheduled_job,
                 name=new_bot.name,
                 replace_existing=True,
-                args=[url, new_bot.name, blacklist, existing_category.id, new_bot.id, category_slack_channel],
+                args=[url, new_bot.name, blacklist, existing_category.id, new_bot.id, existing_category.slack_channel],
                 trigger='interval',
-                minutes=category_interval
+                minutes=run_frequency
             )
-            response = create_response(success=True, data=new_bot.as_dict(), message='Bot created and automated successfully')
+            response = create_response(success=True, data=new_bot.as_dict(), message='Bot created and scheduled successfully')
         else:
-            response = create_response(success=True, data=new_bot.as_dict(), message='Bot created, but NOT automated - Activate the category')
-        
+            response = create_response(success=True, data=new_bot.as_dict(), message='Bot created, but NOT scheduled - Activate the category')
+
     except SQLAlchemyError as e:
         db.session.rollback()
         response = create_response(error=f'Database error: {str(e)}')
