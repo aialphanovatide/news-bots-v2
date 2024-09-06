@@ -3,6 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 
+from sqlalchemy import func
+
 db = SQLAlchemy()
 load_dotenv()
 
@@ -18,16 +20,15 @@ class Category(db.Model):
     __tablename__ = 'category'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String)
-    alias = db.Column(db.String)
-    slack_channel = db.Column(db.String)
-    time_interval = db.Column(db.Integer)  
-    icon = db.Column(db.String) 
+    name = db.Column(db.String, nullable=False)
+    alias = db.Column(db.String, nullable=False)
     prompt = db.Column(db.String)
-    is_active = db.Column(db.Boolean)
+    slack_channel = db.Column(db.String)
+    icon = db.Column(db.String)
     border_color = db.Column(db.String)
-    updated_at = db.Column(db.TIMESTAMP)
-    created_at = db.Column(db.TIMESTAMP)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.TIMESTAMP, default=datetime.now)
+    updated_at = db.Column(db.TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
 
     bots = db.relationship("Bot", backref="category", cascade="all, delete-orphan")
 

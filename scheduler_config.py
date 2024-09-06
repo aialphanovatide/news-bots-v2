@@ -3,6 +3,7 @@ from config import db_uri, Bot, db
 from datetime import datetime
 from app.services.slack.actions import send_WARNING_message_to_slack_channel
 from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_MAX_INSTANCES, EVENT_JOB_EXECUTED
+from apscheduler.triggers.cron import CronTrigger
 
 # Configuration for FlaskAPScheduler
 class Config:
@@ -73,7 +74,23 @@ def job_max_instances_reached(event):
         # )
         # print(message)
 
-
+def reschedule(job_id, **kwargs):
+     """
+     Reschedule a job with the given job_id.
+     :param job_id: The ID of the job to reschedule
+     :param kwargs: Additional keyword arguments to pass to the scheduler
+     """
+     job = scheduler.get_job(job_id)
+     if job:
+         current_trigger = job.trigger
+         if isinstance(current_trigger, CronTrigger):
+             new_trigger = CronTrigger(**current_trigger.fields)
+             scheduler.modify_job(job_id, trigger=new_trigger)
+             print(f"Job {job_id} rescheduled successfully")
+         else:
+             print(f"Warning: Job {job_id} does not have a CronTrigger. Rescheduling skipped.")
+     else:
+         print(f"No job found with ID: {job_id}")
 
 scheduler.add_listener(job_executed, EVENT_JOB_EXECUTED)
 scheduler.add_listener(job_error, EVENT_JOB_ERROR)
