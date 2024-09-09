@@ -2,8 +2,8 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
-
-from sqlalchemy import func
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, func
 
 db = SQLAlchemy()
 load_dotenv()
@@ -13,7 +13,10 @@ DB_NAME = os.getenv('DB_NAME')
 DB_USER = os.getenv('DB_USER')
 DB_PASSWORD = os.getenv('DB_PASSWORD')
 DB_HOST = os.getenv('DB_HOST')
+db_url = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+engine = create_engine(db_url, pool_size=30, max_overflow=20)
 
+Session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 db_uri = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
 class Category(db.Model):
