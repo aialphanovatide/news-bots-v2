@@ -517,7 +517,6 @@ def delete_bot(bot_id):
             else:
                 print(f"No job found for bot {bot.name}")
 
-            # Delete the bot (this will cascade delete all related entities)
             session.delete(bot)
             session.commit()
 
