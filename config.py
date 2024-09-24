@@ -5,21 +5,28 @@ import os
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, func
 
-db = SQLAlchemy()
 load_dotenv()
+db = SQLAlchemy()
 
-DB_PORT = os.getenv('DB_PORT')
-DB_NAME = os.getenv('DB_NAME')
-DB_USER = os.getenv('DB_USER')
-DB_PASSWORD = os.getenv('DB_PASSWORD')
-DB_HOST = os.getenv('DB_HOST')
-db_url = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
-engine = create_engine(db_url, pool_size=30, max_overflow=20)
-
+DB_URI = os.getenv('DB_URI')
+engine = create_engine(DB_URI, pool_size=30, max_overflow=20)
 Session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
-db_uri = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
 class Category(db.Model):
+    """Represents a category in the database.
+
+    Attributes:
+        id (int): The unique identifier for the category.
+        name (str): The name of the category.
+        alias (str): An alias for the category.
+        prompt (str): A prompt associated with the category.
+        slack_channel (str): The Slack channel linked to the category.
+        icon (str): The icon representing the category.
+        border_color (str): The border color for the category.
+        is_active (bool): Indicates if the category is active.
+        created_at (datetime): The timestamp when the category was created.
+        updated_at (datetime): The timestamp when the category was last updated.
+    """
     __tablename__ = 'category'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -29,8 +36,8 @@ class Category(db.Model):
     slack_channel = db.Column(db.String)
     icon = db.Column(db.String)
     border_color = db.Column(db.String)
-    is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.TIMESTAMP, default=datetime.now)
+    is_active = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.TIMESTAMP, default=func.now())
     updated_at = db.Column(db.TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
 
     bots = db.relationship("Bot", backref="category", cascade="all, delete-orphan")
@@ -40,16 +47,32 @@ class Category(db.Model):
 
 
 class Bot(db.Model):
+    """Represents a bot in the database.
+
+    Attributes:
+        id (int): The unique identifier for the bot.
+        name (str): The name of the bot.
+        alias (str): An alias for the bot.
+        dalle_prompt (str): The prompt for DALL-E associated with the bot.
+        icon (str): The icon representing the bot.
+        background_color (str): The background color for the bot.
+        run_frequency (str): The frequency at which the bot runs.
+        is_active (bool): Indicates if the bot is active.
+        category_id (int): Foreign key referencing the category the bot belongs to.
+        created_at (datetime): The timestamp when the bot was created.
+        updated_at (datetime): The timestamp when the bot was last updated.
+    """
     __tablename__ = 'bot'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String)
+    name = db.Column(db.String, nullable=False)
     alias = db.Column(db.String)
     dalle_prompt = db.Column(db.String)
     icon  = db.Column(db.String)
     dalle_prompt = db.Column(db.String)
     background_color = db.Column(db.String)
-    run_frequency = db.Column(db.String)
-    is_active = db.Column(db.Boolean)
+    run_frequency = db.Column(db.String, default='20')
+    is_active = db.Column(db.Boolean, default=False)
+    
     # relationships
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     created_at = db.Column(db.TIMESTAMP)
@@ -66,6 +89,16 @@ class Bot(db.Model):
 
 
 class Site(db.Model):
+    """Represents a site associated with a bot.
+
+    Attributes:
+        id (int): The unique identifier for the site.
+        name (str): The name of the site.
+        url (str): The URL of the site.
+        bot_id (int): Foreign key referencing the bot associated with the site.
+        created_at (datetime): The timestamp when the site was created.
+        updated_at (datetime): The timestamp when the site was last updated.
+    """
     __tablename__ = 'site'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -83,6 +116,15 @@ class Site(db.Model):
 
 
 class Keyword(db.Model):
+    """Represents a keyword associated with a bot.
+
+    Attributes:
+        id (int): The unique identifier for the keyword.
+        name (str): The name of the keyword.
+        bot_id (int): Foreign key referencing the bot associated with the keyword.
+        created_at (datetime): The timestamp when the keyword was created.
+        updated_at (datetime): The timestamp when the keyword was last updated.
+    """
     __tablename__ = 'keyword'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String)
@@ -97,6 +139,15 @@ class Keyword(db.Model):
 
 
 class Blacklist(db.Model):
+    """Represents a blacklist entry associated with a bot.
+
+    Attributes:
+        id (int): The unique identifier for the blacklist entry.
+        name (str): The name of the blacklist entry.
+        bot_id (int): Foreign key referencing the bot associated with the blacklist entry.
+        created_at (datetime): The timestamp when the blacklist entry was created.
+        updated_at (datetime): The timestamp when the blacklist entry was last updated.
+    """
     __tablename__ = 'blacklist'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String)
@@ -111,8 +162,7 @@ class Blacklist(db.Model):
 
 
 class Article(db.Model):
-    """
-    Represents an article in the database.
+    """Represents an article in the database.
 
     Attributes:
         id (int): Primary key, auto-incremented.
@@ -151,6 +201,19 @@ class Article(db.Model):
 
 
 class UnwantedArticle(db.Model):
+    """Represents an unwanted article in the database.
+
+    Attributes:
+        id (int): The unique identifier for the unwanted article.
+        title (str): Title of the unwanted article.
+        content (str): Content of the unwanted article.
+        reason (str): Reason for the article being unwanted.
+        url (str): URL of the unwanted article.
+        date (datetime): Timestamp when the article was identified as unwanted.
+        bot_id (int): Foreign key referencing the bot that flagged the article.
+        created_at (datetime): Timestamp when the unwanted article was created.
+        updated_at (datetime): Timestamp when the unwanted article was last updated.
+    """
     __tablename__ = 'unwanted_article'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title = db.Column(db.String)
@@ -168,6 +231,19 @@ class UnwantedArticle(db.Model):
     
 
 class UsedKeywords(db.Model):
+    """Represents keywords used in articles.
+
+    Attributes:
+        id (int): The unique identifier for the used keywords entry.
+        article_content (str): Content of the article associated with the keywords.
+        article_date (datetime): Date of the article associated with the keywords.
+        article_url (str): URL of the article associated with the keywords.
+        keywords (str): The keywords used in the article.
+        source (str): The source of the keywords.
+        article_id (int): Foreign key referencing the article associated with the keywords.
+        bot_id (int): Foreign key referencing the bot associated with the keywords.
+        created_at (datetime): Timestamp when the used keywords entry was created.
+    """
     __tablename__ = 'used_keywords'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

@@ -18,6 +18,8 @@ asyncio
 aiohttp
 flasgger
 Flask-APScheduler
-sklearn
+scikit-learn
 pyperclip
-google-api-python-client                     
+google-api-python-client          
+flask_migrate       
+Flask-SQLAlchemy    
