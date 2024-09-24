@@ -68,7 +68,8 @@ def create_category():
             if 'icon' in request.files:
                 icon_file = request.files['icon']
                 if icon_file.filename.lower().endswith('.svg'):
-                    icon_filename = f"{data['alias']}.svg"
+                    alias_normalized = data['alias'].strip().replace(" ", "_")
+                    icon_filename = f"{alias_normalized}.svg"
                     s3.upload_fileobj(
                         icon_file, 
                         'aialphaicons', 
@@ -80,6 +81,7 @@ def create_category():
                     return jsonify({'error': 'Invalid file type. Only SVG files are allowed.'}), 400
 
             # Create new category
+            current_time = datetime.now()
             new_category = Category(
                 name=data['name'],
                 alias=data['alias'],
@@ -87,7 +89,9 @@ def create_category():
                 slack_channel=data.get('slack_channel', ''),
                 border_color=data.get('border_color', ''),
                 icon=icon_url,
-                created_at=datetime.now()
+                is_active=False,
+                created_at=current_time,
+                updated_at=current_time  # Assign the same value for updated_at
             )
 
             session.add(new_category)
@@ -169,7 +173,6 @@ def get_categories():
                     'prompt': category.prompt,
                     'slack_channel': category.slack_channel,
                     'icon': category.icon,
-                    'time_interval': category.time_interval,
                     'is_active': category.is_active,
                     'border_color': category.border_color,
                     'updated_at': category.updated_at,
@@ -198,30 +201,50 @@ def get_categories():
 
         except Exception as e:
             return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
-
-@categories_bp.route('/get_all_bots', methods=['GET'])
-def get_bots():
+        
+        
+@categories_bp.route('/category', methods=['GET'])
+def get_category():
     """
-    Get all bots.
+    Get a category by id or name.
+    Query Params:
+        category_id (int): The ID of the category.
+        category_name (str): The name of the category.
     Response:
-        200: Successfully retrieved bots.
+        200: Successfully retrieved the category.
+        400: Bad request, no valid parameters provided.
+        404: Category not found.
         500: Internal server error or database error.
     """
-    with Session as session:
+    category_id = request.args.get('category_id', type=int)
+    category_name = request.args.get('category_name', type=str)
+    
+    with Session() as session:
         try:
-            categories = Category.query.order_by(Category.id).all()
+            if not category_id and not category_name:
+                return jsonify(create_response(error='You must provide either category_id or category_name.')), 400
 
-            bots = [
-                {
-                    'category': category.name,
-                    'isActive': category.is_active,
-                    'alias': category.alias,
-                    'icon': category.icon,
-                    'updated_at': category.updated_at,
-                    'color': category.border_color
-                } for category in categories
-            ]
-            return jsonify(create_response(success=True, data={'bots': bots})), 200
+            query = Category.query
+            if category_id:
+                query = query.filter_by(id=category_id)
+            if category_name:
+                query = query.filter_by(name=category_name)
+
+            category = query.first()
+
+            if not category:
+                return jsonify(create_response(error='Category not found.')), 404
+
+            category_data = {
+                'category': category.name,
+                'isActive': category.is_active,
+                'alias': category.alias,
+                'icon': category.icon,
+                'updated_at': category.updated_at,
+                'color': category.border_color
+            }
+
+            return jsonify(create_response(success=True, data={'category': category_data})), 200
 
         except SQLAlchemyError as e:
             db.session.rollback()
@@ -251,16 +274,16 @@ def update_category(category_id):
     """
     with Session() as session:
         try:
-            data = request.get_json()
-
+            data = request.form.to_dict()  # To support form-data for icon upload
             # Fetch the category to update
             category = session.query(Category).get(category_id)
             if not category:
                 return jsonify({'error': f'Category with ID {category_id} not found'}), 404
 
-            # Update category fields
+            # Update category fields (only allow specific fields to be updated)
+            allowed_fields = ['name', 'alias', 'prompt', 'slack_channel', 'border_color']
             for key, value in data.items():
-                if hasattr(category, key):
+                if key in allowed_fields:
                     setattr(category, key, value)
 
             # Handle SVG icon update
@@ -273,7 +296,8 @@ def update_category(category_id):
                         s3.delete_object(Bucket='aialphaicons', Key=old_icon_filename)
 
                     # Upload new icon
-                    icon_filename = f"{category.alias}.svg"
+                    alias_normalized = category.alias.strip().replace(" ", "_")
+                    icon_filename = f"{alias_normalized}.svg"
                     s3.upload_fileobj(
                         icon_file,
                         'aialphaicons',
@@ -284,10 +308,13 @@ def update_category(category_id):
                 else:
                     return jsonify({'error': 'Invalid file type. Only SVG files are allowed.'}), 400
 
+            # Update updated_at timestamp
+            category.updated_at = datetime.now()
+
             # Reschedule bots if necessary
             if any(key in data for key in ['name', 'alias', 'prompt', 'slack_channel']):
                 for bot in category.bots:
-                    reschedule(bot.id) 
+                    reschedule(bot.id)
 
             # Commit the update
             session.commit()
@@ -301,7 +328,6 @@ def update_category(category_id):
         except Exception as e:
             session.rollback()
             return jsonify({'error': f'Internal server error: {str(e)}'}), 500
-
 
 
 @categories_bp.route('/categories/<int:category_id>/toggle-coins', methods=['POST'])
