@@ -1,5 +1,4 @@
 # routes.py
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 import os
 from flask import Blueprint, jsonify, request
@@ -9,6 +8,7 @@ from dotenv import load_dotenv
 import boto3
 from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response
+from redis_client.redis_client import cache_with_redis, update_cache_with_redis
 from scheduler_config import reschedule, scheduler
 
 
@@ -20,6 +20,7 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 AWS_ACCESS = os.getenv('AWS_ACCESS')
 AWS_SECRET_KEY = os.getenv('AWS_SECRET_KEY')
+
 
 categories_bp = Blueprint(
     'categories_bp', __name__,
@@ -36,6 +37,7 @@ s3 = boto3.client(
 
 
 @categories_bp.route('/categories', methods=['POST'])
+@update_cache_with_redis(related_get_endpoints=['get_categories','get_category','get_articles_by_bot'])
 def create_category():
     """
     Create a new category on the news bot server.
@@ -108,6 +110,7 @@ def create_category():
 
            
 @categories_bp.route('/categories/<int:category_id>', methods=['DELETE'])
+@update_cache_with_redis(related_get_endpoints=['get_categories','get_category','get_articles_by_bot'])
 def delete_category(category_id):
     """
     Delete a category and its associated bots by ID.
@@ -149,6 +152,7 @@ def delete_category(category_id):
 
 
 @categories_bp.route('/categories', methods=['GET'])
+@cache_with_redis()
 def get_categories():
     """
     Get all available categories along with their associated bots and bot details.
@@ -204,6 +208,7 @@ def get_categories():
         
         
 @categories_bp.route('/category', methods=['GET'])
+@cache_with_redis()
 def get_category():
     """
     Get a category by id or name.
@@ -254,6 +259,7 @@ def get_category():
             return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
 
 @categories_bp.route('/categories/<int:category_id>', methods=['PUT'])
+@update_cache_with_redis(related_get_endpoints=['get_categories','get_category','get_articles_by_bot'])
 def update_category(category_id):
     """
     Update an existing category by ID.
@@ -331,6 +337,7 @@ def update_category(category_id):
 
 
 @categories_bp.route('/categories/<int:category_id>/toggle-coins', methods=['POST'])
+@update_cache_with_redis(related_get_endpoints=['get_categories','get_category','get_articles_by_bot'])
 def toggle_category_coins(category_id):
     """
     Activate or deactivate all coins within a specific category.
@@ -422,6 +429,7 @@ def toggle_category_coins(category_id):
 
 
 @categories_bp.route('/toggle-all-coins', methods=['POST'])
+@update_cache_with_redis(related_get_endpoints=['get_categories','get_category','get_articles_by_bot'])
 def toggle_all_coins():
     """
     Toggle activation state of all coins in all categories.

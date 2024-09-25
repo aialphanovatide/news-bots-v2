@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, request
 from config import UnwantedArticle, db
 from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response, handle_db_session
+from redis_client.redis_client import cache_with_redis, update_cache_with_redis
 
 unwanted_articles_bp = Blueprint(
     'unwanted_articles_bp', __name__,
@@ -10,7 +11,9 @@ unwanted_articles_bp = Blueprint(
     static_folder='static'
 )
 
+
 @unwanted_articles_bp.route('/get_unwanted_articles', methods=['GET'])
+@cache_with_redis()
 @handle_db_session
 def get_unwanted_articles_by_bot():
     """
@@ -59,6 +62,7 @@ def get_unwanted_articles_by_bot():
 
 
 @unwanted_articles_bp.route('/search_unwanted_articles', methods=['POST'])
+@update_cache_with_redis(related_get_endpoints=['get_unwanted_articles_by_bot'])
 @handle_db_session
 def search_unwanted_articles():
     """

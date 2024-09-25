@@ -1,18 +1,22 @@
 import re
 from datetime import datetime
-from flask import Blueprint, jsonify, request
+from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from app.utils.helpers import measure_execution_time
-from scheduler_config import scheduler
-from config import Blacklist, Bot, Keyword, Site, db, Category
 from app.utils.index import fetch_news_links
-from app.routes.routes_utils import create_response, handle_db_session
+from flask import Blueprint, jsonify, request
+from app.routes.bots.utils import validate_url
+from redis_client.redis_client import cache_with_redis, update_cache_with_redis
+from scheduler_config import reschedule, scheduler
+from app.routes.routes_utils import create_response
+from config import Blacklist, Bot, Keyword, Session, Site, db, Category
 
 bots_bp = Blueprint(
     'bots_bp', __name__,
     template_folder='templates',
     static_folder='static'
 )
+
+
 
 # Function to be scheduled
 def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, category_slack_channel):
@@ -36,334 +40,519 @@ def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, catego
             category_slack_channel=category_slack_channel
         )
 
-@bots_bp.route('/bots', methods=['GET'])
-@handle_db_session
-def get_complete_bots():
+@bots_bp.route('/bot', methods=['GET'])
+@cache_with_redis()
+def get_bot():
     """
-    Retrieve all available bots.
+    Get a specific bot by name or id, including related keywords, blacklist items, and site data.
+    
+    Parameters:
+    - bot_name: string (optional)
+    - bot_id: integer (optional)
+    
     Response:
-        200: List of bots retrieved successfully.
-        500: Internal server error.
+    200: Bot information retrieved successfully.
+    404: Bot not found.
+    400: Invalid parameters.
+    500: Internal server error.
     """
+    bot_name = request.args.get('bot_name')
+    bot_id = request.args.get('bot_id')
+
+    if not bot_name and not bot_id:
+        return jsonify(create_response(error="Please provide either 'bot_name' or 'bot_id' parameter")), 400
+
     try:
-        bots = Bot.query.all()
-        bot_data = [bot.as_dict() for bot in bots]
-        response = create_response(success=True, data=bot_data)
-    except SQLAlchemyError as e:
-        response = create_response(error=f'Database error: {str(e)}')
-        return jsonify(response), 500
-    except Exception as e:
-        response = create_response(error=f'Error getting all Bots: {str(e)}')
-        return jsonify(response), 500
-    return jsonify(response), 200
-
-@bots_bp.route('/create_bot', methods=['POST'])
-@handle_db_session
-def create_bot():
-    """
-    Create and schedule a new news bot.
-    Args (JSON):
-        name (str): Name of the bot.
-        category_id (int): ID of the category.
-        url (str): URL to fetch news from.
-        keywords (str): Comma-separated keywords for the bot.
-        blacklist (str): Comma-separated blacklist for the bot.
-        dalle_prompt (str): DALLE prompt for the bot.
-    Response:
-        200: Bot created (and scheduled if the category is active) successfully.
-        400: Missing required field or bot name already exists.
-        404: Category ID not found.
-        500: Internal server error.
-    """
-    try:
-        data = request.json
-        current_time = datetime.now()
-
-        # Validate required fields
-        required_fields = ['name', 'category_id', 'url', 'keywords', 'blacklist', 'dalle_prompt']
-        for field in required_fields:
-            if field not in data:
-                response = create_response(error=f'Missing field in request data: {field}')
-                return jsonify(response), 400
-
-        # Check if bot with the same name already exists
-        existing_bot = Bot.query.filter_by(name=data['name']).first()
-        if existing_bot:
-            response = create_response(error=f"A bot with the name '{data['name']}' already exists")
-            return jsonify(response), 400
-
-        # Check if the category exists
-        existing_category = Category.query.get(data['category_id'])
-        if not existing_category:
-            response = create_response(error='Category ID not found')
-            return jsonify(response), 404
-
-        category_id = existing_category.id
-        category_interval = existing_category.time_interval
-        is_category_active = existing_category.is_active
-        category_slack_channel = existing_category.slack_channel
-
-        # Create new bot
-        new_bot = Bot(
-            name=data['name'],
-            category_id=category_id,
-            dalle_prompt=data['dalle_prompt'],
-            created_at=current_time,
-            updated_at=current_time
+        query = Bot.query.options(
+            joinedload(Bot.keywords),
+            joinedload(Bot.blacklist),
+            joinedload(Bot.sites)
         )
-        db.session.add(new_bot)
-        db.session.commit()
-
-        # Create new Site
-        url = data['url']
-        site_name_match = re.search(r"https://www\.([^.]+)\.com", url)
-        site_name = 'Google News' if not site_name_match else site_name_match.group(1)
-
-        new_site = Site(
-            name=site_name,
-            url=url,
-            bot_id=new_bot.id,
-            created_at=current_time,
-            updated_at=current_time
-        )
-        db.session.add(new_site)
-        db.session.commit()
-
-        # Add keywords to the bot
-        keywords = [keyword.strip() for keyword in data['keywords'].split(',')]
-        for keyword in keywords:
-            new_keyword = Keyword(
-                name=keyword,
-                bot_id=new_bot.id,
-                created_at=current_time,
-                updated_at=current_time
-            )
-            db.session.add(new_keyword)
-
-        # Add words to the bot Blacklist
-        blacklist = [keyword.strip() for keyword in data['blacklist'].split(',')]
-        for word in blacklist:
-            new_blacklist_entry = Blacklist(
-                name=word,
-                bot_id=new_bot.id,
-                created_at=current_time,
-                updated_at=current_time
-            )
-            db.session.add(new_blacklist_entry)
-
-        db.session.commit()
-
-        # Schedule the bot if the category is active
-        if is_category_active:
-            scheduler.add_job(
-                id=str(new_bot.name),
-                func=scheduled_job,
-                name=new_bot.name,
-                replace_existing=True,
-                args=[url, new_bot.name, blacklist, existing_category.id, new_bot.id, category_slack_channel],
-                trigger='interval',
-                minutes=category_interval
-            )
-            response = create_response(success=True, data=new_bot.as_dict(), message='Bot created and automated successfully')
-        else:
-            response = create_response(success=True, data=new_bot.as_dict(), message='Bot created, but NOT automated - Activate the category')
         
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        response = create_response(error=f'Database error: {str(e)}')
-        return jsonify(response), 500
-    except Exception as e:
-        response = create_response(error=f"Error creating bot: {str(e)}")
-        return jsonify(response), 500
+        if bot_id:
+            bot = query.get(bot_id)
+        else:
+            bot = query.filter_by(name=bot_name).first()
 
-    return jsonify(response), 200
-
-@bots_bp.route('/delete_bot/<int:bot_id>', methods=['DELETE'])
-@handle_db_session
-def delete_bot(bot_id):
-    """
-    Delete a single bot by ID.
-    Args:
-        bot_id (int): The ID of the bot to delete.
-    Response:
-        200: Bot deleted successfully.
-        404: Bot not found.
-        500: Internal server error.
-    """
-    try:
-        bot = Bot.query.get(bot_id)
         if not bot:
-            response = create_response(error='Bot not found')
-            return jsonify(response), 404
+            return jsonify(create_response(error="Bot not found")), 404
 
-        # Remove scheduled job for the bot if exists
-        bot_job = scheduler.get_job(job_id=str(bot_id))
-        if bot_job:
-            scheduler.remove_job(job_id=str(bot_id))
+        bot_dict = bot.as_dict()
+        bot_dict['keywords'] = sorted([keyword.name for keyword in bot.keywords])
+        bot_dict['blacklist'] = sorted([item.name for item in bot.blacklist])
+        
+        # Add site data using the Site model's as_dict() method
+        site = Site.query.filter_by(bot_id=bot.id).first()
+        bot_dict['site'] = site.as_dict() if site else None
 
-        # Delete bot from database
-        db.session.delete(bot)
-        db.session.commit()
+        response = create_response(success=True, data=bot_dict)
+        return jsonify(response), 200
 
-        response = create_response(success=True, message=f'Bot with ID {bot_id} deleted successfully')
     except SQLAlchemyError as e:
         db.session.rollback()
-        response = create_response(error=f'Database error: {str(e)}')
-        return jsonify(response), 500
+        return jsonify(create_response(error=f"Database error: {str(e)}")), 500
     except Exception as e:
-        db.session.rollback()
-        response = create_response(error=f'Internal server error: {str(e)}')
-        return jsonify(response), 500
+        return jsonify(create_response(error=f"Unexpected error: {str(e)}")), 500
 
-    return jsonify(response), 200
 
-@bots_bp.route('/get_all_bots', methods=['GET'])
-@handle_db_session
+@bots_bp.route('/bots', methods=['GET'])
+@cache_with_redis()
 def get_all_bots():
     """
-    Retrieve all bots with associated categories.
+    Get all bots, including related keywords, blacklist items, and site information for each bot.
+    
     Response:
-        200: List of bots retrieved successfully.
-        500: Internal server error.
+    200: List of all bots retrieved successfully, sorted alphabetically by bot name.
+    500: Internal server error.
     """
     try:
-        categories = Category.query.order_by(Category.id).all()
-        bots = [{'category': category.name, 'isActive': category.is_active, 
-                 'alias': category.alias, 'icon': category.icon, 'updated_at': category.updated_at , 'color': category.border_color} for category in categories]
-        response = create_response(success=True, data=bots)
-    except Exception as e:
-        response = create_response(error=f'Error retrieving bots: {str(e)}')
-        return jsonify(response), 500
-    return jsonify(response), 200
-
-@bots_bp.route('/activate_bot_by_id/<category_name>', methods=['POST'])
-@handle_db_session
-def activate_bot_by_id(category_name):
-    """
-    Activate all bots associated with a given category.
-    Args:
-        category_name (str): The name of the category to activate bots for.
-    Response:
-        200: Category activated successfully.
-        404: Category not found.
-        500: Internal server error.
-    """
-    try:
-        # Fetch the category from the database
-        category = Category.query.filter_by(name=category_name).first()
-        if not category:
-            response = create_response(error='Category not found')
-            return jsonify(response), 404
-
-        # Check if the category is already active
-        if category.is_active:
-            response = create_response(success=True, message=f"{category_name} category is already active")
-            return jsonify(response), 200
-
-        # Fetch all bots associated with the category
-        bots = Bot.query.filter_by(category_id=category.id).all()
-
-        interval_base = 20  # Base interval in minutes
-
-        for index, bot in enumerate(bots):
-            # Fetch the associated site for the bot
-            site = Site.query.filter_by(bot_id=bot.id).first()
-            if not site or not site.url:
-                continue  # Skip if no site or site URL is found
-
-            # Prepare data for scheduling
-            bot_site = site.url
-            bot_blacklist = [bl.name for bl in Blacklist.query.filter_by(bot_id=bot.id).all()]
-            bot_id = bot.id
-            bot_name = bot.name
-
-            # Calculate interval based on the index of the bot
-            minutes = interval_base + 10 * index
-
-            scheduler.add_job(
-                id=str(bot_name),
-                func=scheduled_job,
-                name=bot_name,
-                replace_existing=True,
-                args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category.slack_channel],
-                trigger='interval',
-                minutes=minutes
-            )
-            
-        # Set category as active
-        category.is_active = True
-        db.session.commit()
-
-        response = create_response(success=True, message=f'{category_name} category was activated successfully')
-    except Exception as e:
-        db.session.rollback()
-        response = create_response(error=f"Error activating bots for category '{category_name}': {e}")
-        return jsonify(response), 500
-
-    return jsonify(response), 200
-
-@bots_bp.route('/deactivate_bot_by_id/<category_name>', methods=['POST'])
-@handle_db_session
-def deactivate_bot_by_id(category_name):
-    """
-    Deactivate all bots associated with a given category.
-    Args:
-        category_name (str): The name of the category to deactivate bots for.
-    Response:
-        200: Category deactivated successfully.
-        404: Category not found.
-        500: Internal server error.
-    """
-    try:
-        # Fetch the category from the database
-        category = Category.query.filter_by(name=category_name).first()
-        if not category:
-            response = create_response(error='Category not found')
-            return jsonify(response), 404
+        bots = Bot.query.options(
+            joinedload(Bot.keywords),
+            joinedload(Bot.blacklist),
+            joinedload(Bot.sites)
+        ).all()
         
-        # Remove scheduled jobs for all bots in the category
-        bot_names = [bot.name for bot in Bot.query.filter_by(category_id=category.id).all()]
+        bots_data = []
+        for bot in bots:
+            bot_dict = bot.as_dict()
+            bot_dict['keywords'] = sorted([keyword.name for keyword in bot.keywords])
+            bot_dict['blacklist'] = sorted([item.name for item in bot.blacklist])
+            
+            # Add site information
+            site = Site.query.filter_by(bot_id=bot.id).first()
+            bot_dict['site'] = site.as_dict() if site else None
+            
+            bots_data.append(bot_dict)
+        
+        # Sort bots alphabetically by name
+        bots_data.sort(key=lambda x: x['name'])
+        
+        response = create_response(success=True, data=bots_data)
+        return jsonify(response), 200
 
-        for name in bot_names:
-            schedule_job = scheduler.get_job(id=str(name))
-            if schedule_job:
-                scheduler.remove_job(id=str(name))
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify(create_response(error=f"Database error: {str(e)}")), 500
+    except Exception as e:
+        return jsonify(create_response(error=f"Unexpected error: {str(e)}")), 500
 
-        # Check if the category is already inactive
-        if not category.is_active:
-            response = create_response(success=True, message=f"{category_name} is already deactivated")
+
+@bots_bp.route('/bot', methods=['POST'])
+@update_cache_with_redis(related_get_endpoints=['get_all_bots'])
+def create_bot():
+    """
+    Create a new bot.
+
+    This endpoint handles the creation of a new bot with associated site, keywords, and blacklist.
+
+    Request JSON:
+        name (str): The name of the bot (required)
+        alias (str): An alias for the bot (required)
+        category_id (int): The ID of the category the bot belongs to (required)
+        dalle_prompt (str): The DALL-E prompt for the bot (optional)
+        background_color (str): The background color for the bot (optional)
+        run_frequency (int): The frequency to run the bot in minutes (required for scheduling)
+        url (str): The URL for the bot's site (required for scheduling)
+        whitelist (str): Comma-separated list of keywords (optional)
+        blacklist (str): Comma-separated list of blacklisted words (optional)
+
+    Returns:
+        JSON: A response containing:
+            - success (bool): Indicates if the operation was successful
+            - bot (dict): The created bot's data
+            - error (str): Error message if any
+            - message (str): Additional information about the operation
+        HTTP Status Code:
+            - 201: Created successfully
+            - 400: Bad request (missing required fields or bot name already exists)
+            - 404: Category not found
+            - 500: Internal server error
+    """
+    with Session() as session:
+        try:
+            data = request.json
+            current_time = datetime.now()
+
+            # Validate required fields
+            required_fields = ['name', 'alias', 'category_id']
+            for field in required_fields:
+                if field not in data:
+                    return jsonify(create_response(error=f'Missing field in request data: {field}')), 400
+
+            # Check if bot with the same name already exists
+            existing_bot = session.query(Bot).filter_by(name=data['name']).first()
+            if existing_bot:
+                return jsonify(create_response(error=f"A bot with the name '{data['name']}' already exists")), 400
+
+            # Check if the category exists
+            existing_category = session.query(Category).get(data['category_id'])
+            if not existing_category:
+                return jsonify(create_response(error='Category ID not found')), 404
+            
+            # Normalize icon name
+            icon_normalized = data["alias"].strip().replace(" ", "_").lower()
+            
+            # Create new bot
+            new_bot = Bot(
+                name=data['name'],
+                alias=data['alias'],
+                category_id=data['category_id'],
+                dalle_prompt=data.get('dalle_prompt', ''),
+                icon=f'https://aialphaicons.s3.us-east-2.amazonaws.com/{icon_normalized}.svg',
+                background_color=data.get('background_color', ''),
+                run_frequency=data.get('run_frequency'),
+                is_active=False,
+                created_at=current_time,
+                updated_at=current_time
+            )
+            session.add(new_bot)
+            session.flush() 
+
+            # Create new Site if URL is provided
+            url = data.get('url')
+            if url:
+                site_name_match = re.search(r"https://www\.([^.]+)\.com", url)
+                site_name = 'Google News' if not site_name_match else site_name_match.group(1)
+                new_site = Site(
+                    name=site_name,
+                    url=url,
+                    bot_id=new_bot.id,
+                    created_at=current_time,
+                    updated_at=current_time
+                )
+                session.add(new_site)
+
+            # Add keywords (whitelist) to the bot
+            if 'whitelist' in data:
+                keywords = [keyword.strip().lower() for keyword in data['whitelist'].split(',')]
+                for keyword in keywords:
+                    new_keyword = Keyword(
+                        name=keyword,
+                        bot_id=new_bot.id,
+                        created_at=current_time,
+                        updated_at=current_time
+                    )
+                    session.add(new_keyword)
+
+            # Add words to the bot Blacklist
+            blacklist = []
+            if 'blacklist' in data:
+                blacklist = [keyword.strip().lower() for keyword in data['blacklist'].split(',')]
+                for word in blacklist:
+                    new_blacklist_entry = Blacklist(
+                        name=word,
+                        bot_id=new_bot.id,
+                        created_at=current_time,
+                        updated_at=current_time
+                    )
+                    session.add(new_blacklist_entry)
+
+            session.commit()
+
+            schedule_message = "Bot created successfully."
+            return jsonify(create_response(
+                success=True,
+                bot=new_bot.as_dict(),
+                message=schedule_message
+            )), 201
+
+        except SQLAlchemyError as e:
+            session.rollback()
+            return jsonify(create_response(error=f"Database error: {str(e)}")), 500
+        except Exception as e:
+            return jsonify(create_response(error=f"An unexpected error occurred: {str(e)}")), 500
+
+
+@bots_bp.route('/bot/<int:bot_id>', methods=['PUT'])
+@update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot'])
+def update_bot(bot_id):
+    """
+    Update an existing bot in the news bot server and reschedule if necessary.
+
+    This endpoint updates a bot entry with the provided details, saves the changes to the database,
+    and reschedules the bot if it's active and its run frequency has changed.
+
+    Args:
+        bot_id (int): The ID of the bot to be updated
+
+    Request JSON:
+        name (str, optional): The name of the bot
+        alias (str, optional): An alternative identifier for the bot
+        category_id (int, optional): The ID of the category the bot belongs to
+        dalle_prompt (str, optional): The DALL-E prompt for the bot
+        background_color (str, optional): HEX code string for visual representation
+        run_frequency (int, optional): The frequency to run the bot in minutes
+        url (str, optional): The URL for the bot's site
+        whitelist (str, optional): Comma-separated list of keywords
+        blacklist (str, optional): Comma-separated list of blacklisted words
+
+    Returns:
+        JSON: A response containing:
+            - success (bool): Indicates if the operation was successful
+            - bot (dict or None): The updated bot data or None
+            - error (str or None): Error message, if any
+            - message (str): Additional information about the operation
+        HTTP Status Code:
+            - 200: Updated successfully
+            - 400: Bad request (invalid data)
+            - 404: Bot not found
+            - 500: Internal server error
+    """
+    with Session() as session:
+        try:
+            bot = session.query(Bot).get(bot_id)
+            if not bot:
+                return jsonify(create_response(error=f'Bot with ID {bot_id} not found')), 404
+
+            data = request.json
+            if not data:
+                return jsonify(create_response(error='No update data provided')), 400
+
+            # Update fields if provided
+            updatable_fields = ['name', 'alias', 'category_id', 'dalle_prompt', 'background_color', 'run_frequency']
+            for field in updatable_fields:
+                if field in data:
+                    setattr(bot, field, data[field])
+
+            # Update icon if alias is provided
+            if 'alias' in data:
+                icon_normalized = data["alias"].strip().replace(" ", "_").lower()
+                bot.icon = f'https://aialphaicons.s3.us-east-2.amazonaws.com/{icon_normalized}.svg'
+
+            # Update or create Site if URL is provided
+            if 'url' in data:
+                if not validate_url(data['url']):
+                    return jsonify(create_response(error='Invalid URL provided')), 400
+                site = session.query(Site).filter_by(bot_id=bot.id).first()
+                site_name_match = re.search(r"https://www\.([^.]+)\.com", data['url'])
+                site_name = 'Google News' if not site_name_match else site_name_match.group(1)
+                if site:
+                    site.url = data['url']
+                    site.name = site_name
+                else:
+                    new_site = Site(
+                        name=site_name,
+                        url=data['url'],
+                        bot_id=bot.id,
+                        created_at=datetime.now(),
+                        updated_at=datetime.now()
+                    )
+                    session.add(new_site)
+
+            # Update keywords (whitelist)
+            if 'whitelist' in data:
+                session.query(Keyword).filter_by(bot_id=bot.id).delete()
+                keywords = [keyword.strip().lower() for keyword in data['whitelist'].split(',') if keyword.strip()]
+                for keyword in keywords:
+                    new_keyword = Keyword(name=keyword, bot_id=bot.id)
+                    session.add(new_keyword)
+
+            # Update blacklist
+            if 'blacklist' in data:
+                session.query(Blacklist).filter_by(bot_id=bot.id).delete()
+                blacklist = [word.strip().lower() for word in data['blacklist'].split(',') if word.strip()]
+                for word in blacklist:
+                    new_blacklist_entry = Blacklist(name=word, bot_id=bot.id)
+                    session.add(new_blacklist_entry)
+
+            bot.updated_at = datetime.now()
+            session.commit()
+
+            # Reschedule the bot if it's active and run_frequency has changed
+            schedule_message = "Bot updated successfully."
+            if bot.is_active:
+                # Define the fields that don't require rescheduling
+                non_reschedule_fields = {'backgroundcolor', 'alias'}
+                
+                # Check if the request contains only non-reschedule fields
+                if set(data.keys()).issubset(non_reschedule_fields):
+                    schedule_message += ""
+                else:
+                    try:
+                        reschedule(bot.name)
+                        schedule_message += " Bot rescheduled successfully."
+                    except Exception as e:
+                        schedule_message += f" Bot rescheduling failed: {str(e)}"
+
+            return jsonify(create_response(
+                success=True,
+                message=schedule_message
+            )), 200
+
+        except SQLAlchemyError as e:
+            session.rollback()
+            return jsonify(create_response(error="Database error occurred")), 500
+        except Exception as e:
+            return jsonify(create_response(error="An unexpected error occurred")), 500
+
+
+@bots_bp.route('/bot/<int:bot_id>', methods=['DELETE'])
+@update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot'])
+def delete_bot(bot_id):
+    """
+    Delete a bot and all its associated data from the news bot server.
+
+    This endpoint deletes a bot entry identified by the provided ID. Due to the cascade
+    configuration, it will also delete all associated sites, keywords, blacklist entries,
+    articles, and unwanted articles.
+
+    Args:
+        bot_id (int): The ID of the bot to be deleted
+
+    Returns:
+        JSON: A JSON object containing:
+            - success (bool): Indicates if the operation was successful
+            - message (str): A message describing the result of the operation
+            - error (str or None): Error message, if any
+        HTTP Status Code:
+            - 200: Deleted successfully
+            - 404: Bot not found
+            - 500: Internal Server Error
+    """
+    response = {
+        "success": False,
+        "message": "",
+        "error": None
+    }
+
+    with Session() as session:
+        try:
+            bot = session.query(Bot).get(bot_id)
+            if not bot:
+                response["error"] = f"No bot found with ID: {bot_id}"
+                return jsonify(response), 404
+
+            # Remove scheduled job if exists
+            bot_job = scheduler.get_job(id=str(bot.name))  
+            if bot_job:
+                scheduler.remove_job(id=str(bot.name)) 
+          
+            # Delete bot from database
+            session.delete(bot)
+            session.commit()
+
+            response["success"] = True
+            response["message"] = f"Bot with ID {bot_id} and all its associated data have been successfully deleted"
+           
             return jsonify(response), 200
 
-        # Set category as inactive
-        category.is_active = False
-        db.session.commit()  
+        except SQLAlchemyError as e:
+            session.rollback()
+            error_msg = f"Error occurred while deleting bot {bot_id}: {str(e)}"
+            response["error"] = error_msg
+            return jsonify(response), 500
 
-        response = create_response(success=True, message=f"{category_name} was deactivated successfully")
-    except Exception as e:
-        db.session.rollback()
-        response = create_response(error=f"Error deactivating category '{category_name}': {e}")
-        return jsonify(response), 500
+        except Exception as e:
+            session.rollback()
+            error_msg = f"Unexpected error occurred while deleting bot {bot_id}: {str(e)}"
+            response["error"] = error_msg
+            return jsonify(response), 500
 
-    return jsonify(response), 200
 
-@bots_bp.route('/get_all_coin_bots', methods=['GET'])
-@handle_db_session
-def get_all_coin_bots():
+@bots_bp.route('/bot/<int:bot_id>/toggle-activation', methods=['POST'])
+@update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot'])
+def toggle_activation_bot(bot_id):
     """
-    Get all coin bots.
-    Response:
-        200: List of coin bots retrieved successfully.
-        500: Internal server error.
-    """
-    try:
-        coin_bots = db.session.query(Bot.id, Bot.name).all()
-        coin_bots_data = [{'id': id, 'name': name } for id, name in coin_bots]
-        response = create_response(success=True, data={'coin_bots': coin_bots_data})
-    except SQLAlchemyError as e:
-        response = create_response(error=f'Database error: {str(e)}')
-        return jsonify(response), 500
-    except Exception as e:
-        response = create_response(error=str(e))
-        return jsonify(response), 500
+    Toggle the activation status of the bot.
 
-    return jsonify(response), 200
+    This endpoint activates or deactivates a bot based on its current status.
+    It performs necessary validations and schedules or unschedules the bot as needed.
+
+    Args:
+        bot_id (int): The ID of the bot to toggle
+
+    Returns:
+        JSON: A response containing:
+            - success (bool): Indicates if the operation was successful
+            - message (str): A message describing the result of the operation
+            - error (str or None): Error message, if any
+        HTTP Status Code:
+            - 200: Operation successful
+            - 404: Bot not found
+            - 400: Validation failed
+            - 500: Internal server error
+    """
+    with Session() as session:
+        try:
+            bot = session.query(Bot).options(
+                joinedload(Bot.sites),
+                joinedload(Bot.keywords),
+                joinedload(Bot.blacklist),
+            ).get(bot_id)
+
+            if not bot:
+                return jsonify(create_response(error=f"No bot found with ID: {bot_id}")), 404
+            
+            category = session.query(Category).filter_by(id=bot.category_id).first()
+
+            if not bot.is_active:
+                # Validation for activation
+                validation_errors = []
+
+                # Check bot fields
+                required_bot_fields = ['dalle_prompt', 'run_frequency']
+                for field in required_bot_fields:
+                    if not getattr(bot, field):
+                        validation_errors.append(f"Bot is missing {field}")
+
+                # Check associated data
+                if not bot.sites:
+                    validation_errors.append("Bot does not have an associated site")
+                elif not bot.sites[0].url:
+                    validation_errors.append("Bot's site is missing URL")
+
+                if not bot.keywords:
+                    validation_errors.append("Bot does not have any keywords")
+
+                if not bot.blacklist:
+                    validation_errors.append("Bot does not have a blacklist")
+                
+                if category:
+                    required_category_fields = ['prompt', 'slack_channel']
+                    for field in required_category_fields:
+                        if not getattr(category, field):
+                            validation_errors.append(f"Bot's category is missing {field}")
+
+                if validation_errors:
+                    return jsonify(create_response(
+                        success=False,
+                        error="Bot activation failed due to the following issues:",
+                        validation_errors=validation_errors
+                    )), 400
+
+                # All validations passed, activate the bot
+                bot.is_active = True
+                try:
+                    job = scheduler.get_job(id=str(bot.name))
+                    if job:
+                        scheduler.remove_job(id=str(bot.name))
+                        message = f"Bot {bot.name} activated successfully"
+                except Exception as e:
+                    bot.is_active = False  # Revert activation if scheduling fails
+                    return jsonify(create_response(error=f"Failed to activate bot: {str(e)}")), 500
+            else:
+                # Deactivation logic
+                bot.is_active = False
+                try:
+                    job = scheduler.get_job(id=str(bot.name))
+                    if job:
+                        scheduler.remove_job(id=str(bot.name))
+                        message = f"Bot {bot.name} deactivated successfully"
+                except Exception as e:
+                    message = f"Bot {bot.name} deactivated (error during unscheduling)"
+
+            bot.updated_at = datetime.now()
+            session.commit()
+
+            return jsonify(create_response(
+                success=True,
+                message=message,
+                bot=bot.as_dict()
+            )), 200
+
+        except SQLAlchemyError as e:
+            session.rollback()
+            return jsonify(create_response(error="A database error occurred")), 500
+        except Exception as e:
+            session.rollback()
+            return jsonify(create_response(error="An unexpected error occurred")), 500

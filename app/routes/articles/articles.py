@@ -19,6 +19,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from playwright.sync_api import sync_playwright
 from werkzeug.utils import secure_filename
 
+from redis_client.redis_client import cache_with_redis, update_cache_with_redis
+
 
 load_dotenv()
 
@@ -31,9 +33,13 @@ root_dir = os.path.abspath(os.path.dirname(__file__))
 user_data_dir = os.path.join(root_dir, 'tmp/playwright')
 os.makedirs(user_data_dir, exist_ok=True)
 
+@cache_with_redis()
+
+
 
 @articles_bp.route('/get_all_articles', methods=['GET'])
 @handle_db_session
+@cache_with_redis()
 def get_all_articles():
     """
     Retrieve all articles with an optional limit.
@@ -55,9 +61,9 @@ def get_all_articles():
     return jsonify(response), 200
 
 
-
 @articles_bp.route('/get_article_by_id/<int:article_id>', methods=['GET'])
 @handle_db_session
+@cache_with_redis()
 def get_article_by_id(article_id):
     """
     Retrieve a specific article by its ID.
@@ -79,6 +85,7 @@ def get_article_by_id(article_id):
 
 @articles_bp.route('/get_articles', methods=['GET'])
 @handle_db_session
+@cache_with_redis()
 def get_articles_by_bot():
     """
     Retrieve articles by bot ID or bot name with an optional limit.
@@ -112,6 +119,7 @@ def get_articles_by_bot():
 
 
 @articles_bp.route('/delete_article', methods=['DELETE'])
+@update_cache_with_redis(related_get_endpoints=['get_all_articles','get_article_by_id','get_articles_by_bot'])
 @handle_db_session
 def delete_article():
     """
@@ -139,6 +147,7 @@ def delete_article():
         return jsonify(response), 404
 
 @articles_bp.route('/add_new_article', methods=['POST'])
+@update_cache_with_redis(related_get_endpoints=['get_all_articles','get_article_by_id','get_articles_by_bot'])
 @handle_db_session
 def create_article():
     """
@@ -315,6 +324,7 @@ def generate_article():
 
 @articles_bp.route('/last_five_articles', methods=['GET'])
 @handle_db_session
+@cache_with_redis()
 def get_last_five_articles():
     """
     Get the last five articles with extended details.
@@ -442,6 +452,7 @@ def extract_content():
         return jsonify({'response': f'An error occurred: {str(e)}', 'success': False}), 500
     
 @articles_bp.route('/api/update/top-story/<int:article_id>', methods=['PUT'])
+@update_cache_with_redis(related_get_endpoints=['get_all_articles','get_article_by_id','get_articles_by_bot'])
 def update_top_story(article_id):
     try:
         article = db.session.query(Article).filter(Article.id == article_id).first()

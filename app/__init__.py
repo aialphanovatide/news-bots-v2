@@ -42,10 +42,10 @@ def create_app():
 
     with app.app_context():
         db.create_all()  # Create tables if they don't exist
-        initialize_categories()
-        initialize_fixed_data()
-        initialize_sites_data()
-        initialize_keywords() 
+        # initialize_categories()
+        # initialize_fixed_data()
+        # initialize_sites_data()
+        # initialize_keywords() 
 
     # Register blueprints -  routes
     app.register_blueprint(bots_bp)

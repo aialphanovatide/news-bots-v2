@@ -1,3 +1,7 @@
+
+# FILE DEPRACATED, SCHEDULE TO REMOVE AND DELETE AFTER PR https://github.com/aialphanovatide/ai-alpha-backend/pull/109 IS APPROVED
+
+
 import os
 from flask import Blueprint, jsonify
 import requests
