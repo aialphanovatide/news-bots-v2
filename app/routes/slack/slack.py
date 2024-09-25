@@ -16,6 +16,8 @@ slack_action_bp = Blueprint(
     static_folder='static'
 )
 
+# THIS IS PART OF THE TOP STORIES, ADD TO THE APPROPIATE PATH.
+
     
 @slack_action_bp.route("/slack/events", methods=["POST"])
 @measure_execution_time
@@ -136,8 +138,6 @@ def handle_block_actions(data):
     except Exception as e:
         return {'success': False, 'error': f'Internal server error: {str(e)}'}
     
-
-
 def extract_url_from_blocks(blocks):
     """
     Extracts URL from message blocks.
@@ -161,7 +161,6 @@ def extract_url_from_blocks(blocks):
                 if url:
                     return url
     return None
-
 
 def extract_url_from_text(text):
     """

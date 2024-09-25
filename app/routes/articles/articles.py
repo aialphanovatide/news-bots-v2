@@ -55,7 +55,6 @@ def get_all_articles():
     return jsonify(response), 200
 
 
-
 @articles_bp.route('/get_article_by_id/<int:article_id>', methods=['GET'])
 @handle_db_session
 def get_article_by_id(article_id):

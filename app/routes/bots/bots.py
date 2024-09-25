@@ -4,10 +4,10 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from app.utils.index import fetch_news_links
 from flask import Blueprint, jsonify, request
+from app.routes.bots.utils import validate_url
 from scheduler_config import reschedule, scheduler
 from app.routes.routes_utils import create_response
 from config import Blacklist, Bot, Keyword, Session, Site, db, Category
-from app.routes.bots.utils import check_scheduling_requirements, handle_scheduling_errors, validate_url
 
 bots_bp = Blueprint(
     'bots_bp', __name__,
@@ -135,10 +135,9 @@ def get_all_bots():
 @bots_bp.route('/bot', methods=['POST'])
 def create_bot():
     """
-    Create a new bot and optionally schedule it.
+    Create a new bot.
 
     This endpoint handles the creation of a new bot with associated site, keywords, and blacklist.
-    The bot will be scheduled only if all required parameters are provided.
 
     Request JSON:
         name (str): The name of the bot (required)
@@ -244,32 +243,7 @@ def create_bot():
 
             session.commit()
 
-            # Determine if the bot can be scheduled
-            can_schedule = check_scheduling_requirements(data) and existing_category.slack_channel
-
             schedule_message = "Bot created successfully."
-            if can_schedule:
-                scheduling_error = handle_scheduling_errors(data)
-                if scheduling_error:
-                    schedule_message += f" {scheduling_error}"
-                else:
-                    try:
-                        # Add the job to the scheduler
-                        scheduler.add_job(
-                            id=str(new_bot.name),
-                            func=scheduled_job,
-                            name=new_bot.name,
-                            replace_existing=True,
-                            args=[data['url'], new_bot.name, data['blacklist'].split(','), existing_category.id, new_bot.id, existing_category.slack_channel],
-                            trigger='interval',
-                            minutes=int(data['run_frequency'])
-                        )
-                        schedule_message += " Bot scheduled successfully."
-                    except Exception as e:
-                        schedule_message += f" Scheduling failed: {str(e)}"
-            else:
-                schedule_message += " Bot not scheduled due to missing parameters or inactive category."
-
             return jsonify(create_response(
                 success=True,
                 bot=new_bot.as_dict(),
@@ -283,7 +257,7 @@ def create_bot():
             return jsonify(create_response(error=f"An unexpected error occurred: {str(e)}")), 500
 
 
-bots_bp.route('/bot/<int:bot_id>', methods=['PUT'])
+@bots_bp.route('/bot/<int:bot_id>', methods=['PUT'])
 def update_bot(bot_id):
     """
     Update an existing bot in the news bot server and reschedule if necessary.
@@ -343,12 +317,14 @@ def update_bot(bot_id):
                 if not validate_url(data['url']):
                     return jsonify(create_response(error='Invalid URL provided')), 400
                 site = session.query(Site).filter_by(bot_id=bot.id).first()
+                site_name_match = re.search(r"https://www\.([^.]+)\.com", data['url'])
+                site_name = 'Google News' if not site_name_match else site_name_match.group(1)
                 if site:
                     site.url = data['url']
-                    site.name = parse_site_name(data['url'])
+                    site.name = site_name
                 else:
                     new_site = Site(
-                        name=parse_site_name(data['url']),
+                        name=site_name,
                         url=data['url'],
                         bot_id=bot.id,
                         created_at=datetime.now(),
@@ -377,16 +353,22 @@ def update_bot(bot_id):
 
             # Reschedule the bot if it's active and run_frequency has changed
             schedule_message = "Bot updated successfully."
-            if bot.is_active and  'background_color' not in data and 'alias' not in data:
-                try:
-                    reschedule_bot(bot)
-                    schedule_message += " Bot rescheduled successfully."
-                except Exception as e:
-                    schedule_message += f" Bot rescheduling failed: {str(e)}"
+            if bot.is_active:
+                # Define the fields that don't require rescheduling
+                non_reschedule_fields = {'backgroundcolor', 'alias'}
+                
+                # Check if the request contains only non-reschedule fields
+                if set(data.keys()).issubset(non_reschedule_fields):
+                    schedule_message += ""
+                else:
+                    try:
+                        reschedule(bot.name)
+                        schedule_message += " Bot rescheduled successfully."
+                    except Exception as e:
+                        schedule_message += f" Bot rescheduling failed: {str(e)}"
 
             return jsonify(create_response(
                 success=True,
-                bot=bot.as_dict(),
                 message=schedule_message
             )), 200
 
@@ -424,45 +406,45 @@ def delete_bot(bot_id):
         "message": "",
         "error": None
     }
-    status_code = 500
 
     with Session() as session:
         try:
             bot = session.query(Bot).get(bot_id)
             if not bot:
                 response["error"] = f"No bot found with ID: {bot_id}"
-                status_code = 404
-                return jsonify(response), status_code
+                return jsonify(response), 404
 
+            # Remove scheduled job if exists
             bot_job = scheduler.get_job(id=str(bot.name))  
             if bot_job:
                 scheduler.remove_job(id=str(bot.name)) 
-            else:
-                print(f"No job found for bot {bot.name}")
-
+          
+            # Delete bot from database
             session.delete(bot)
             session.commit()
 
             response["success"] = True
             response["message"] = f"Bot with ID {bot_id} and all its associated data have been successfully deleted"
-            status_code = 200
+           
+            return jsonify(response), 200
 
         except SQLAlchemyError as e:
             session.rollback()
-            response["error"] = f"Database error occurred: {str(e)}"
-            status_code = 500
+            error_msg = f"Error occurred while deleting bot {bot_id}: {str(e)}"
+            response["error"] = error_msg
+            return jsonify(response), 500
+
         except Exception as e:
             session.rollback()
-            response["error"] = f"An unexpected error occurred: {str(e)}"
-            status_code = 500
+            error_msg = f"Unexpected error occurred while deleting bot {bot_id}: {str(e)}"
+            response["error"] = error_msg
+            return jsonify(response), 500
 
-    return jsonify(response), status_code
 
-
-@bots_bp.route('/bot/<int:bot_id>/toggle-publication', methods=['POST'])
-def toggle_bot_publication(bot_id):
+@bots_bp.route('/bot/<int:bot_id>/toggle-activation', methods=['POST'])
+def toggle_activation_bot(bot_id):
     """
-    Toggle the publication status of a bot.
+    Toggle the activation status of the bot.
 
     This endpoint activates or deactivates a bot based on its current status.
     It performs necessary validations and schedules or unschedules the bot as needed.
@@ -481,74 +463,87 @@ def toggle_bot_publication(bot_id):
             - 400: Validation failed
             - 500: Internal server error
     """
-    response = {
-        "success": False,
-        "message": "",
-        "error": None
-    }
-    status_code = 500
-
     with Session() as session:
         try:
-            bot = session.query(Bot).get(bot_id)
+            bot = session.query(Bot).options(
+                joinedload(Bot.sites),
+                joinedload(Bot.keywords),
+                joinedload(Bot.blacklist),
+            ).get(bot_id)
+
             if not bot:
-                response["error"] = f"No bot found with ID: {bot_id}"
-                return jsonify(response), 404
-
-            # Validation for activation
-            if not bot.is_active:
-                # Check if the bot has an associated site
-                site = session.query(Site).filter_by(bot_id=bot.id).first()
-                if not site or not site.url:
-                    response["error"] = "Bot does not have an associated site URL"
-                    return jsonify(response), 400
-
-                # Additional validations can be added here
-
-            # Toggle bot status
-            bot.is_active = not bot.is_active
+                return jsonify(create_response(error=f"No bot found with ID: {bot_id}")), 404
             
-            if bot.is_active:
-                # Activation logic
-                site = session.query(Site).filter_by(bot_id=bot.id).first()
-                bot_blacklist = [bl.name for bl in session.query(Blacklist).filter_by(bot_id=bot.id).all()]
-                category = session.query(Category).get(bot.category_id)
+            category = session.query(Category).filter_by(id=bot.category_id).first()
 
+            if not bot.is_active:
+                # Validation for activation
+                validation_errors = []
+
+                # Check bot fields
+                required_bot_fields = ['dalle_prompt', 'run_frequency']
+                for field in required_bot_fields:
+                    if not getattr(bot, field):
+                        validation_errors.append(f"Bot is missing {field}")
+
+                # Check associated data
+                if not bot.sites:
+                    validation_errors.append("Bot does not have an associated site")
+                elif not bot.sites[0].url:
+                    validation_errors.append("Bot's site is missing URL")
+
+                if not bot.keywords:
+                    validation_errors.append("Bot does not have any keywords")
+
+                if not bot.blacklist:
+                    validation_errors.append("Bot does not have a blacklist")
+                
+                if category:
+                    required_category_fields = ['prompt', 'slack_channel']
+                    for field in required_category_fields:
+                        if not getattr(category, field):
+                            validation_errors.append(f"Bot's category is missing {field}")
+
+                if validation_errors:
+                    return jsonify(create_response(
+                        success=False,
+                        error="Bot activation failed due to the following issues:",
+                        validation_errors=validation_errors
+                    )), 400
+
+                # All validations passed, activate the bot
+                bot.is_active = True
                 try:
-                    scheduler.add_job(
-                        id=str(bot.name),
-                        func=scheduled_job,
-                        name=bot.name,
-                        replace_existing=True,
-                        args=[site.url, bot.name, bot_blacklist, category.id, bot.id, category.slack_channel],
-                        trigger='interval',
-                        minutes=int(bot.run_frequency)
-                    )
-                    response["message"] = f"Bot {bot.name} activated and scheduled successfully"
+                    job = scheduler.get_job(id=str(bot.name))
+                    if job:
+                        scheduler.remove_job(id=str(bot.name))
+                        message = f"Bot {bot.name} activated successfully"
                 except Exception as e:
-                    response["error"] = f"Failed to schedule bot: {str(e)}"
-                    return jsonify(response), 500
+                    bot.is_active = False  # Revert activation if scheduling fails
+                    return jsonify(create_response(error=f"Failed to activate bot: {str(e)}")), 500
             else:
                 # Deactivation logic
+                bot.is_active = False
                 try:
-                    scheduler.remove_job(id=str(bot.name))
-                    response["message"] = f"Bot {bot.name} deactivated and unscheduled successfully"
-                except Exception:
-                    response["message"] = f"Bot {bot.name} deactivated (was not scheduled)"
+                    job = scheduler.get_job(id=str(bot.name))
+                    if job:
+                        scheduler.remove_job(id=str(bot.name))
+                        message = f"Bot {bot.name} deactivated successfully"
+                except Exception as e:
+                    message = f"Bot {bot.name} deactivated (error during unscheduling)"
 
             bot.updated_at = datetime.now()
             session.commit()
 
-            response["success"] = True
-            status_code = 200
+            return jsonify(create_response(
+                success=True,
+                message=message,
+                bot=bot.as_dict()
+            )), 200
 
         except SQLAlchemyError as e:
             session.rollback()
-            response["error"] = f"Database error occurred: {str(e)}"
-            status_code = 500
+            return jsonify(create_response(error="A database error occurred")), 500
         except Exception as e:
             session.rollback()
-            response["error"] = f"An unexpected error occurred: {str(e)}"
-            status_code = 500
-
-    return jsonify(response), status_code
+            return jsonify(create_response(error="An unexpected error occurred")), 500
