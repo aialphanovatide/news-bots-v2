@@ -1,5 +1,7 @@
 # routes.py
 
+# FILE DEPRACATED, SCHEDULE TO REMOVE AND DELETE AFTER SERVER UPDATE
+
 from flask import Blueprint, jsonify, request
 from app.utils.helpers import measure_execution_time
 from config import Keyword, db

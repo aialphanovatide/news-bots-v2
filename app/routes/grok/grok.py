@@ -1,9 +1,10 @@
-import asyncio
 import os
+import asyncio
+import datetime
 from typing import Dict, List
 from playwright.async_api import async_playwright, Page, Browser
-import datetime
-# from config import Bot, db
+
+# REMOVE THIS CODE AND ADDED TO A MODULES FOLDER. THIS PATH IS ONLY FOR ENDPOINTS.
 
 async def search_coin_news(coin_name: str) -> List[Dict[str, str]]:
     """
@@ -178,13 +179,13 @@ async def get_response(page: Page) -> str:
     return "\n".join([await li.inner_text() for li in response_content])
 
 # Ejemplo de uso
-if __name__ == "__main__":
-    coin_name = "gold" 
-    news_array = asyncio.run(search_coin_news(coin_name))
-    print(f"\nTotal news items: {len(news_array)}")
-    for news in news_array:
-        print(f"\nID: {news['id']}")
-        print(f"Title: {news['title']}")
-        print(f"Content: {news['content']}")
-        print(f"URL: {news['url']}")
-        print(f"Source: {news['source']}")
+# if __name__ == "__main__":
+#     coin_name = "gold" 
+#     news_array = asyncio.run(search_coin_news(coin_name))
+#     print(f"\nTotal news items: {len(news_array)}")
+#     for news in news_array:
+#         print(f"\nID: {news['id']}")
+#         print(f"Title: {news['title']}")
+#         print(f"Content: {news['content']}")
+#         print(f"URL: {news['url']}")
+#         print(f"Source: {news['source']}")

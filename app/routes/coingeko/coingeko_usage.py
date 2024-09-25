@@ -1,3 +1,7 @@
+
+# FILE DEPRACATED, SCHEDULE TO REMOVE AND DELETE AFTER PR https://github.com/aialphanovatide/ai-alpha-backend/pull/109 IS APPROVED
+
+
 from flask import Blueprint, jsonify
 from app.routes.routes_utils import create_response
 from app.services.api_monitor.coingecko import get_coingecko_usage
