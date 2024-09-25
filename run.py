@@ -1,10 +1,13 @@
 import os
 import json
+
+import redis
 from config import db
 from flask_cors import CORS
 from flasgger import Swagger
 from flask_migrate import Migrate
 from app import create_app
+from redis_client import redis_client
 
 
 app = create_app()
@@ -36,7 +39,15 @@ CORS(app, origins='*', supports_credentials=True)
 app.static_folder = 'static'
 app.secret_key = os.urandom(24)
 
-
+try:
+    if redis_client.ping():
+        print('Successfully connected to Redis')
+    else:
+        print('Failed to connect to Redis')
+except redis.exceptions.AuthenticationError:
+    print("Redis authentication failed. Make sure the password is correct or not required.")
+except Exception as e:
+    print(f'Error connecting to Redis: {str(e)}')
 
 if __name__ == "__main__":
     try:

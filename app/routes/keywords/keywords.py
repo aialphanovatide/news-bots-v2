@@ -1,7 +1,6 @@
 # routes.py
 
 from flask import Blueprint, jsonify, request
-from app.utils.helpers import measure_execution_time
 from config import Keyword, db
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
@@ -14,7 +13,6 @@ keyword_bp = Blueprint(
 )
 
 @keyword_bp.route('/get_keywords', methods=['GET'])
-@measure_execution_time
 @handle_db_session
 def get_keywords_by_bot():
     """
@@ -56,7 +54,6 @@ def get_keywords_by_bot():
 
 
 @keyword_bp.route('/add_keyword', methods=['POST'])
-@measure_execution_time
 @handle_db_session
 def add_keyword_to_bot():
     """
@@ -112,7 +109,6 @@ def add_keyword_to_bot():
 
 
 @keyword_bp.route('/delete_keyword', methods=['DELETE'])
-@measure_execution_time
 @handle_db_session
 def delete_keyword_from_bot():
     """

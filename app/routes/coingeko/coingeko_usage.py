@@ -1,21 +1,32 @@
+import os
 from flask import Blueprint, jsonify
+import requests
 from app.routes.routes_utils import create_response
 from app.services.api_monitor.coingecko import get_coingecko_usage
+from dotenv import load_dotenv
 
+load_dotenv()
+
+COINGECKO_API_KEY = os.getenv('COINGECKO_APIKEY')
 
 coingecko_bp = Blueprint('coingecko_bp', __name__)
 
 
-@coingecko_bp.route('/coingecko/usage', methods=['GET'])
-def get_coingecko_usage_endpoint():
+@coingecko_bp.route('/api/v1/coingecko/usage', methods=['GET'])
+def coingecko_usage():
     """
-    Retrieve the API usage details from the CoinGecko Pro API.
+    Retrieve CoinGecko API usage information.
     """
+    api_key = COINGECKO_API_KEY
+    url = 'https://pro-api.coingecko.com/api/v3/key'
+    headers = {'X-Cg-Pro-Api-Key': api_key}
+    
     try:
-        usage_details = get_coingecko_usage()
-        if 'error' in usage_details:
-            return jsonify(create_response(success=False, error=usage_details['error'])), 500
-        return jsonify(create_response(success=True, data=usage_details['data']))
-    except Exception as e:
-        return jsonify(create_response(success=False, error=str(e))), 500
-
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return jsonify(create_response(success=True, data=response.json())), 200
+    except requests.RequestException as e:
+        error_message = f"Error fetching CoinGecko API usage: {e}"
+        if e.response is not None:
+            error_message += f" Response: {e.response.text}"
+        return jsonify(create_response(success=False, error=error_message)), 500
