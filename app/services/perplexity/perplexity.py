@@ -11,7 +11,7 @@ def perplexity_api_request(content, prompt):
     if not content or not prompt:
         return {'response': 'content and prompt are required', 'success': False}
     
-    model='llama-3-70b-instruct'
+    model='llama-3.1-sonar-huge-128k-online'
     
     payload = {
         "model": model,

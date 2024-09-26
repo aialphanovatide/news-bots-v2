@@ -94,8 +94,8 @@ def activate_all_bots():
         if not categories:
             return create_response(error='No categories found'), 404
 
-        global_minutes = 6
-        interval_base = 4  # Adjust interval base as needed
+        global_minutes = 1
+        interval_base = 1  # Adjust interval base as needed
 
         # Initialize ThreadPoolExecutor
         with ThreadPoolExecutor(max_workers=10) as executor:

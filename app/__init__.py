@@ -44,7 +44,7 @@ def create_app():
         db.create_all()  # Create tables if they don't exist
         # initialize_categories()
         # initialize_fixed_data()
-        # initialize_sites_data()
+        initialize_sites_data()
         # initialize_keywords() 
 
     # Register blueprints -  routes
