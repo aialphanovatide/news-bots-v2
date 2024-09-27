@@ -526,7 +526,26 @@ def toggle_activation_bot(bot_id):
                     job = scheduler.get_job(id=str(bot.name))
                     if job:
                         scheduler.remove_job(id=str(bot.name))
-                        message = f"Bot {bot.name} activated successfully"
+                        existing_category = Category.query.get(bot.category_id)
+                        if not existing_category:
+                            response = create_response(error='Category not found')
+                            return jsonify(response), 404
+                        
+                        # Schedule the bot's job
+                        scheduler.add_job(
+                            id=str(bot_id),
+                            func=scheduled_job,
+                            name=bot.name,
+                            replace_existing=True,
+                            args=[bot.url, bot.name, [bl.name for bl in Blacklist.query.filter_by(bot_id=bot.id).all()], bot.category_id, bot_id, existing_category.slack_channel],
+                            trigger='interval',
+                            minutes=bot.run_frequency
+                        )
+
+                        # Update bot's is_active status and log activation time
+                        bot.is_active = True
+                        bot.last_run = datetime.utcnow()
+                        db.session.commit()
                 except Exception as e:
                     bot.is_active = False  # Revert activation if scheduling fails
                     return jsonify(create_response(error=f"Failed to activate bot: {str(e)}")), 500
@@ -556,3 +575,33 @@ def toggle_activation_bot(bot_id):
         except Exception as e:
             session.rollback()
             return jsonify(create_response(error="An unexpected error occurred")), 500
+        
+        
+def validate_bot(bot, category, session):
+    validation_errors = []
+
+    # Check bot fields
+    required_bot_fields = ['dalle_prompt', 'run_frequency']
+    for field in required_bot_fields:
+        if not getattr(bot, field):
+            validation_errors.append(f"Bot is missing {field}")
+
+    # Check associated data
+    if not bot.sites:
+        validation_errors.append("Bot does not have an associated site")
+    elif not bot.sites[0].url:
+        validation_errors.append("Bot's site is missing URL")
+
+    if not bot.keywords:
+        validation_errors.append("Bot does not have any keywords")
+
+    if not bot.blacklist:
+        validation_errors.append("Bot does not have a blacklist")
+    
+    if category:
+        required_category_fields = ['prompt', 'slack_channel']
+        for field in required_category_fields:
+            if not getattr(category, field):
+                validation_errors.append(f"Bot's category is missing {field}")
+
+    return validation_errors
