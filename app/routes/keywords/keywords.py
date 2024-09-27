@@ -4,7 +4,7 @@
 
 from flask import Blueprint, jsonify, request
 from app.utils.helpers import measure_execution_time
-from config import Keyword, db
+from config import Blacklist, Keyword, db
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response, handle_db_session
@@ -173,3 +173,44 @@ def get_keywords_for_coin_bot(coin_bot_id):
     except Exception as e:
         response = create_response(error=f'Internal server error: {str(e)}')
         return jsonify(response), 500
+
+
+
+@keyword_bp.route('/keywords_dinamic_search', methods=['GET'])
+@measure_execution_time
+@handle_db_session
+def dynamic_search():
+    """
+    Search for related keywords and backlist words.
+    Args:
+        query (str): Word to search.
+    Response:
+        200: Successfully retrieved relevant words.
+        400: Missing query parameter.
+        404: No related words found.
+        500: Server error.
+    """
+    try:
+        query = request.args.get('query')
+
+        if not query:
+            return jsonify(create_response(error='Query string missing in request parameters')), 400
+
+        # Conduct search through the keyword and backlist tables
+        keyword_results = Keyword.query.filter(Keyword.name.ilike(f'%{query}%')).all()
+        backlist_results = Blacklist.query.filter(Blacklist.name.ilike(f'%{query}%')).all()
+
+        if not keyword_results and not backlist_results:
+            return jsonify(create_response(error='No related words found')), 404
+
+        # Prepare results
+        related_words = [kw.name for kw in keyword_results] + [bl.word for bl in backlist_results]
+
+        return jsonify(create_response(success=True, data=related_words)), 200
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify(create_response(error=f'Database error: {str(e)}')), 500
+
+    except Exception as e:
+        return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
