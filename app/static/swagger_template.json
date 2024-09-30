@@ -7,40 +7,12 @@
   },
   "tags": [
     {
-      "name": "Category",
-      "description": "Operations related to the categories"
-    },
-    {
-      "name": "Bots",
-      "description": "Operations related to the bots"
-    },
-    {
       "name": "Articles",
       "description": "Operations related to articles"
-    },
-    {
-      "name": "Top Stories",
-      "description": "Operations related to top stories"
-    },
-    {
-      "name": "Keywords",
-      "description": "Operations related to the keywords"
-    },
-    {
-      "name": "Blacklist",
-      "description": "Operations related to the blacklist"
-    },
-    {
-      "name": "Sites",
-      "description": "Operations related to the sites"
-    },
-    {
-      "name": "Unwanted Articles",
-      "description": "Operations related to the article that are categorized as invalid"
     }
   ],
   "paths": {
-    "/get_all_articles": {
+    "/articles": {
       "get": {
         "summary": "Get all articles",
         "tags": ["Articles"],
@@ -65,45 +37,21 @@
                   "items": {
                     "type": "object",
                     "properties": {
-                      "id": {
-                        "type": "integer"
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "content": {
-                        "type": "string"
-                      },
-                      "analysis": {
-                        "type": "string"
-                      },
-                      "url": {
-                        "type": "string"
-                      },
-                      "date": {
-                        "type": "string"
-                      },
-                      "used_keywords": {
-                        "type": "string"
-                      },
-                      "is_article_efficent": {
-                        "type": "boolean"
-                      },
-                      "bot_id": {
-                        "type": "integer"
-                      },
-                      "created_at": {
-                        "type": "string"
-                      },
-                      "updated_at": {
-                        "type": "string"
-                      }
+                      "id": { "type": "integer" },
+                      "title": { "type": "string" },
+                      "content": { "type": "string" },
+                      "analysis": { "type": "string" },
+                      "url": { "type": "string" },
+                      "date": { "type": "string" },
+                      "used_keywords": { "type": "string" },
+                      "is_article_efficient": { "type": "boolean" },
+                      "bot_id": { "type": "integer" },
+                      "created_at": { "type": "string" },
+                      "updated_at": { "type": "string" }
                     }
                   }
                 },
-                "success": {
-                  "type": "boolean"
-                }
+                "success": { "type": "boolean" }
               }
             }
           },
@@ -112,131 +60,18 @@
             "schema": {
               "type": "object",
               "properties": {
-                "error": {
-                  "type": "string"
-                },
-                "success": {
-                  "type": "boolean"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": {
-                  "type": "string"
-                },
-                "success": {
-                  "type": "boolean"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/get_articles": {
-      "get": {
-        "summary": "Get all articles of a Bot",
-        "tags": ["Articles"],
-        "parameters": [
-          {
-            "name": "bot_id",
-            "in": "query",
-            "description": "ID of the bot",
-            "required": true,
-            "type": "integer"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "Maximum number of articles to return",
-            "required": false,
-            "type": "integer",
-            "default": 10
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "data": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "integer"
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "content": {
-                        "type": "string"
-                      },
-                      "analysis": {
-                        "type": "string"
-                      },
-                      "url": {
-                        "type": "string"
-                      },
-                      "date": {
-                        "type": "string"
-                      },
-                      "used_keywords": {
-                        "type": "string"
-                      },
-                      "is_article_efficent": {
-                        "type": "boolean"
-                      },
-                      "bot_id": {
-                        "type": "integer"
-                      },
-                      "created_at": {
-                        "type": "string"
-                      },
-                      "updated_at": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                },
-                "success": {
-                  "type": "boolean"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": {
-                  "type": "string"
-                },
-                "success": {
-                  "type": "boolean"
-                }
+                "error": { "type": "string" },
+                "success": { "type": "boolean" }
               }
             }
           },
           "404": {
-            "description": "No articles found for the specified bot ID",
+            "description": "No articles found",
             "schema": {
               "type": "object",
               "properties": {
-                "error": {
-                  "type": "string"
-                },
-                "success": {
-                  "type": "boolean"
-                }
+                "error": { "type": "string" },
+                "success": { "type": "boolean" }
               }
             }
           },
@@ -245,19 +80,13 @@
             "schema": {
               "type": "object",
               "properties": {
-                "error": {
-                  "type": "string"
-                },
-                "success": {
-                  "type": "boolean"
-                }
+                "error": { "type": "string" },
+                "success": { "type": "boolean" }
               }
             }
           }
         }
-      }
-    },
-    "/delete_article": {
+      },
       "delete": {
         "summary": "Delete an article by ID",
         "tags": ["Articles"],
@@ -276,12 +105,8 @@
             "schema": {
               "type": "object",
               "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "message": {
-                  "type": "string"
-                }
+                "success": { "type": "boolean" },
+                "message": { "type": "string" }
               }
             }
           },
@@ -290,12 +115,8 @@
             "schema": {
               "type": "object",
               "properties": {
-                "error": {
-                  "type": "string"
-                },
-                "success": {
-                  "type": "boolean"
-                }
+                "error": { "type": "string" },
+                "success": { "type": "boolean" }
               }
             }
           },
@@ -304,12 +125,8 @@
             "schema": {
               "type": "object",
               "properties": {
-                "error": {
-                  "type": "string"
-                },
-                "success": {
-                  "type": "boolean"
-                }
+                "error": { "type": "string" },
+                "success": { "type": "boolean" }
               }
             }
           },
@@ -318,155 +135,254 @@
             "schema": {
               "type": "object",
               "properties": {
-                "error": {
-                  "type": "string"
-                },
-                "success": {
-                  "type": "boolean"
-                }
+                "error": { "type": "string" },
+                "success": { "type": "boolean" }
               }
             }
           }
         }
       }
     },
-
-    "/get_blacklist": {
+    "/article/{article_id}": {
       "get": {
-        "summary": "Get blacklist of a bot",
-        "tags": ["Blacklist"],
+        "summary": "Retrieve a specific article by its ID",
+        "tags": ["Articles"],
         "parameters": [
           {
-            "name": "bot_id",
-            "in": "query",
-            "description": "ID of the bot to retrieve blacklist for",
-            "required": true,
-            "type": "integer"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "data": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "integer"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "bot_id": {
-                        "type": "integer"
-                      },
-                      "created_at": {
-                        "type": "string"
-                      },
-                      "updated_at": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                },
-                "success": {
-                  "type": "boolean"
-                },
-                "error": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request"
-          },
-          "404": {
-            "description": "Blacklist not found"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    },
-    "/add_to_blacklist": {
-      "post": {
-        "summary": "Add an entry to the blacklist by bot_id",
-        "tags": ["Blacklist"],
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "description": "Request body",
+            "name": "article_id",
+            "in": "path",
+            "description": "The ID of the article to retrieve",
             "required": true,
             "schema": {
-              "type": "object",
-              "properties": {
-                "bot_id": {
-                  "type": "integer",
-                  "description": "ID of the bot to add the entry to its blacklist"
-                },
-                "blacklist": {
-                  "type": "string",
-                  "description": "The entry to add to the blacklist"
-                }
-              }
+              "type": "integer"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful response",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "data": {
+            "description": "Successful response with the article data",
+            "content": {
+              "application/json": {
+                "schema": {
                   "type": "object",
                   "properties": {
-                    "id": {
-                      "type": "integer"
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer" },
+                        "title": { "type": "string" },
+                        "content": { "type": "string" },
+                        "analysis": { "type": "string" },
+                        "url": { "type": "string" },
+                        "date": { "type": "string" },
+                        "used_keywords": { "type": "string" },
+                        "is_article_efficient": { "type": "boolean" },
+                        "bot_id": { "type": "integer" },
+                        "created_at": { "type": "string" },
+                        "updated_at": { "type": "string" }
+                      }
                     },
-                    "name": {
-                      "type": "string"
-                    },
-                    "bot_id": {
-                      "type": "integer"
-                    },
-                    "created_at": {
-                      "type": "string"
-                    },
-                    "updated_at": {
-                      "type": "string"
-                    }
+                    "success": { "type": "boolean" }
                   }
-                },
-                "success": {
-                  "type": "boolean"
-                },
-                "message": {
-                  "type": "string"
-                },
-                "error": {
-                  "type": "string"
                 }
               }
             }
           },
-          "400": {
-            "description": "Bad request"
+          "404": {
+            "description": "No article found for the specified article ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "success": { "type": "boolean" }
+                  }
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "success": { "type": "boolean" }
+                  }
+                }
+              }
+            }
           }
         }
       }
+    }, 
+    "/articles/create": {
+      "post": {
+        "summary": "Create a new article",
+        "description": "Create a new article with the provided data.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title",
+                  "content",
+                  "analysis",
+                  "used_keywords",
+                  "is_article_efficient",
+                  "bot_id",
+                  "category_id",
+                  "image_url"
+                ],
+                "properties": {
+                  "title": { "type": "string" },
+                  "content": { "type": "string" },
+                  "analysis": { "type": "string" },
+                  "used_keywords": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "is_article_efficient": { "type": "string" },
+                  "bot_id": { "type": "integer" },
+                  "category_id": { "type": "integer" },
+                  "image_url": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Article created successfully" },
+          "400": { "description": "Bad request. Missing required fields" },
+          "500": { "description": "Internal server error" }
+        }
+      }
     },
-    "/delete_from_blacklist": {
+    "/articles/generate_image": {
+      "post": {
+        "summary": "Generate an image using DALL-E 3 model",
+        "description": "Generate an image based on the content and bot_id using DALL-E 3 model.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["content", "bot_id"],
+                "properties": {
+                  "content": { "type": "string" },
+                  "bot_id": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Image generated successfully" },
+          "400": { "description": "Missing required fields" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/articles/generate": {
+      "post": {
+        "summary": "Generate an article summary using the Perplexity model",
+        "description": "Generate a new article summary based on the provided content and category_id.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["content", "category_id"],
+                "properties": {
+                  "content": { "type": "string" },
+                  "category_id": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Article summary generated successfully" },
+          "400": { "description": "Missing required fields" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/articles/recent": {
+      "get": {
+        "summary": "Get the last five articles",
+        "description": "Retrieve the last five articles with extended details.",
+        "responses": {
+          "200": { "description": "Successfully retrieved the last five articles" },
+          "404": { "description": "No articles found matching the criteria" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/content/extract": {
+      "post": {
+        "summary": "Extract content from a link or Google Docs",
+        "description": "Extract content from a provided link or Google Docs based on the extract type.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["extract_type", "link"],
+                "properties": {
+                  "extract_type": {
+                    "type": "string",
+                    "description": "Type of extraction ('link' or 'google_docs')"
+                  },
+                  "link": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Successfully extracted content" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/upload_news_file_to_drive": {
+      "post": {
+        "summary": "Upload a file to Google Drive",
+        "description": "Upload a file to a specified folder in Google Drive.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["folderName", "file", "fileName"],
+                "properties": {
+                  "folderName": { "type": "string" },
+                  "file": { "type": "string", "format": "binary" },
+                  "fileName": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "File uploaded successfully" },
+          "400": { "description": "Bad request. Missing required data" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    }
+  ,
+  "/delete_from_blacklist": {
       "delete": {
         "summary": "Delete an entry from the blacklist by ID",
         "tags": ["Blacklist"],

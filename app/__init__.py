@@ -19,6 +19,7 @@ from app.routes.unwanted_articles.unwanted_article import unwanted_articles_bp
 from app.routes.news.news import website_news_bp
 from app.routes.coingeko.coingeko_usage import coingecko_bp
 from app.routes.openai.openai_usage import openai_bp
+from app.routes.articles.news_cretor_tool.news_creator import creator_tool_bp
 from data import initialize_categories, initialize_fixed_data, initialize_keywords, initialize_sites_data
 
 load_dotenv()
@@ -63,5 +64,6 @@ def create_app():
     app.register_blueprint(website_news_bp)
     app.register_blueprint(coingecko_bp)
     app.register_blueprint(openai_bp)
+    app.register_blueprint(creator_tool_bp)
 
     return app
