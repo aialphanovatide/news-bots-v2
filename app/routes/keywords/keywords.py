@@ -176,7 +176,7 @@ def get_keywords_for_coin_bot(coin_bot_id):
 
 
 
-@keyword_bp.route('/keywords_dinamic_search', methods=['GET'])
+@keyword_bp.route('/keywords-search', methods=['GET'])
 @measure_execution_time
 @handle_db_session
 def dynamic_search():
@@ -204,7 +204,7 @@ def dynamic_search():
             return jsonify(create_response(error='No related words found')), 404
 
         # Prepare results
-        related_words = [kw.name for kw in keyword_results] + [bl.word for bl in backlist_results]
+        related_words = [kw.name for kw in keyword_results] + [bl.name for bl in backlist_results]
 
         return jsonify(create_response(success=True, data=related_words)), 200
 
