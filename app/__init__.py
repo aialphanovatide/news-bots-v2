@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 from scheduler_config import scheduler
 from app.routes.bots.bots import bots_bp
 from app.routes.sites.sites import sites_bp
-from app.routes.slack.slack import slack_action_bp
 from app.routes.keywords.keywords import keyword_bp
 from app.routes.articles.articles import articles_bp
 from app.routes.bots.activate import activate_bots_bp
@@ -19,6 +18,7 @@ from app.routes.unwanted_articles.unwanted_article import unwanted_articles_bp
 from app.routes.news.news import website_news_bp
 from app.routes.coingeko.coingeko_usage import coingecko_bp
 from app.routes.openai.openai_usage import openai_bp
+from app.routes.articles.news_creator import creator_tool_bp
 from data import initialize_categories, initialize_fixed_data, initialize_keywords, initialize_sites_data
 
 load_dotenv()
@@ -57,11 +57,11 @@ def create_app():
     app.register_blueprint(unwanted_articles_bp)
     app.register_blueprint(sites_bp)
     app.register_blueprint(deactivate_bots_bp)
-    app.register_blueprint(slack_action_bp)
     app.register_blueprint(activate_bots_bp)
     app.register_blueprint(news_bots_features_bp)
     app.register_blueprint(website_news_bp)
     app.register_blueprint(coingecko_bp)
     app.register_blueprint(openai_bp)
+    app.register_blueprint(creator_tool_bp)
 
     return app

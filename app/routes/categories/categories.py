@@ -1,14 +1,15 @@
 # routes.py
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 import os
 from flask import Blueprint, jsonify, request
 from app.routes.bots.activate import scheduled_job
+from app.utils.helpers import validate_bot
 from config import Blacklist, Bot, Category, Site, db, Session
 from dotenv import load_dotenv
 import boto3
 from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response
+from redis_client.redis_client import cache_with_redis, update_cache_with_redis
 from scheduler_config import reschedule, scheduler
 
 
@@ -20,6 +21,7 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 AWS_ACCESS = os.getenv('AWS_ACCESS')
 AWS_SECRET_KEY = os.getenv('AWS_SECRET_KEY')
+
 
 categories_bp = Blueprint(
     'categories_bp', __name__,
@@ -36,6 +38,7 @@ s3 = boto3.client(
 
 
 @categories_bp.route('/categories', methods=['POST'])
+@update_cache_with_redis(related_get_endpoints=['get_categories','get_category','get_articles_by_bot'])
 def create_category():
     """
     Create a new category on the news bot server.
@@ -68,7 +71,8 @@ def create_category():
             if 'icon' in request.files:
                 icon_file = request.files['icon']
                 if icon_file.filename.lower().endswith('.svg'):
-                    icon_filename = f"{data['alias']}.svg"
+                    alias_normalized = data['alias'].strip().replace(" ", "_")
+                    icon_filename = f"{alias_normalized}.svg"
                     s3.upload_fileobj(
                         icon_file, 
                         'aialphaicons', 
@@ -80,6 +84,7 @@ def create_category():
                     return jsonify({'error': 'Invalid file type. Only SVG files are allowed.'}), 400
 
             # Create new category
+            current_time = datetime.now()
             new_category = Category(
                 name=data['name'],
                 alias=data['alias'],
@@ -87,7 +92,9 @@ def create_category():
                 slack_channel=data.get('slack_channel', ''),
                 border_color=data.get('border_color', ''),
                 icon=icon_url,
-                created_at=datetime.now()
+                is_active=False,
+                created_at=current_time,
+                updated_at=current_time  # Assign the same value for updated_at
             )
 
             session.add(new_category)
@@ -104,6 +111,7 @@ def create_category():
 
            
 @categories_bp.route('/categories/<int:category_id>', methods=['DELETE'])
+@update_cache_with_redis(related_get_endpoints=['get_categories','get_category','get_articles_by_bot'])
 def delete_category(category_id):
     """
     Delete a category and its associated bots by ID.
@@ -143,8 +151,8 @@ def delete_category(category_id):
             return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
 
-
 @categories_bp.route('/categories', methods=['GET'])
+@cache_with_redis()
 def get_categories():
     """
     Get all available categories along with their associated bots and bot details.
@@ -169,7 +177,6 @@ def get_categories():
                     'prompt': category.prompt,
                     'slack_channel': category.slack_channel,
                     'icon': category.icon,
-                    'time_interval': category.time_interval,
                     'is_active': category.is_active,
                     'border_color': category.border_color,
                     'updated_at': category.updated_at,
@@ -198,30 +205,51 @@ def get_categories():
 
         except Exception as e:
             return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
-
-@categories_bp.route('/get_all_bots', methods=['GET'])
-def get_bots():
+        
+        
+@categories_bp.route('/category', methods=['GET'])
+@cache_with_redis()
+def get_category():
     """
-    Get all bots.
+    Get a category by id or name.
+    Query Params:
+        category_id (int): The ID of the category.
+        category_name (str): The name of the category.
     Response:
-        200: Successfully retrieved bots.
+        200: Successfully retrieved the category.
+        400: Bad request, no valid parameters provided.
+        404: Category not found.
         500: Internal server error or database error.
     """
-    with Session as session:
+    category_id = request.args.get('category_id', type=int)
+    category_name = request.args.get('category_name', type=str)
+    
+    with Session() as session:
         try:
-            categories = Category.query.order_by(Category.id).all()
+            if not category_id and not category_name:
+                return jsonify(create_response(error='You must provide either category_id or category_name.')), 400
 
-            bots = [
-                {
-                    'category': category.name,
-                    'isActive': category.is_active,
-                    'alias': category.alias,
-                    'icon': category.icon,
-                    'updated_at': category.updated_at,
-                    'color': category.border_color
-                } for category in categories
-            ]
-            return jsonify(create_response(success=True, data={'bots': bots})), 200
+            query = Category.query
+            if category_id:
+                query = query.filter_by(id=category_id)
+            if category_name:
+                query = query.filter_by(name=category_name)
+
+            category = query.first()
+
+            if not category:
+                return jsonify(create_response(error='Category not found.')), 404
+
+            category_data = {
+                'category': category.name,
+                'isActive': category.is_active,
+                'alias': category.alias,
+                'icon': category.icon,
+                'updated_at': category.updated_at,
+                'color': category.border_color
+            }
+
+            return jsonify(create_response(success=True, data={'category': category_data})), 200
 
         except SQLAlchemyError as e:
             db.session.rollback()
@@ -231,49 +259,32 @@ def get_bots():
             return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
 
 @categories_bp.route('/categories/<int:category_id>', methods=['PUT'])
+@update_cache_with_redis(related_get_endpoints=['get_categories','get_category','get_articles_by_bot'])
 def update_category(category_id):
-    """
-    Update an existing category by ID.
-
-    Args:
-        category_id (int): ID of the category to update.
-
-    Request JSON:
-        name (str, optional): New name for the category.
-        alias (str, optional): New alias for the category.
-        prompt (str, optional): New prompt for the category.
-        slack_channel (str, optional): New Slack channel for the category.
-        icon (file, optional): New SVG file for the category icon.
-        border_color (str, optional): New HEX code for the border color.
-
-    Returns:
-        JSON: A response with the updated category data or an error message.
-    """
     with Session() as session:
         try:
-            data = request.get_json()
-
-            # Fetch the category to update
+            data = request.form.to_dict()
             category = session.query(Category).get(category_id)
             if not category:
-                return jsonify({'error': f'Category with ID {category_id} not found'}), 404
+                return jsonify({'success': False, 'message': f'Category with ID {category_id} not found'}), 404
 
-            # Update category fields
+            allowed_fields = ['name', 'alias', 'prompt', 'slack_channel', 'border_color']
+            updated_fields = []
             for key, value in data.items():
-                if hasattr(category, key):
+                if key in allowed_fields:
                     setattr(category, key, value)
+                    updated_fields.append(key)
 
-            # Handle SVG icon update
+            icon_updated = False
             if 'icon' in request.files:
                 icon_file = request.files['icon']
                 if icon_file.filename.lower().endswith('.svg'):
-                    # Delete old icon if exists
                     if category.icon:
                         old_icon_filename = category.icon.split('/')[-1]
                         s3.delete_object(Bucket='aialphaicons', Key=old_icon_filename)
 
-                    # Upload new icon
-                    icon_filename = f"{category.alias}.svg"
+                    alias_normalized = category.alias.strip().replace(" ", "_")
+                    icon_filename = f"{alias_normalized}.svg"
                     s3.upload_fileobj(
                         icon_file,
                         'aialphaicons',
@@ -281,53 +292,56 @@ def update_category(category_id):
                         ExtraArgs={"ContentType": "image/svg+xml"}
                     )
                     category.icon = f'https://aialphaicons.s3.amazonaws.com/{icon_filename}'
+                    icon_updated = True
                 else:
-                    return jsonify({'error': 'Invalid file type. Only SVG files are allowed.'}), 400
+                    return jsonify({'success': False, 'message': 'Invalid file type. Only SVG files are allowed.'}), 400
 
-            # Reschedule bots if necessary
+            category.updated_at = datetime.now()
+
+            rescheduled_bots = []
             if any(key in data for key in ['name', 'alias', 'prompt', 'slack_channel']):
                 for bot in category.bots:
-                    reschedule(bot.id) 
+                    reschedule(bot.id)
+                    rescheduled_bots.append(bot.name)
 
-            # Commit the update
             session.commit()
 
-            return jsonify({'success': True, 'data': category.as_dict()}), 200
+            message = "Category updated successfully."
+            if updated_fields:
+                message += f" Updated fields: {', '.join(updated_fields)}."
+            if icon_updated:
+                message += " Icon updated."
+            if rescheduled_bots:
+                message += f" Rescheduled bots: {', '.join(rescheduled_bots)}."
+
+            return jsonify({
+                'success': True, 
+                'message': message,
+                'data': category.as_dict()
+            }), 200
 
         except SQLAlchemyError as e:
             session.rollback()
-            return jsonify({'error': f'Database error: {str(e)}'}), 500
+            return jsonify({'success': False, 'message': f'Database error: {str(e)}'}), 500
 
         except Exception as e:
             session.rollback()
-            return jsonify({'error': f'Internal server error: {str(e)}'}), 500
-
+            return jsonify({'success': False, 'message': f'Internal server error: {str(e)}'}), 500
 
 
 @categories_bp.route('/categories/<int:category_id>/toggle-coins', methods=['POST'])
+@update_cache_with_redis(related_get_endpoints=['get_categories','get_category','get_articles_by_bot'])
 def toggle_category_coins(category_id):
-    """
-    Activate or deactivate all coins within a specific category.
-
-    Args:
-        category_id (int): The ID of the category to process.
-
-    Request JSON:
-        action (str): Either "activate" or "deactivate"
-
-    Returns:
-        JSON: A response detailing the status of each processed coin bot.
-    """
     with Session() as session:
         try:
             data = request.get_json()
             action = data.get('action')
             if action not in ['activate', 'deactivate']:
-                return jsonify({'error': 'Invalid action. Must be "activate" or "deactivate"'}), 400
+                return jsonify({'success': False, 'message': 'Invalid action. Must be "activate" or "deactivate"'}), 400
 
             category = session.query(Category).get(category_id)
             if not category:
-                return jsonify({'error': f'Category with ID {category_id} not found'}), 404
+                return jsonify({'success': False, 'message': f'Category with ID {category_id} not found'}), 404
 
             bots = session.query(Bot).filter_by(category_id=category_id).all()
             if not bots:
@@ -336,12 +350,21 @@ def toggle_category_coins(category_id):
             activation_success = 0
             activation_failures = 0
             failed_bot_ids = []
+            validation_errors = {}
             last_execution_time = datetime.now()
 
             for bot in bots:
                 if action == 'activate' and not bot.is_active:
+                    # Perform validation
+                    bot_errors = validate_bot(bot, category, session)
+                    if bot_errors:
+                        activation_failures += 1
+                        failed_bot_ids.append(bot.id)
+                        validation_errors[bot.id] = bot_errors
+                        continue
+
                     try:
-                        next_execution_time = last_execution_time + timedelta(minutes=23)  # Intervalo de 23 minutos
+                        next_execution_time = last_execution_time + timedelta(minutes=23)
                         scheduler.add_job(
                             id=str(bot.id),
                             func=scheduled_job,
@@ -360,6 +383,7 @@ def toggle_category_coins(category_id):
                         activation_failures += 1
                         failed_bot_ids.append(bot.id)
                         print(f'Error activating bot {bot.id}: {str(e)}')
+
                 elif action == 'deactivate' and bot.is_active:
                     try:
                         job = scheduler.get_job(id=str(bot.id))
@@ -380,22 +404,23 @@ def toggle_category_coins(category_id):
                 'activated_count': activation_success if action == 'activate' else 0,
                 'deactivated_count': activation_success if action == 'deactivate' else 0,
                 'failed_count': activation_failures,
-                'failed_bot_ids': failed_bot_ids
+                'failed_bot_ids': failed_bot_ids,
+                'validation_errors': validation_errors
             }
 
             return jsonify({'success': True, 'message': 'Operation completed successfully', 'data': summary}), 200
 
         except SQLAlchemyError as e:
             session.rollback()
-            return jsonify({'error': f'Database error: {str(e)}'}), 500
+            return jsonify({'success': False, 'message': f'Database error: {str(e)}'}), 500
 
         except Exception as e:
             session.rollback()
-            return jsonify({'error': f'Internal server error: {str(e)}'}), 500
-
+            return jsonify({'success': False, 'message': f'Internal server error: {str(e)}'}), 500
 
 
 @categories_bp.route('/toggle-all-coins', methods=['POST'])
+@update_cache_with_redis(related_get_endpoints=['get_categories','get_category','get_articles_by_bot'])
 def toggle_all_coins():
     """
     Toggle activation state of all coins in all categories.
@@ -411,7 +436,7 @@ def toggle_all_coins():
             data = request.get_json()
             action = data.get('action')
             if action not in ['activate', 'deactivate']:
-                return jsonify({'error': 'Invalid action. Must be "activate" or "deactivate"'}), 400
+                return jsonify({'success': False, 'message': 'Invalid action. Must be "activate" or "deactivate"'}), 400
 
             categories = session.query(Category).all()
             if not categories:
@@ -420,11 +445,12 @@ def toggle_all_coins():
             activation_success = 0
             activation_failures = 0
             failed_bot_ids = []
+            validation_errors = {}
 
             last_category_execution_time = datetime.now()
 
             for category in categories:
-                bots = session.query(Bot).filter_by(category_id=category.category_id).all()
+                bots = session.query(Bot).filter_by(category_id=category.id).all()
                 if not bots:
                     continue
 
@@ -432,6 +458,14 @@ def toggle_all_coins():
 
                 for bot in bots:
                     if action == 'activate' and not bot.is_active:
+                        # Validate bot before activation
+                        bot_errors = validate_bot(bot, category, session)
+                        if bot_errors:
+                            activation_failures += 1
+                            failed_bot_ids.append(bot.id)
+                            validation_errors[bot.id] = bot_errors
+                            continue
+
                         try:
                             site = session.query(Site).filter_by(bot_id=bot.id).first()
                             if not site or not site.url:
@@ -446,7 +480,7 @@ def toggle_all_coins():
                                 func=scheduled_job,
                                 name=bot.name,
                                 replace_existing=True,
-                                args=[bot_site, bot.name, bot_blacklist, None, bot.id, None],
+                                args=[bot_site, bot.name, bot_blacklist, category.id, bot.id, category.slack_channel],
                                 trigger='date',
                                 run_date=next_execution_time
                             )
@@ -482,15 +516,17 @@ def toggle_all_coins():
                 'activated_count': activation_success if action == 'activate' else 0,
                 'deactivated_count': activation_success if action == 'deactivate' else 0,
                 'failed_count': activation_failures,
-                'failed_bot_ids': failed_bot_ids
+                'failed_bot_ids': failed_bot_ids,
+                'validation_errors': validation_errors
             }
 
             return jsonify({'success': True, 'message': 'Operation completed successfully', 'data': summary}), 200
 
         except SQLAlchemyError as e:
             session.rollback()
-            return jsonify({'error': f'Database error: {str(e)}'}), 500
+            return jsonify({'success': False, 'message': f'Database error: {str(e)}'}), 500
 
         except Exception as e:
             session.rollback()
-            return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+            return jsonify({'success': False, 'message': f'Internal server error: {str(e)}'}), 500
+

@@ -5,6 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.utils.index import fetch_news_links
 from flask import Blueprint, jsonify, request
 from app.routes.bots.utils import validate_url
+from redis_client.redis_client import cache_with_redis, update_cache_with_redis
 from scheduler_config import reschedule, scheduler
 from app.routes.routes_utils import create_response
 from config import Blacklist, Bot, Keyword, Session, Site, db, Category
@@ -38,6 +39,7 @@ def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, catego
         )
 
 @bots_bp.route('/bot', methods=['GET'])
+@cache_with_redis()
 def get_bot():
     """
     Get a specific bot by name or id, including related keywords, blacklist items, and site data.
@@ -92,32 +94,19 @@ def get_bot():
 
 
 @bots_bp.route('/bots', methods=['GET'])
+@cache_with_redis()
 def get_all_bots():
     """
-    Get all bots, including related keywords, blacklist items, and site information for each bot.
+    Get all bots data.
     
     Response:
     200: List of all bots retrieved successfully, sorted alphabetically by bot name.
     500: Internal server error.
     """
     try:
-        bots = Bot.query.options(
-            joinedload(Bot.keywords),
-            joinedload(Bot.blacklist),
-            joinedload(Bot.sites)
-        ).all()
+        bots = Bot.query.all()
         
-        bots_data = []
-        for bot in bots:
-            bot_dict = bot.as_dict()
-            bot_dict['keywords'] = sorted([keyword.name for keyword in bot.keywords])
-            bot_dict['blacklist'] = sorted([item.name for item in bot.blacklist])
-            
-            # Add site information
-            site = Site.query.filter_by(bot_id=bot.id).first()
-            bot_dict['site'] = site.as_dict() if site else None
-            
-            bots_data.append(bot_dict)
+        bots_data = [bot.as_dict() for bot in bots]
         
         # Sort bots alphabetically by name
         bots_data.sort(key=lambda x: x['name'])
@@ -133,6 +122,7 @@ def get_all_bots():
 
 
 @bots_bp.route('/bot', methods=['POST'])
+@update_cache_with_redis(related_get_endpoints=['get_all_bots'])
 def create_bot():
     """
     Create a new bot.
@@ -258,6 +248,7 @@ def create_bot():
 
 
 @bots_bp.route('/bot/<int:bot_id>', methods=['PUT'])
+@update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot'])
 def update_bot(bot_id):
     """
     Update an existing bot in the news bot server and reschedule if necessary.
@@ -380,6 +371,7 @@ def update_bot(bot_id):
 
 
 @bots_bp.route('/bot/<int:bot_id>', methods=['DELETE'])
+@update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot'])
 def delete_bot(bot_id):
     """
     Delete a bot and all its associated data from the news bot server.
@@ -442,6 +434,7 @@ def delete_bot(bot_id):
 
 
 @bots_bp.route('/bot/<int:bot_id>/toggle-activation', methods=['POST'])
+@update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot'])
 def toggle_activation_bot(bot_id):
     """
     Toggle the activation status of the bot.
@@ -517,7 +510,26 @@ def toggle_activation_bot(bot_id):
                     job = scheduler.get_job(id=str(bot.name))
                     if job:
                         scheduler.remove_job(id=str(bot.name))
-                        message = f"Bot {bot.name} activated successfully"
+                        existing_category = Category.query.get(bot.category_id)
+                        if not existing_category:
+                            response = create_response(error='Category not found')
+                            return jsonify(response), 404
+                        
+                        # Schedule the bot's job
+                        scheduler.add_job(
+                            id=str(bot_id),
+                            func=scheduled_job,
+                            name=bot.name,
+                            replace_existing=True,
+                            args=[bot.url, bot.name, [bl.name for bl in Blacklist.query.filter_by(bot_id=bot.id).all()], bot.category_id, bot_id, existing_category.slack_channel],
+                            trigger='interval',
+                            minutes=bot.run_frequency
+                        )
+
+                        # Update bot's is_active status and log activation time
+                        bot.is_active = True
+                        bot.last_run = datetime.utcnow()
+                        db.session.commit()
                 except Exception as e:
                     bot.is_active = False  # Revert activation if scheduling fails
                     return jsonify(create_response(error=f"Failed to activate bot: {str(e)}")), 500
@@ -547,3 +559,33 @@ def toggle_activation_bot(bot_id):
         except Exception as e:
             session.rollback()
             return jsonify(create_response(error="An unexpected error occurred")), 500
+        
+        
+def validate_bot(bot, category, session):
+    validation_errors = []
+
+    # Check bot fields
+    required_bot_fields = ['dalle_prompt', 'run_frequency']
+    for field in required_bot_fields:
+        if not getattr(bot, field):
+            validation_errors.append(f"Bot is missing {field}")
+
+    # Check associated data
+    if not bot.sites:
+        validation_errors.append("Bot does not have an associated site")
+    elif not bot.sites[0].url:
+        validation_errors.append("Bot's site is missing URL")
+
+    if not bot.keywords:
+        validation_errors.append("Bot does not have any keywords")
+
+    if not bot.blacklist:
+        validation_errors.append("Bot does not have a blacklist")
+    
+    if category:
+        required_category_fields = ['prompt', 'slack_channel']
+        for field in required_category_fields:
+            if not getattr(category, field):
+                validation_errors.append(f"Bot's category is missing {field}")
+
+    return validation_errors
