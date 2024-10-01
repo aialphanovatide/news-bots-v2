@@ -31,7 +31,7 @@ class Swagger:
         except Exception as e:
             raise Exception(f"Unexpected error loading Swagger file: {str(e)}")
 
-    def add_or_update_endpoint(self, endpoint_route: str, method: str, tag: str, description: str, params: list, responses: dict) -> Tuple[bool, str]:
+    def add_or_update_endpoint(self, endpoint_route: str, method: str, tag: str, description: str, detail_description: str, params: list, responses: dict) -> Tuple[bool, str]:
         """
         Add a new endpoint to the Swagger JSON file or update an existing one
         """
@@ -57,7 +57,7 @@ class Swagger:
             swagger_json['paths'][endpoint_route][method] = {
                 'tags': [tag.capitalize()],
                 'summary': description.capitalize(),
-                'description': description.capitalize(),
+                'description': detail_description.capitalize(),
                 'parameters': [],
                 'responses': responses
             }
@@ -127,102 +127,72 @@ swagger = Swagger()
 # ____Add or update an endpoint____
 
 
-# Update Swagger JSON
-success, message = swagger.add_or_update_endpoint(
-    endpoint_route='/articles',
-    method='get',
-    tag='Articles',
-    description='Retrieve articles with pagination.',
-    params=[
-        {
-            'name': 'page',
-            'in': 'query',
-            'description': 'The page number',
-            'required': False,
-            'type': 'integer',
-            'default': 1
-        },
-        {
-            'name': 'per_page',
-            'in': 'query',
-            'description': 'Number of articles per page',
-            'required': False,
-            'type': 'integer',
-            'default': 10
-        }
-    ],
-    responses={
-        '200': {
-            'description': 'Successfully retrieved articles',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'data': {
-                        'type': 'array',
-                        'items': {
-                            'type': 'object',
-                            'properties': {
-                                'id': {'type': 'integer'},
-                                'title': {'type': 'string'},
-                                'content': {'type': 'string'},
-                                'created_at': {'type': 'string', 'format': 'date-time'},
-                                'updated_at': {'type': 'string', 'format': 'date-time'}
-                            }
-                        }
-                    },
-                    'pagination': {
-                        'type': 'object',
-                        'properties': {
-                            'page': {'type': 'integer'},
-                            'per_page': {'type': 'integer'},
-                            'total_pages': {'type': 'integer'},
-                            'total_items': {'type': 'integer'}
-                        }
-                    }
-                }
-            }
-        },
-        '204': {
-            'description': 'No articles found',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'data': {'type': 'array', 'items': {}},
-                    'message': {'type': 'string'}
-                }
-            }
-        },
-        '400': {
-            'description': 'Bad request',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'error': {'type': 'string'}
-                }
-            }
-        },
-        '404': {
-            'description': 'Page not found',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'error': {'type': 'string'}
-                }
-            }
-        }
-    }
-)
 
-print(message)
+# success, message = swagger.add_or_update_endpoint(
+#     endpoint_route='/bot/{bot_id}',
+#     method='put',
+#     tag='Bots',
+#     description='Update an existing bot in the news bot server and reschedule if necessary',
+#     detail_description='This endpoint updates a bot entry with the provided details, saves the changes to the database, and reschedules the bot if it\'s active and its run frequency has changed.',
+#     params=[
+#         {
+#             'name': 'bot_id',
+#             'in': 'path',
+#             'description': 'The ID of the bot to be updated',
+#             'required': True,
+#             'type': 'integer'
+#         }
+#     ],
+#     responses={
+#         '200': {
+#             'description': 'Bot updated successfully',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'message': {'type': 'string'}
+#                 }
+#             }
+#         },
+#         '400': {
+#             'description': 'Bad request (invalid data)',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         },
+#         '404': {
+#             'description': 'Bot not found',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         },
+#         '500': {
+#             'description': 'Internal server error',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         }
+#     }
+# )
+
+# print(message)
 
 
 # ____Delete an endpoint____
 
-# success, message = swagger.delete_endpoint(endpoint_route='/get_revenuecat_user_info')
+# success, message = swagger.delete_endpoint(endpoint_route='/activate_all_categories')
 # print(message)
 
 

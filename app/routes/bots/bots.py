@@ -97,30 +97,16 @@ def get_bot():
 @cache_with_redis()
 def get_all_bots():
     """
-    Get all bots, including related keywords, blacklist items, and site information for each bot.
+    Get all bots data.
     
     Response:
     200: List of all bots retrieved successfully, sorted alphabetically by bot name.
     500: Internal server error.
     """
     try:
-        bots = Bot.query.options(
-            joinedload(Bot.keywords),
-            joinedload(Bot.blacklist),
-            joinedload(Bot.sites)
-        ).all()
+        bots = Bot.query.all()
         
-        bots_data = []
-        for bot in bots:
-            bot_dict = bot.as_dict()
-            bot_dict['keywords'] = sorted([keyword.name for keyword in bot.keywords])
-            bot_dict['blacklist'] = sorted([item.name for item in bot.blacklist])
-            
-            # Add site information
-            site = Site.query.filter_by(bot_id=bot.id).first()
-            bot_dict['site'] = site.as_dict() if site else None
-            
-            bots_data.append(bot_dict)
+        bots_data = [bot.as_dict() for bot in bots]
         
         # Sort bots alphabetically by name
         bots_data.sort(key=lambda x: x['name'])
