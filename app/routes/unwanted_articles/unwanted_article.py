@@ -13,27 +13,32 @@ unwanted_articles_bp = Blueprint(
 )
 
 
-@unwanted_articles_bp.route('/unwanted-articles', methods=['GET'])
+@unwanted_articles_bp.route('/articles/unwanted', methods=['GET'])
 @cache_with_redis()
 @handle_db_session
 def get_unwanted_articles_by_bot():
     """
-    Retrieves unwanted articles filtered by bot_id from the database with pagination.
+    Retrieves unwanted articles filtered by bot_id from the database with optional pagination and search functionality.
 
     Query Parameters:
     - bot_id (str): Bot ID to filter unwanted articles (optional).
-    - page (int): Page number (default: 1).
-    - per_page (int): Number of items per page (default: 20, max: 100).
+    - page (int): Page number (optional).
+    - per_page (int): Number of items per page (optional, max: 100).
+    - search (str): Search term to filter unwanted articles by content (optional).
 
     Returns:
-        JSON: Response with unwanted article data, pagination info, or error message.
+        JSON: Response with unwanted article data, pagination info (if applicable), or error message.
     """
     try:
         bot_id = request.args.get('bot_id')
-        page = request.args.get('page', default=1, type=int)
-        per_page = min(request.args.get('per_page', default=20, type=int), 100)
+        page = request.args.get('page', type=int)
+        per_page = request.args.get('per_page', type=int)
+        search_term = request.args.get('search', '')
 
-        if page < 1 or per_page < 1:
+        if per_page is not None:
+            per_page = min(per_page, 100)
+
+        if (page is not None and page < 1) or (per_page is not None and per_page < 1):
             return jsonify(create_response(error='Page and per_page must be positive integers')), 400
 
         query = UnwantedArticle.query
@@ -41,30 +46,40 @@ def get_unwanted_articles_by_bot():
         if bot_id:
             query = query.filter_by(bot_id=bot_id)
 
+        if search_term:
+            query = query.filter(UnwantedArticle.content.ilike(f'%{search_term}%'))
+
+        query = query.order_by(desc(UnwantedArticle.created_at))
+
         total_items = query.count()
-        total_pages = ceil(total_items / per_page)
 
-        if page > total_pages and total_items > 0:
-            return jsonify(create_response(error=f'Page {page} does not exist. Max page is {total_pages}')), 404
+        if page is None or per_page is None:
+            unwanted_articles = query.all()
+            pagination_info = None
+        else:
+            total_pages = ceil(total_items / per_page)
+            if page > total_pages and total_items > 0:
+                return jsonify(create_response(error=f'Page {page} does not exist. Max page is {total_pages}')), 404
 
-        unwanted_articles = query.order_by(desc(UnwantedArticle.created_at)).paginate(page=page, per_page=per_page, error_out=False)
-
-        if not unwanted_articles.items:
-            message = f'No unwanted articles found for the specified bot ID: {bot_id}' if bot_id else 'No unwanted articles found'
-            return jsonify(create_response(success=True, data=[], message=message)), 204
-
-        unwanted_article_data = [article.as_dict() for article in unwanted_articles.items]
-
-        response = create_response(
-            success=True,
-            data=unwanted_article_data,
-            message='Unwanted articles retrieved successfully',
-            pagination={
+            unwanted_articles = query.paginate(page=page, per_page=per_page, error_out=False).items
+            pagination_info = {
                 'page': page,
                 'per_page': per_page,
                 'total_pages': total_pages,
                 'total_items': total_items
             }
+
+        if not unwanted_articles:
+            message = f'No unwanted articles found for the specified criteria'
+            return jsonify(create_response(success=True, data=[], message=message)), 204
+
+        unwanted_article_data = [article.as_dict() for article in unwanted_articles]
+
+        response = create_response(
+            success=True,
+            data=unwanted_article_data,
+            message='Unwanted articles retrieved successfully',
+            pagination=pagination_info
         )
         return jsonify(response), 200
 

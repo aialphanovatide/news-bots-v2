@@ -14,44 +14,98 @@
   "paths": {
     "/articles": {
       "get": {
-        "summary": "Get all articles",
-        "tags": ["Articles"],
+        "tags": [
+          "Articles"
+        ],
+        "summary": "Retrieve articles with pagination.",
+        "description": "Retrieve articles with pagination.",
         "parameters": [
           {
-            "name": "limit",
+            "name": "page",
             "in": "query",
-            "description": "Maximum number of articles to return",
+            "description": "The page number",
             "required": false,
             "type": "integer",
-            "default": 10
+            "schema": {}
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "Number of articles per page",
+            "required": false,
+            "type": "integer",
+            "schema": {}
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful response",
+            "description": "Successfully retrieved articles",
             "schema": {
               "type": "object",
               "properties": {
+                "success": {
+                  "type": "boolean"
+                },
                 "data": {
                   "type": "array",
                   "items": {
                     "type": "object",
                     "properties": {
-                      "id": { "type": "integer" },
-                      "title": { "type": "string" },
-                      "content": { "type": "string" },
-                      "analysis": { "type": "string" },
-                      "url": { "type": "string" },
-                      "date": { "type": "string" },
-                      "used_keywords": { "type": "string" },
-                      "is_article_efficient": { "type": "boolean" },
-                      "bot_id": { "type": "integer" },
-                      "created_at": { "type": "string" },
-                      "updated_at": { "type": "string" }
+                      "id": {
+                        "type": "integer"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
                     }
                   }
                 },
-                "success": { "type": "boolean" }
+                "pagination": {
+                  "type": "object",
+                  "properties": {
+                    "page": {
+                      "type": "integer"
+                    },
+                    "per_page": {
+                      "type": "integer"
+                    },
+                    "total_pages": {
+                      "type": "integer"
+                    },
+                    "total_items": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No articles found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "data": {
+                  "type": "array",
+                  "items": {}
+                },
+                "message": {
+                  "type": "string"
+                }
               }
             }
           },
@@ -60,28 +114,26 @@
             "schema": {
               "type": "object",
               "properties": {
-                "error": { "type": "string" },
-                "success": { "type": "boolean" }
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
               }
             }
           },
           "404": {
-            "description": "No articles found",
+            "description": "Page not found",
             "schema": {
               "type": "object",
               "properties": {
-                "error": { "type": "string" },
-                "success": { "type": "boolean" }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": { "type": "string" },
-                "success": { "type": "boolean" }
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
               }
             }
           }
@@ -89,7 +141,9 @@
       },
       "delete": {
         "summary": "Delete an article by ID",
-        "tags": ["Articles"],
+        "tags": [
+          "Articles"
+        ],
         "parameters": [
           {
             "name": "article_id",
@@ -105,8 +159,12 @@
             "schema": {
               "type": "object",
               "properties": {
-                "success": { "type": "boolean" },
-                "message": { "type": "string" }
+                "success": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
+                }
               }
             }
           },
@@ -115,8 +173,12 @@
             "schema": {
               "type": "object",
               "properties": {
-                "error": { "type": "string" },
-                "success": { "type": "boolean" }
+                "error": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                }
               }
             }
           },
@@ -125,8 +187,12 @@
             "schema": {
               "type": "object",
               "properties": {
-                "error": { "type": "string" },
-                "success": { "type": "boolean" }
+                "error": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                }
               }
             }
           },
@@ -135,8 +201,12 @@
             "schema": {
               "type": "object",
               "properties": {
-                "error": { "type": "string" },
-                "success": { "type": "boolean" }
+                "error": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                }
               }
             }
           }
@@ -146,7 +216,9 @@
     "/article/{article_id}": {
       "get": {
         "summary": "Retrieve a specific article by its ID",
-        "tags": ["Articles"],
+        "tags": [
+          "Articles"
+        ],
         "parameters": [
           {
             "name": "article_id",
@@ -169,20 +241,44 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "id": { "type": "integer" },
-                        "title": { "type": "string" },
-                        "content": { "type": "string" },
-                        "analysis": { "type": "string" },
-                        "url": { "type": "string" },
-                        "date": { "type": "string" },
-                        "used_keywords": { "type": "string" },
-                        "is_article_efficient": { "type": "boolean" },
-                        "bot_id": { "type": "integer" },
-                        "created_at": { "type": "string" },
-                        "updated_at": { "type": "string" }
+                        "id": {
+                          "type": "integer"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        },
+                        "analysis": {
+                          "type": "string"
+                        },
+                        "url": {
+                          "type": "string"
+                        },
+                        "date": {
+                          "type": "string"
+                        },
+                        "used_keywords": {
+                          "type": "string"
+                        },
+                        "is_article_efficient": {
+                          "type": "boolean"
+                        },
+                        "bot_id": {
+                          "type": "integer"
+                        },
+                        "created_at": {
+                          "type": "string"
+                        },
+                        "updated_at": {
+                          "type": "string"
+                        }
                       }
                     },
-                    "success": { "type": "boolean" }
+                    "success": {
+                      "type": "boolean"
+                    }
                   }
                 }
               }
@@ -195,8 +291,12 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "error": { "type": "string" },
-                    "success": { "type": "boolean" }
+                    "error": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
                   }
                 }
               }
@@ -209,8 +309,12 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "error": { "type": "string" },
-                    "success": { "type": "boolean" }
+                    "error": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
                   }
                 }
               }
@@ -218,7 +322,7 @@
           }
         }
       }
-    }, 
+    },
     "/articles/create": {
       "post": {
         "summary": "Create a new article",
@@ -240,26 +344,48 @@
                   "image_url"
                 ],
                 "properties": {
-                  "title": { "type": "string" },
-                  "content": { "type": "string" },
-                  "analysis": { "type": "string" },
+                  "title": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  },
+                  "analysis": {
+                    "type": "string"
+                  },
                   "used_keywords": {
                     "type": "array",
-                    "items": { "type": "string" }
+                    "items": {
+                      "type": "string"
+                    }
                   },
-                  "is_article_efficient": { "type": "string" },
-                  "bot_id": { "type": "integer" },
-                  "category_id": { "type": "integer" },
-                  "image_url": { "type": "string" }
+                  "is_article_efficient": {
+                    "type": "string"
+                  },
+                  "bot_id": {
+                    "type": "integer"
+                  },
+                  "category_id": {
+                    "type": "integer"
+                  },
+                  "image_url": {
+                    "type": "string"
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Article created successfully" },
-          "400": { "description": "Bad request. Missing required fields" },
-          "500": { "description": "Internal server error" }
+          "200": {
+            "description": "Article created successfully"
+          },
+          "400": {
+            "description": "Bad request. Missing required fields"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
         }
       }
     },
@@ -273,19 +399,32 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["content", "bot_id"],
+                "required": [
+                  "content",
+                  "bot_id"
+                ],
                 "properties": {
-                  "content": { "type": "string" },
-                  "bot_id": { "type": "integer" }
+                  "content": {
+                    "type": "string"
+                  },
+                  "bot_id": {
+                    "type": "integer"
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Image generated successfully" },
-          "400": { "description": "Missing required fields" },
-          "500": { "description": "Internal server error" }
+          "200": {
+            "description": "Image generated successfully"
+          },
+          "400": {
+            "description": "Missing required fields"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
         }
       }
     },
@@ -299,19 +438,32 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["content", "category_id"],
+                "required": [
+                  "content",
+                  "category_id"
+                ],
                 "properties": {
-                  "content": { "type": "string" },
-                  "category_id": { "type": "integer" }
+                  "content": {
+                    "type": "string"
+                  },
+                  "category_id": {
+                    "type": "integer"
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Article summary generated successfully" },
-          "400": { "description": "Missing required fields" },
-          "500": { "description": "Internal server error" }
+          "200": {
+            "description": "Article summary generated successfully"
+          },
+          "400": {
+            "description": "Missing required fields"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
         }
       }
     },
@@ -320,9 +472,15 @@
         "summary": "Get the last five articles",
         "description": "Retrieve the last five articles with extended details.",
         "responses": {
-          "200": { "description": "Successfully retrieved the last five articles" },
-          "404": { "description": "No articles found matching the criteria" },
-          "500": { "description": "Internal server error" }
+          "200": {
+            "description": "Successfully retrieved the last five articles"
+          },
+          "404": {
+            "description": "No articles found matching the criteria"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
         }
       }
     },
@@ -336,21 +494,30 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["extract_type", "link"],
+                "required": [
+                  "extract_type",
+                  "link"
+                ],
                 "properties": {
                   "extract_type": {
                     "type": "string",
                     "description": "Type of extraction ('link' or 'google_docs')"
                   },
-                  "link": { "type": "string" }
+                  "link": {
+                    "type": "string"
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Successfully extracted content" },
-          "500": { "description": "Internal server error" }
+          "200": {
+            "description": "Successfully extracted content"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
         }
       }
     },
@@ -364,28 +531,46 @@
             "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": ["folderName", "file", "fileName"],
+                "required": [
+                  "folderName",
+                  "file",
+                  "fileName"
+                ],
                 "properties": {
-                  "folderName": { "type": "string" },
-                  "file": { "type": "string", "format": "binary" },
-                  "fileName": { "type": "string" }
+                  "folderName": {
+                    "type": "string"
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "fileName": {
+                    "type": "string"
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "File uploaded successfully" },
-          "400": { "description": "Bad request. Missing required data" },
-          "500": { "description": "Internal server error" }
+          "200": {
+            "description": "File uploaded successfully"
+          },
+          "400": {
+            "description": "Bad request. Missing required data"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
         }
       }
-    }
-  ,
-  "/delete_from_blacklist": {
+    },
+    "/delete_from_blacklist": {
       "delete": {
         "summary": "Delete an entry from the blacklist by ID",
-        "tags": ["Blacklist"],
+        "tags": [
+          "Blacklist"
+        ],
         "parameters": [
           {
             "name": "blacklist_id",
@@ -424,14 +609,13 @@
           }
         }
       }
-    },  
-
-
-
+    },
     "/bots": {
       "get": {
         "summary": "Get all available bots",
-        "tags": ["Bots"],
+        "tags": [
+          "Bots"
+        ],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -464,7 +648,9 @@
     "/create_bot": {
       "post": {
         "summary": "Create and schedule a new news Bot",
-        "tags": ["Bots"],
+        "tags": [
+          "Bots"
+        ],
         "parameters": [
           {
             "name": "body",
@@ -489,7 +675,13 @@
                   "type": "string"
                 }
               },
-              "required": ["name", "category_id", "url", "keywords", "blacklist"]
+              "required": [
+                "name",
+                "category_id",
+                "url",
+                "keywords",
+                "blacklist"
+              ]
             }
           }
         ],
@@ -548,7 +740,9 @@
     "/delete_bot/{bot_id}": {
       "delete": {
         "summary": "Delete a single Bot by ID",
-        "tags": ["Bots"],
+        "tags": [
+          "Bots"
+        ],
         "parameters": [
           {
             "in": "path",
@@ -576,7 +770,9 @@
     "/categories": {
       "get": {
         "summary": "Get all available categories",
-        "tags": ["Category"],
+        "tags": [
+          "Category"
+        ],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -629,7 +825,9 @@
     "/activate_all_categories": {
       "post": {
         "summary": "Activate all categories",
-        "tags": ["Category"],
+        "tags": [
+          "Category"
+        ],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -659,11 +857,13 @@
           }
         }
       }
-    },  
+    },
     "/activate_category": {
       "post": {
         "summary": "Activate a single category",
-        "tags": ["Category"],
+        "tags": [
+          "Category"
+        ],
         "parameters": [
           {
             "name": "body",
@@ -676,7 +876,9 @@
                   "type": "string"
                 }
               },
-              "required": ["category_name"]
+              "required": [
+                "category_name"
+              ]
             }
           }
         ],
@@ -712,11 +914,13 @@
           }
         }
       }
-    }, 
+    },
     "/deactivate_all_categories": {
       "post": {
         "summary": "Deactivate all categories",
-        "tags": ["Category"],
+        "tags": [
+          "Category"
+        ],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -746,11 +950,13 @@
           }
         }
       }
-    },    
+    },
     "/deactivate_category": {
       "post": {
         "summary": "Deactivate a single category",
-        "tags": ["Category"],
+        "tags": [
+          "Category"
+        ],
         "parameters": [
           {
             "name": "body",
@@ -763,7 +969,9 @@
                   "type": "string"
                 }
               },
-              "required": ["category_name"]
+              "required": [
+                "category_name"
+              ]
             }
           }
         ],
@@ -799,11 +1007,13 @@
           }
         }
       }
-    },         
+    },
     "/add_new_category": {
       "post": {
         "summary": "Create a new category",
-        "tags": ["Category"],
+        "tags": [
+          "Category"
+        ],
         "parameters": [
           {
             "name": "body",
@@ -839,7 +1049,13 @@
                   "default": false
                 }
               },
-              "required": ["name", "alias", "prompt", "time_interval", "slack_channel"]
+              "required": [
+                "name",
+                "alias",
+                "prompt",
+                "time_interval",
+                "slack_channel"
+              ]
             }
           }
         ],
@@ -919,7 +1135,9 @@
     "/categories/{category_id}": {
       "delete": {
         "summary": "Delete a category by ID",
-        "tags": ["Category"],
+        "tags": [
+          "Category"
+        ],
         "parameters": [
           {
             "name": "category_id",
@@ -960,11 +1178,13 @@
           }
         }
       }
-    },    
+    },
     "/jobs": {
       "get": {
         "summary": "List all scheduled jobs",
-        "tags": ["Jobs"],
+        "tags": [
+          "Jobs"
+        ],
         "responses": {
           "200": {
             "description": "A list of all scheduled jobs",
@@ -1001,11 +1221,12 @@
         }
       }
     },
-
     "/keywords_dinamic_search": {
       "get": {
         "summary": "Get all keywords filtered by bot_id",
-        "tags": ["Keywords"],
+        "tags": [
+          "Keywords"
+        ],
         "parameters": [
           {
             "name": "bot_id",
@@ -1064,57 +1285,61 @@
           }
         }
       }
-    },    
+    },
     "/dynamic_search": {
-  "get": {
-    "summary": "Perform a dynamic search for related words",
-    "tags": ["Keywords"],
-    "parameters": [
-      {
-        "name": "query",
-        "in": "query",
-        "description": "Word or phrase to search for",
-        "required": true,
-        "type": "string"
-      }
-    ],
-    "responses": {
-      "200": {
-        "description": "Successful response",
-        "schema": {
-          "type": "object",
-          "properties": {
-            "success": {
-              "type": "boolean"
-            },
-            "data": {
-              "type": "array",
-              "items": {
-                "type": "string"
+      "get": {
+        "summary": "Perform a dynamic search for related words",
+        "tags": [
+          "Keywords"
+        ],
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "description": "Word or phrase to search for",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "error": {
+                  "type": "string"
+                }
               }
-            },
-            "error": {
-              "type": "string"
             }
+          },
+          "400": {
+            "description": "Bad request - Missing query parameter"
+          },
+          "404": {
+            "description": "No related words found"
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
-      },
-      "400": {
-        "description": "Bad request - Missing query parameter"
-      },
-      "404": {
-        "description": "No related words found"
-      },
-      "500": {
-        "description": "Internal Server Error"
       }
-    }
-  }
-},
+    },
     "/add_keyword": {
       "post": {
         "summary": "Add keyword(s) to a bot",
-        "tags": ["Keywords"],
+        "tags": [
+          "Keywords"
+        ],
         "parameters": [
           {
             "name": "body",
@@ -1166,7 +1391,9 @@
     "/delete_keyword": {
       "delete": {
         "summary": "Delete a keyword from a bot by ID",
-        "tags": ["Keywords"],
+        "tags": [
+          "Keywords"
+        ],
         "parameters": [
           {
             "name": "keyword_id",
@@ -1206,12 +1433,12 @@
         }
       }
     },
-
-
     "/get_sites": {
       "get": {
         "summary": "Get sites by bot ID",
-        "tags": ["Sites"],
+        "tags": [
+          "Sites"
+        ],
         "parameters": [
           {
             "name": "bot_id",
@@ -1295,7 +1522,9 @@
     "/get_unwanted_articles": {
       "get": {
         "summary": "Get unwanted articles by bot ID",
-        "tags": ["Unwanted Articles"],
+        "tags": [
+          "Unwanted Articles"
+        ],
         "parameters": [
           {
             "name": "bot_id",
@@ -1402,7 +1631,9 @@
     "/search_unwanted_articles": {
       "post": {
         "summary": "Search for unwanted articles by search query",
-        "tags": ["Unwanted Articles"],
+        "tags": [
+          "Unwanted Articles"
+        ],
         "parameters": [
           {
             "name": "search_query",
@@ -1505,7 +1736,9 @@
     },
     "/top-stories": {
       "get": {
-        "tags": ["Top Stories"],
+        "tags": [
+          "Top Stories"
+        ],
         "summary": "Retrieve top stories",
         "description": "Get a list of top stories from the article database",
         "parameters": [
@@ -1556,7 +1789,9 @@
     },
     "/top-story/{article_id}": {
       "get": {
-        "tags": ["Top Stories"],
+        "tags": [
+          "Top Stories"
+        ],
         "summary": "Retrieve a single top story",
         "description": "Get a specific top story article by its ID",
         "parameters": [
@@ -1614,7 +1849,9 @@
         }
       },
       "delete": {
-        "tags": ["Top Stories"],
+        "tags": [
+          "Top Stories"
+        ],
         "summary": "Remove a top story",
         "description": "Remove an article from top stories by setting its is_top_story flag to False",
         "parameters": [
@@ -1674,59 +1911,61 @@
     },
     "/coingecko/usage": {
       "get": {
-          "summary": "Retrieve the API usage details from the CoinGecko Pro API",
-          "tags": ["API Monitor"],
-          "responses": {
-              "200": {
-                  "description": "Successful response",
-                  "content": {
-                      "application/json": {
-                          "schema": {
-                              "type": "object",
-                              "properties": {
-                                  "success": {
-                                      "type": "boolean"
-                                  },
-                                  "data": {
-                                      "type": "object",
-                                      "properties": {
-                                          "usage_limit": {
-                                              "type": "integer"
-                                          },
-                                          "usage_count": {
-                                              "type": "integer"
-                                          }
-                                      }
-                                  },
-                                  "error": {
-                                      "type": "string"
-                                  }
-                              }
-                          }
+        "summary": "Retrieve the API usage details from the CoinGecko Pro API",
+        "tags": [
+          "API Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "usage_limit": {
+                          "type": "integer"
+                        },
+                        "usage_count": {
+                          "type": "integer"
+                        }
                       }
+                    },
+                    "error": {
+                      "type": "string"
+                    }
                   }
-              },
-              "500": {
-                  "description": "Internal server error",
-                  "content": {
-                      "application/json": {
-                          "schema": {
-                              "type": "object",
-                              "properties": {
-                                  "success": {
-                                      "type": "boolean"
-                                  },
-                                  "error": {
-                                      "type": "string"
-                                  }
-                              }
-                          }
-                      }
-                  }
+                }
               }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
+        }
       }
-  }
+    }
   },
   "components": {
     "schemas": {

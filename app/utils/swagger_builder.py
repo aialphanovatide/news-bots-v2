@@ -6,7 +6,7 @@ from typing import Tuple
 
 class Swagger:
     def __init__(self):
-        self.path = os.path.join('static', 'swagger.json')
+        self.path = os.path.join('app','static', 'swagger.json')
 
     def load(self) -> dict:
         """
@@ -128,47 +128,101 @@ swagger = Swagger()
 
 
 # Update Swagger JSON
-# success, message = swagger.add_or_update_endpoint(
-#     endpoint_route='/coingecko/usage',
-#     method='get',
-#     tag='CoinGecko',
-#     description='Retrieve CoinGecko API usage information.',
-#     params=[],  # No query parameters for this endpoint
-#     responses={
-#         '200': {
-#             'description': 'Successfully retrieved CoinGecko API usage information',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'data': {
-#                         'type': 'object',
-#                         'description': 'The CoinGecko API usage information'
-#                     },
-#                     'error': {'type': 'string', 'nullable': True},
-#                     'success': {'type': 'boolean'}
-#                 }
-#             }
-#         },
-#         '500': {
-#             'description': 'Internal server error',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'data': {'type': 'null'},
-#                     'error': {'type': 'string'},
-#                     'success': {'type': 'boolean'}
-#                 }
-#             }
-#         }
-#     }
-# )
+success, message = swagger.add_or_update_endpoint(
+    endpoint_route='/articles',
+    method='get',
+    tag='Articles',
+    description='Retrieve articles with pagination.',
+    params=[
+        {
+            'name': 'page',
+            'in': 'query',
+            'description': 'The page number',
+            'required': False,
+            'type': 'integer',
+            'default': 1
+        },
+        {
+            'name': 'per_page',
+            'in': 'query',
+            'description': 'Number of articles per page',
+            'required': False,
+            'type': 'integer',
+            'default': 10
+        }
+    ],
+    responses={
+        '200': {
+            'description': 'Successfully retrieved articles',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'data': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'id': {'type': 'integer'},
+                                'title': {'type': 'string'},
+                                'content': {'type': 'string'},
+                                'created_at': {'type': 'string', 'format': 'date-time'},
+                                'updated_at': {'type': 'string', 'format': 'date-time'}
+                            }
+                        }
+                    },
+                    'pagination': {
+                        'type': 'object',
+                        'properties': {
+                            'page': {'type': 'integer'},
+                            'per_page': {'type': 'integer'},
+                            'total_pages': {'type': 'integer'},
+                            'total_items': {'type': 'integer'}
+                        }
+                    }
+                }
+            }
+        },
+        '204': {
+            'description': 'No articles found',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'data': {'type': 'array', 'items': {}},
+                    'message': {'type': 'string'}
+                }
+            }
+        },
+        '400': {
+            'description': 'Bad request',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'error': {'type': 'string'}
+                }
+            }
+        },
+        '404': {
+            'description': 'Page not found',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'error': {'type': 'string'}
+                }
+            }
+        }
+    }
+)
 
-# print(message)
+print(message)
 
 
 # ____Delete an endpoint____
 
-success, message = swagger.delete_endpoint(endpoint_route='/get_revenuecat_user_info')
-print(message)
+# success, message = swagger.delete_endpoint(endpoint_route='/get_revenuecat_user_info')
+# print(message)
 
 
