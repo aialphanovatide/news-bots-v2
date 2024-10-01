@@ -1002,7 +1002,7 @@
       }
     },
 
-    "/get_keywords": {
+    "/keywords_dinamic_search": {
       "get": {
         "summary": "Get all keywords filtered by bot_id",
         "tags": ["Keywords"],
@@ -1065,6 +1065,52 @@
         }
       }
     },    
+    "/dynamic_search": {
+  "get": {
+    "summary": "Perform a dynamic search for related words",
+    "tags": ["Keywords"],
+    "parameters": [
+      {
+        "name": "query",
+        "in": "query",
+        "description": "Word or phrase to search for",
+        "required": true,
+        "type": "string"
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Successful response",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            },
+            "data": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "error": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Bad request - Missing query parameter"
+      },
+      "404": {
+        "description": "No related words found"
+      },
+      "500": {
+        "description": "Internal Server Error"
+      }
+    }
+  }
+},
     "/add_keyword": {
       "post": {
         "summary": "Add keyword(s) to a bot",
