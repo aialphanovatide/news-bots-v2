@@ -151,7 +151,6 @@ def delete_category(category_id):
             return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
 
-
 @categories_bp.route('/categories', methods=['GET'])
 @cache_with_redis()
 def get_categories():
@@ -418,7 +417,6 @@ def toggle_category_coins(category_id):
         except Exception as e:
             session.rollback()
             return jsonify({'success': False, 'message': f'Internal server error: {str(e)}'}), 500
-
 
 
 @categories_bp.route('/toggle-all-coins', methods=['POST'])

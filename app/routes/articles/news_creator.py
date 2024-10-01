@@ -340,7 +340,6 @@ def upload_file_to_drive():
         response = create_response(success=False, error=f'An unexpected error occurred: {str(e)}')
         return jsonify(response), 500
     
-    
 
 def extract_text_from_google_docs(link):
     """

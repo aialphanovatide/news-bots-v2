@@ -16,8 +16,6 @@ bots_bp = Blueprint(
     static_folder='static'
 )
 
-
-
 # Function to be scheduled
 def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, category_slack_channel):
     """
