@@ -3,8 +3,8 @@ import asyncio
 from typing import List, Dict
 from datetime import datetime
 from playwright.sync_api import sync_playwright
+from app.news_bot.webscrapper.utils import resolve_redirects_playwright
 from app.routes.grok.grok import search_coin_news
-from app.utils.helpers import resolve_redirects_playwright
 from app.utils.analyze_links import fetch_article_content, validate_and_save_article
 from webscrapper import WebScraper
 

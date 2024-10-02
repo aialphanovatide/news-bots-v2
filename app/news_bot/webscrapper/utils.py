@@ -1,9 +1,13 @@
+from datetime import datetime, timedelta
 import os
+import re
 import time
 import json
 import aiofiles
 from functools import wraps
+from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
+
 
 # Takes a string, changes it to lowercase, and joins words with underscores
 def transform_string(input_string):
@@ -81,3 +85,34 @@ def measure_execution_time(func):
 
 
 
+
+def clean_text(text):
+    text = re.sub(r'Headline:\n', '', text)
+    text = re.sub(r'Summary:\n', '', text)
+    text = re.sub(r'Summary:', '', text)
+    text = re.sub(r'\*\*', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\*\*\s*\*\*', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\#\#\#', '', text, flags=re.MULTILINE)
+    return text
+
+def validate_yahoo_date(html: BeautifulSoup) -> bool:
+    """
+    Validate the freshness of a Yahoo article based on the <time> tag.
+
+    Args:
+        html (BeautifulSoup): Parsed HTML content.
+
+    Returns:
+        bool: True if the article is fresh (within the last 24 hours), False otherwise.
+    """
+    time_tag = html.find('time', {'datetime': True})
+    if time_tag:
+        date_time_str = time_tag['datetime']
+        try:
+            publication_date = datetime.strptime(date_time_str, '%Y-%m-%dT%H:%M:%S.%fZ')
+            # Check if the publication date is within the last 24 hours
+            if datetime.now() - publication_date <= timedelta(days=1):
+                return True
+        except ValueError as e:
+            print(f"Error parsing date: {e}")
+    return False 

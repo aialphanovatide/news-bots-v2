@@ -11,6 +11,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response, handle_db_session
 from apscheduler.triggers.date import DateTrigger
 from concurrent.futures import ThreadPoolExecutor
+from news_bot.webscrapper.init import NewsScraper
+
+scrapper_service = NewsScraper()
 
 activate_bots_bp = Blueprint(
     'activate_bots_bp', __name__,
