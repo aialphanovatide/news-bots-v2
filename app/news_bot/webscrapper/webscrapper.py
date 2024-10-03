@@ -46,7 +46,7 @@ class WebScraper:
     
     def scrape(self) -> Tuple[Optional[str], List[str], Optional[str], Optional[List[Dict[str, Any]]]]:
         try:
-            self.logger(f"Starting scrape for URL: {self.url}")
+            # self.logger(f"Starting scrape for URL: {self.url}")
             
             #Check if the URL is an RSS feed
             if self.url.endswith('.rss') or 'rss' in self.url:
@@ -83,8 +83,7 @@ class WebScraper:
                 self.logger(f"Unsupported content type: {content_type}")
                 return None, [], f"Unsupported content type: {content_type}", None
 
-            # if self.save_to_file:
-            #     self.save_response_to_file(result)
+            print()
 
             return result
 
@@ -207,34 +206,32 @@ class WebScraper:
             self.logger(error_message)
             return "", [], error_message, []
 
-    def scrape_rss(self) -> Tuple[str, List[str], None, List[Dict[str, Any]]]:
-        #Log the start of RSS feed scraping
+    def scrape_rss(self) -> List[str]:
+        # Log the start of RSS feed scraping
         self.logger(f"Scraping RSS feed: {self.url}")
         
-        #Parse the RSS feed using feedparser
+        # Parse the RSS feed using feedparser
         feed = feedparser.parse(self.url)
         
-        #Log successful parsing and number of entries
+        # Log successful parsing and number of entries
         self.logger(f"Feed parsed successfully")
         self.logger(f"Number of entries: {len(feed.entries)}")
         
-        #Convert the entire feed to a string for content
-        content = str(feed)
-        
-        #Extract links from entries, if available
+        # Extract links from entries, if available
         links = [entry.link for entry in feed.entries if 'link' in entry]
-        #Store all entries
-        entries = feed.entries
-        if entries:
+        
+        # Log first few entries (optional for debugging)
+        if feed.entries:
             self.logger("First 5 entries (if available):")
-            for entry in entries[:1]:
+            for entry in feed.entries[:1]:
                 self.logger(f"Title: {entry.get('title', 'N/A')}")
                 self.logger(f"Link: {entry.get('link', 'N/A')}")
                 self.logger(f"Published: {entry.get('published', 'N/A')}")
                 self.logger("---")
         
-        #Return the scraped data: content, links, error (None in this case), and entries
-        return content, links, None, entries
+        # Return only the list of links
+        return links
+
 
 
 

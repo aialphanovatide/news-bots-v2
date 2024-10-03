@@ -8,11 +8,11 @@ from dotenv import load_dotenv
 import boto3
 import pyperclip
 import requests
+from app.news_bot.webscrapper.utils import clean_text
 from app.routes.routes_utils import create_response, handle_db_session
 from app.services.google_drive.g_drive import upload_file
 from app.services.perplexity.perplexity import perplexity_api_request
 from app.services.slack.actions import send_NEWS_message_to_slack_channel
-from app.utils.analyze_links import clean_text
 from config import Article, Bot, Category, db
 from app.services.d3.dalle3 import generate_poster_prompt
 from sqlalchemy.exc import SQLAlchemyError

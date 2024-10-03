@@ -2,7 +2,6 @@ import re
 from datetime import datetime
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from app.utils.index import fetch_news_links
 from flask import Blueprint, jsonify, request
 from app.routes.bots.utils import validate_url
 from redis_client.redis_client import cache_with_redis, update_cache_with_redis
@@ -18,27 +17,7 @@ bots_bp = Blueprint(
 
 
 
-# Function to be scheduled
-def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, category_slack_channel):
-    """
-    Function to fetch news links based on bot configuration.
-    Args:
-        bot_site (str): URL of the bot's site.
-        bot_name (str): Name of the bot.
-        bot_blacklist (list): List of blacklisted keywords.
-        category_id (int): ID of the category.
-        bot_id (int): ID of the bot.
-        category_slack_channel (str): Slack channel for category notifications.
-    """
-    with scheduler.app.app_context():
-        fetch_news_links(
-            url=bot_site,
-            bot_name=bot_name,
-            blacklist=bot_blacklist,
-            category_id=category_id,
-            bot_id=bot_id,
-            category_slack_channel=category_slack_channel
-        )
+
 
 @bots_bp.route('/bot', methods=['GET'])
 @cache_with_redis()

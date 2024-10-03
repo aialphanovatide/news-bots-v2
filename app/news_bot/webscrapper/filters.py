@@ -2,10 +2,8 @@ from datetime import datetime
 from typing import Any, Dict, List
 import re
 from app.utils.similarity import cosine_similarity_with_openai_classification
-from config import Article, Session, UnwantedArticle
+from config import Article, Blacklist, Keyword, Session, UnwantedArticle
 from app.news_bot.webscrapper.data_manager import DataManager
-
-data_manager=DataManager()
 
 
 def datetime_checker(date):
@@ -30,6 +28,7 @@ def last_10_article_checker(bot_id: int, article_content: str, title: str, url: 
         Exception: If an error occurs during the similarity check.
     """
     with Session() as session:
+        data_manager=DataManager()
         # Ensure article_content is a single string
         if isinstance(article_content, list):
             article_content = " ".join(article_content)
@@ -140,10 +139,90 @@ def filter_link(url: str, exclude_terms: List[str] = ['privacy-policy', 'glossar
         return {'error': str(e)}
 
 
-def content_filter(content, blacklist, keywords):
-    # Implement content filtering logic
-    pass
+def keywords_filter(bot_id: int, article_content: str, article_title: str, news_link: str) -> Dict[str, Any]:
+    """
+    Filter articles based on keywords and blacklist keywords associated with a specific bot.
+
+    Args:
+        bot_id (int): The ID of the bot.
+        article_content (str): The content of the article to check.
+        article_title (str): The title of the article.
+        news_link (str): The URL of the article.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the result of the filter:
+            - 'error' (str or None): Description of why the article was filtered out, if applicable.
+            - 'articles_saved' (int): The number of articles saved (always 0 in this function).
+            - 'unwanted_articles_saved' (int): The number of unwanted articles saved (0 or 1).
+            - 'used_keywords' (List[str]): List of keywords found in the article (only if the article passes the filter).
+
+    Details:
+        This function performs the following steps:
+        1. Retrieves keywords and blacklist keywords associated with the bot from the database.
+        2. Checks if the article content contains any of the bot's keywords.
+        3. Checks if the article content contains any of the bot's blacklist keywords.
+        4. If the article doesn't match any keywords or contains blacklist keywords, it's saved as an unwanted article.
+        5. If the article passes the filter, it saves the used keywords and returns the list.
+
+    Raises:
+        Exception: If an error occurs during database operations.
+    """
+    try:
+        data_manager = DataManager()
+
+        # Asegurarte de que article_content es una cadena (por si viene como lista de párrafos)
+        if isinstance(article_content, list):
+            article_content = " ".join(article_content)
+
+        # Convertir el contenido a minúsculas una vez
+        article_content_lower = article_content.lower()
+
+        # Recuperar las palabras clave relacionadas con el bot desde la base de datos
+        bot_keywords = Keyword.query.filter_by(bot_id=bot_id).all()
+        bot_keyword_names = [keyword.name.lower() for keyword in bot_keywords]  # Pasamos todo a minúsculas
+        # Recuperar las palabras clave de la lista negra relacionadas con el bot
+        bot_bl_keywords = Blacklist.query.filter_by(bot_id=bot_id).all()
+        bot_bl_keyword_names = [bl_keyword.name.lower() for bl_keyword in bot_bl_keywords]  # Pasamos todo a minúsculas
+        used_keywords = [keyword for keyword in bot_keyword_names if keyword in article_content_lower]
+
+        used_blacklist_keywords = [bl_keyword for bl_keyword in bot_bl_keyword_names if bl_keyword in article_content_lower]
+
+        if not used_keywords or used_blacklist_keywords:
+            reason = ''
+            if not used_keywords:
+                print(f"[INFO] Article did not match any keywords, link: {news_link}")
+                reason = 'Article did not match any keyword'
+            elif used_blacklist_keywords:
+                print(f"[INFO] Article contains blacklist keyword, link: {news_link}")
+                reason = 'Article contains blacklist keyword'
+
+            # Guardar el artículo como no deseado
+            data_manager.save_unwanted_article(
+                title=article_title,
+                content=article_content,
+                reason=reason,
+                url=news_link,
+                date=datetime.now(),
+                bot_id=bot_id,
+                created_at=datetime.now(),
+                updated_at=datetime.now()
+            )
+
+            return {
+                'error': f"Article '{article_title}' filtered: {reason}",
+                'articles_saved': 0,
+                'unwanted_articles_saved': 1,
+                'used_keywords': []
+            }
 
 
+        return {
+            'error': None,
+            'articles_saved': 0,
+            'unwanted_articles_saved': 0,
+            'used_keywords': used_keywords
+        }
 
-
+    except Exception as e:
+        print(f"[ERROR] Exception occurred during keyword filtering: {str(e)}")
+        raise

@@ -3,17 +3,15 @@
 
 
 from flask import Blueprint, jsonify, request
+from app.news_bot.webscrapper.init import NewsScraper
 from config import Blacklist, Category, Bot, Site, db
 from datetime import datetime, timedelta
-from app.utils.index import fetch_news_links
 from scheduler_config import scheduler
 from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response, handle_db_session
 from apscheduler.triggers.date import DateTrigger
 from concurrent.futures import ThreadPoolExecutor
-from news_bot.webscrapper.init import NewsScraper
 
-scrapper_service = NewsScraper()
 
 activate_bots_bp = Blueprint(
     'activate_bots_bp', __name__,
@@ -46,7 +44,7 @@ def calculate_next_execution_time(bot_name, current_time):
 
 def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, category_slack_channel):
     with scheduler.app.app_context():
-        fetch_news_links(
+        news_scraper = NewsScraper(
             url=bot_site,
             bot_name=bot_name,
             blacklist=bot_blacklist,
@@ -54,13 +52,21 @@ def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, catego
             bot_id=bot_id,
             category_slack_channel=category_slack_channel
         )
+        result = news_scraper.run()
         
+        print(f"Scraping result: {result['message']}")
+        print(f"Articles saved: {result['articles_saved']}")
+        print(f"Unwanted articles saved: {result['unwanted_articles_saved']}")
+        
+        if 'error' in result:
+            print(f"Error occurred: {result['error']}")
+
         try:
             # Fetch current time for re-scheduling
             now = datetime.now()
             # Calculate new execution time
             new_execution_time = calculate_next_execution_time(bot_name, now)
-            print("next time to run: ", bot_name,"Time: ",new_execution_time )
+            print(f"Next time to run {bot_name}: {new_execution_time}")
             scheduler.add_job(
                 id=bot_name,
                 func=scheduled_job,
@@ -75,12 +81,13 @@ def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, catego
             if category:
                 category.updated_at = now
                 db.session.commit()
-                print(f'{category_id} updated successfully')
+                print(f'Category {category_id} updated successfully')
             else:
                 print(f'Category {category_id} not found in the database')
         except Exception as e:
             print(f'Error updating {category_id}: {str(e)}')
-
+            
+            
 @activate_bots_bp.route('/activate_all_categories', methods=['POST'])
 @handle_db_session
 def activate_all_bots():

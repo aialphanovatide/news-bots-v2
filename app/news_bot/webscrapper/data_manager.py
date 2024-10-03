@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Dict, Optional
-from config import db
+from config import db, Session
 from config import Article, UnwantedArticle, UsedKeywords
 
 
@@ -45,27 +45,43 @@ class DataManager:
             and saves it to the database. It uses the current time for 'created_at'
             and 'updated_at' fields.
         """
-        try:
-            new_article = Article(
-                title=article_data['title'],
-                content=article_data['content'],
-                image=article_data['image'],
-                analysis=article_data['analysis'],
-                url=article_data['link'],
-                date=article_data.get('date', datetime.now()),
-                used_keywords=article_data.get('used_keywords', ''),
-                is_article_efficent=article_data.get('is_efficient', ''),
-                is_top_story=article_data.get('is_top_story', False),
-                bot_id=article_data['bot_id'],
-                created_at=datetime.now(),
-                updated_at=datetime.now()
-            )
-            self.db.session.add(new_article)
-            self.db.session.commit()
-            return new_article.id
-        except Exception as e:
-            self.db.session.rollback()
-            raise e
+        with Session() as session:
+            try:
+                new_article = Article(
+                    title=article_data['title'],
+                    content=article_data['content'],
+                    image=article_data['image'],
+                    analysis=article_data['analysis'],
+                    url=article_data['link'],
+                    date=article_data.get('date', datetime.now()),
+                    used_keywords=article_data.get('used_keywords', ''),
+                    is_article_efficent=article_data.get('is_efficient', ''),  
+                    is_top_story=article_data.get('is_top_story', False),
+                    bot_id=article_data['bot_id'],
+                    created_at=datetime.now(),
+                    updated_at=datetime.now()
+                )
+                
+                session.add(new_article)
+                session.commit()
+
+                keyword_data = {
+                    'article_content': article_data['content'],
+                    'article_date': datetime.now(),
+                    'article_url': article_data['link'],
+                    'keywords': ', '.join(article_data.get('used_keywords', [])),
+                    'source': new_article.url,
+                    'article_id': new_article.id,  
+                    'bot_id': article_data['bot_id'],
+                }
+                self.save_used_keywords(keyword_data)
+
+                return new_article.id
+            except Exception as e:
+                session.rollback()
+                print(f"[ERROR] Error saving article: {str(e)}")  
+                raise e
+
         
     def save_unwanted_article(self, title: str, content: str, reason: str, url: str, 
                               date: datetime, bot_id: int, created_at: Optional[datetime] = None, 
@@ -94,26 +110,27 @@ class DataManager:
             and saves it to the database. If 'created_at' or 'updated_at' are not provided,
             it uses the current time.
         """
-        try:
-            created_at = created_at or datetime.now()
-            updated_at = updated_at or datetime.now()
+        with Session() as session:
+            try:
+                created_at = created_at or datetime.now()
+                updated_at = updated_at or datetime.now()
 
-            unwanted_article = UnwantedArticle(
-                title=title,
-                content=content,
-                reason=reason,
-                url=url,
-                date=date,
-                bot_id=bot_id,
-                created_at=created_at,
-                updated_at=updated_at
-            )
-            self.db.session.add(unwanted_article)
-            self.db.session.commit()
-            return unwanted_article
-        except Exception as e:
-            self.db.session.rollback()
-            raise e
+                unwanted_article = UnwantedArticle(
+                    title=title,
+                    content=content,
+                    reason=reason,
+                    url=url,
+                    date=date,
+                    bot_id=bot_id,
+                    created_at=created_at,
+                    updated_at=updated_at
+                )
+                session.add(unwanted_article)
+                session.commit()
+                return unwanted_article
+            except Exception as e:
+                session.rollback()
+                raise e
 
     def save_used_keywords(self, keyword_data: Dict[str, any]) -> int:
         """
@@ -140,20 +157,21 @@ class DataManager:
             This function creates a new UsedKeywords instance with the provided data
             and saves it to the database. It uses the current time for the 'created_at' field.
         """
-        try:
-            used_keywords = UsedKeywords(
-                article_content=keyword_data['article_content'],
-                article_date=keyword_data['article_date'],
-                article_url=keyword_data['article_url'],
-                keywords=keyword_data['keywords'],
-                source=keyword_data['source'],
-                article_id=keyword_data['article_id'],
-                bot_id=keyword_data['bot_id'],
-                created_at=datetime.now()
-            )
-            self.db.session.add(used_keywords)
-            self.db.session.commit()
-            return used_keywords.id
-        except Exception as e:
-            self.db.session.rollback()
-            raise e
+        with Session() as session:
+            try:
+                used_keywords = UsedKeywords(
+                    article_content=keyword_data['article_content'],
+                    article_date=keyword_data['article_date'],
+                    article_url=keyword_data['article_url'],
+                    keywords=keyword_data['keywords'],
+                    source=keyword_data['source'],
+                    article_id=keyword_data['article_id'],
+                    bot_id=keyword_data['bot_id'],
+                    created_at=datetime.now()
+                )
+                session.add(used_keywords)
+                session.commit()
+                return used_keywords.id
+            except Exception as e:
+                session.rollback()
+                raise e

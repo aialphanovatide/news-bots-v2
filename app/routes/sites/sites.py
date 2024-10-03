@@ -1,6 +1,5 @@
 from datetime import datetime
 from flask import Blueprint, jsonify, request
-from app.utils.helpers import measure_execution_time
 from config import Site, db
 from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response, handle_db_session
@@ -15,7 +14,6 @@ sites_bp = Blueprint(
 
 
 @sites_bp.route('/get_sites', methods=['GET'])
-@measure_execution_time
 @handle_db_session
 def get_sites_by_bot():
     """
@@ -51,7 +49,6 @@ def get_sites_by_bot():
 
 
 @sites_bp.route('/add_site', methods=['POST'])
-@measure_execution_time
 @handle_db_session
 def add_site():
     """
@@ -86,7 +83,6 @@ def add_site():
 
 
 @sites_bp.route('/delete_site', methods=['DELETE'])
-@measure_execution_time
 @handle_db_session
 def delete_site():
     """

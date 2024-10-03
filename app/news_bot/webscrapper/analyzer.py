@@ -31,9 +31,7 @@ def analyze_content(news_link: str) -> Dict[str, Any]:
         4. Extracts the article title, paragraphs, and publication date.
         5. Performs additional validation for publication date.
         6. Returns a dictionary with the extracted information and status.
-    """
-    print(f"\n[INFO] Fetching article content for: {news_link}")
-    
+    """    
     try:
         # Send HTTP GET request
         response = requests.get(news_link, timeout=10)
@@ -48,6 +46,7 @@ def analyze_content(news_link: str) -> Dict[str, Any]:
             }
         
         content_type = response.headers.get('Content-Type', '').lower()
+        
         if 'text/html' not in content_type:
             print(f"[ERROR] Content is not HTML for URL: {news_link}")
             return {
@@ -72,15 +71,12 @@ def analyze_content(news_link: str) -> Dict[str, Any]:
 
         if not article_title:
             print("[WARNING] Could not extract article title")
-            article_title = "Unknown Title"
-        
-        print(f"[INFO] Article title: {article_title}")
+            article_title = "Unknown Title"        
         
         # Extract paragraphs from the article
         paragraphs = html.find_all('p')
         article_content = [p.text.strip() for p in paragraphs if p.text.strip()]
-        print(f"[INFO] Extracted {len(article_content)} paragraphs")
- 
+
         return {
             'success': True,
             'url': news_link,
@@ -88,7 +84,7 @@ def analyze_content(news_link: str) -> Dict[str, Any]:
             'paragraphs': article_content,
             'error': None
         }
-    
+            
     except requests.RequestException as e:
         print(f"[ERROR] Request error for {news_link}: {e}")
         return {
