@@ -13,5 +13,5 @@ else
     echo "Starting Gunicorn production server..."
     PORT=${PORT:-9000}
     # exec gunicorn --workers 3 --threads 2 --timeout 120 server:app
-    exec gunicorn --bind 0.0.0.0:$PORT --workers 3 --threads 2 --timeout 120 server:app
+    exec gunicorn --bind 0.0.0.0:$PORT --workers 3 --threads 2 --timeout 120 run:app
 fi
