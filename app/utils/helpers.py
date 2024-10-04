@@ -80,4 +80,31 @@ def measure_execution_time(func):
 
 
 
+def validate_bot(bot, category, session):
+    validation_errors = []
 
+    # Check bot fields
+    required_bot_fields = ['dalle_prompt', 'run_frequency']
+    for field in required_bot_fields:
+        if not getattr(bot, field):
+            validation_errors.append(f"Bot is missing {field}")
+
+    # Check associated data
+    if not bot.sites:
+        validation_errors.append("Bot does not have an associated site")
+    elif not bot.sites[0].url:
+        validation_errors.append("Bot's site is missing URL")
+
+    if not bot.keywords:
+        validation_errors.append("Bot does not have any keywords")
+
+    if not bot.blacklist:
+        validation_errors.append("Bot does not have a blacklist")
+    
+    if category:
+        required_category_fields = ['prompt', 'slack_channel']
+        for field in required_category_fields:
+            if not getattr(category, field):
+                validation_errors.append(f"Bot's category is missing {field}")
+
+    return validation_errors

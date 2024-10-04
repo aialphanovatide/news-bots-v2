@@ -11,6 +11,9 @@ sites_bp = Blueprint(
     static_folder='static'
 )
 
+# FILE DEPRACATED, SCHEDULE TO REMOVE AND DELETE AFTER SERVER UPDATE
+
+
 @sites_bp.route('/get_sites', methods=['GET'])
 @measure_execution_time
 @handle_db_session

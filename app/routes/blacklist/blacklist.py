@@ -1,3 +1,6 @@
+
+# FILE DEPRACATED, SCHEDULE TO REMOVE AND DELETE AFTER SERVER UPDATE
+
 from flask import Blueprint, request, jsonify
 from app.routes.routes_utils import create_response, handle_db_session
 from config import Blacklist, db

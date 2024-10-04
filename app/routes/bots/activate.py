@@ -1,3 +1,7 @@
+
+# FILE DEPRACATED, SCHEDULE TO REMOVE AND DELETE AFTER SERVER UPDATE
+
+
 from flask import Blueprint, jsonify, request
 from config import Blacklist, Category, Bot, Site, db
 from datetime import datetime, timedelta
