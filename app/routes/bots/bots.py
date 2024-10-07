@@ -1,13 +1,15 @@
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from flask import Blueprint, jsonify, request
+from app.routes.bots.activate import scheduled_job
 from app.routes.bots.utils import validate_url
 from redis_client.redis_client import cache_with_redis, update_cache_with_redis
 from scheduler_config import reschedule, scheduler
 from app.routes.routes_utils import create_response
 from config import Blacklist, Bot, Keyword, Session, Site, db, Category
+from apscheduler.triggers.date import DateTrigger
 
 bots_bp = Blueprint(
     'bots_bp', __name__,
@@ -427,7 +429,6 @@ def delete_bot(bot_id):
             response["error"] = error_msg
             return jsonify(response), 500
 
-
 @bots_bp.route('/bot/<int:bot_id>/toggle-activation', methods=['POST'])
 @update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot'])
 def toggle_activation_bot(bot_id):
@@ -453,6 +454,7 @@ def toggle_activation_bot(bot_id):
     """
     with Session() as session:
         try:
+            # Fetch bot with related data
             bot = session.query(Bot).options(
                 joinedload(Bot.sites),
                 joinedload(Bot.keywords),
@@ -465,33 +467,9 @@ def toggle_activation_bot(bot_id):
             category = session.query(Category).filter_by(id=bot.category_id).first()
 
             if not bot.is_active:
-                # Validation for activation
-                validation_errors = []
-
-                # Check bot fields
-                required_bot_fields = ['dalle_prompt', 'run_frequency']
-                for field in required_bot_fields:
-                    if not getattr(bot, field):
-                        validation_errors.append(f"Bot is missing {field}")
-
-                # Check associated data
-                if not bot.sites:
-                    validation_errors.append("Bot does not have an associated site")
-                elif not bot.sites[0].url:
-                    validation_errors.append("Bot's site is missing URL")
-
-                if not bot.keywords:
-                    validation_errors.append("Bot does not have any keywords")
-
-                if not bot.blacklist:
-                    validation_errors.append("Bot does not have a blacklist")
+                # Activation logic
+                validation_errors = validate_bot_for_activation(bot, category)
                 
-                if category:
-                    required_category_fields = ['prompt', 'slack_channel']
-                    for field in required_category_fields:
-                        if not getattr(category, field):
-                            validation_errors.append(f"Bot's category is missing {field}")
-
                 if validation_errors:
                     return jsonify(create_response(
                         success=False,
@@ -501,24 +479,17 @@ def toggle_activation_bot(bot_id):
 
                 # All validations passed, activate the bot
                 bot.is_active = True
+                
                 try:
-                    job = scheduler.get_job(id=str(bot.name))
-                    if job:
-                        scheduler.remove_job(id=str(bot.name))
-                        message = f"Bot {bot.name} activated successfully"
+                    schedule_bot(bot, category)
+                    message = f"Bot {bot.name} activated successfully"
                 except Exception as e:
                     bot.is_active = False  # Revert activation if scheduling fails
                     return jsonify(create_response(error=f"Failed to activate bot: {str(e)}")), 500
             else:
                 # Deactivation logic
                 bot.is_active = False
-                try:
-                    job = scheduler.get_job(id=str(bot.name))
-                    if job:
-                        scheduler.remove_job(id=str(bot.name))
-                        message = f"Bot {bot.name} deactivated successfully"
-                except Exception as e:
-                    message = f"Bot {bot.name} deactivated (error during unscheduling)"
+                message = deactivate_bot(bot)
 
             bot.updated_at = datetime.now()
             session.commit()
@@ -535,3 +506,60 @@ def toggle_activation_bot(bot_id):
         except Exception as e:
             session.rollback()
             return jsonify(create_response(error="An unexpected error occurred")), 500
+
+def validate_bot_for_activation(bot, category):
+    validation_errors = []
+
+    # Check bot fields
+    required_bot_fields = ['dalle_prompt', 'run_frequency']
+    for field in required_bot_fields:
+        if not getattr(bot, field):
+            validation_errors.append(f"Bot is missing {field}")
+
+    # Check associated data
+    if not bot.sites:
+        validation_errors.append("Bot does not have an associated site")
+    elif not bot.sites[0].url:
+        validation_errors.append("Bot's site is missing URL")
+
+    if not bot.keywords:
+        validation_errors.append("Bot does not have any keywords")
+
+    if not bot.blacklist:
+        validation_errors.append("Bot does not have a blacklist")
+    
+    if category:
+        required_category_fields = ['prompt', 'slack_channel']
+        for field in required_category_fields:
+            if not getattr(category, field):
+                validation_errors.append(f"Bot's category is missing {field}")
+
+    return validation_errors
+
+def schedule_bot(bot, category):
+    site = Site.query.filter_by(bot_id=bot.id).first()
+    bot_site = site.url
+    bot_blacklist = [bl.name for bl in Blacklist.query.filter_by(bot_id=bot.id).all()]
+    bot_id = bot.id
+    bot_name = bot.name
+    global_minutes=6
+    # Calculate next execution time based on the last execution time
+    next_execution_time = datetime.now() + timedelta(minutes=global_minutes)
+    
+    scheduler.add_job(
+        id=str(bot_name),
+        func=scheduled_job,
+        name=bot_name,
+        replace_existing=True,
+        args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category.slack_channel],
+        trigger=DateTrigger(run_date=next_execution_time)
+    )
+
+def deactivate_bot(bot):
+    try:
+        job = scheduler.get_job(id=str(bot.name))
+        if job:
+            scheduler.remove_job(id=str(bot.name))
+            return f"Bot {bot.name} deactivated successfully"
+    except Exception as e:
+        return f"Bot {bot.name} deactivated (error during unscheduling)"

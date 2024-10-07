@@ -373,14 +373,19 @@ def toggle_category_coins(category_id):
 
             for bot in bots:
                 if action == 'activate' and not bot.is_active:
+                    site = session.query(Site).filter_by(bot_id=bot.id).first()
+                    if not site or not hasattr(site, 'url') or not site.url:
+                        activation_failures += 1
+                        failed_bot_ids.append(bot.id)
+                        continue
                     try:
-                        next_execution_time = last_execution_time + timedelta(minutes=23)  # Intervalo de 23 minutos
+                        next_execution_time = last_execution_time + timedelta(minutes=23)
                         scheduler.add_job(
                             id=str(bot.id),
                             func=scheduled_job,
                             name=bot.name,
                             replace_existing=True,
-                            args=[bot.url, bot.name, [bl.name for bl in session.query(Blacklist).filter_by(bot_id=bot.id).all()], bot.category_id, bot.id, category.slack_channel],
+                            args=[site.url, bot.name, [bl.name for bl in session.query(Blacklist).filter_by(bot_id=bot.id).all()], bot.category_id, bot.id, category.slack_channel],
                             trigger='date',
                             run_date=next_execution_time
                         )
@@ -458,7 +463,7 @@ def toggle_all_coins():
             last_category_execution_time = datetime.now()
 
             for category in categories:
-                bots = session.query(Bot).filter_by(category_id=category.category_id).all()
+                bots = session.query(Bot).filter_by(category_id=category.id).all()
                 if not bots:
                     continue
 
