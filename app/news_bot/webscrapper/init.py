@@ -106,9 +106,6 @@ class NewsScraper:
                     print("[ERROR] No keywords found for this article - Rejected.")
 
                 # Perplexity summary
-                print(self.category_id)
-                print(article_text)
-
                 perplexity_result = article_perplexity_remaker(content=article_text, category_id=category_id)
                 if not perplexity_result['success']:
                     print(f"[ERROR] Perplexity error: {perplexity_result['error']}")
