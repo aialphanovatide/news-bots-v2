@@ -1,14 +1,46 @@
-from datetime import datetime
 from typing import Any, Dict, List
 import re
 from app.utils.similarity import cosine_similarity_with_openai_classification
-from config import Article, Blacklist, Keyword, Session, UnwantedArticle
+from config import Article, Blacklist, Keyword, UnwantedArticle
 from app.news_bot.webscrapper.data_manager import DataManager
+from datetime import datetime, timedelta
 
-
-def datetime_checker(date):
-    # Implement datetime checking logic
-    pass
+def datetime_checker(date_string: str) -> bool:
+    """
+    Check if the given date string is valid and recent.
+    Args:
+    date_string (str): The date string to check.
+    Returns:
+    bool: True if the date is valid and within the last 7 days, False otherwise.
+    """
+    date_formats = [
+        "%Y-%m-%d",
+        "%d-%m-%Y",
+        "%Y/%m/%d",
+        "%d/%m/%Y",
+        "%B %d, %Y",
+        "%d %B %Y",
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%d %H:%M:%S",
+        "%a, %d %b %Y %H:%M:%S %Z",  
+    ]
+    
+    for date_format in date_formats:
+        try:
+            parsed_date = datetime.strptime(date_string, date_format)
+            current_date = datetime.now()
+            date_difference = current_date - parsed_date
+            
+            # Check if the date is within the last 7 days
+            if date_difference <= timedelta(days=7) and date_difference.total_seconds() >= 0:
+                return True
+            else:
+                return False
+        except ValueError:
+            continue
+    
+    # If no valid date format is found
+    return False
 
 def last_10_article_checker(bot_id: int, article_content: str, title: str, url: str) -> Dict[str, Any]:
     """
@@ -27,45 +59,44 @@ def last_10_article_checker(bot_id: int, article_content: str, title: str, url: 
     Raises:
         Exception: If an error occurs during the similarity check.
     """
-    with Session() as session:
-        data_manager=DataManager()
-        # Ensure article_content is a single string
-        if isinstance(article_content, list):
-            article_content = " ".join(article_content)
+    data_manager=DataManager()
+    # Ensure article_content is a single string
+    if isinstance(article_content, list):
+        article_content = " ".join(article_content)
 
-        # Retrieve the last 10 articles
-        last_10_articles: List[Article] = Article.query.filter_by(bot_id=bot_id).order_by(Article.date.desc()).limit(10).all()
-        last_10_contents: List[str] = [article.content for article in last_10_articles]
+    # Retrieve the last 10 articles
+    last_10_articles: List[Article] = Article.query.filter_by(bot_id=bot_id).order_by(Article.date.desc()).limit(10).all()
+    last_10_contents: List[str] = [article.content for article in last_10_articles]
 
-        unwanted_articles_saved = 0
-        is_similar = False
+    unwanted_articles_saved = 0
+    is_similar = False
 
-        # Check for high similarity using OpenAI cosine similarity function
-        for content in last_10_contents:
-            try:
-                similarity_score = cosine_similarity_with_openai_classification(content, article_content)
-                if similarity_score >= 0.9:
-                    data_manager.save_unwanted_article(title=title, content=content, reason="Article is too similar to a recent article", url=url, date=datetime.now(),bot_id=bot_id,created_at=datetime.now(),updated_at=datetime.now()),
-                    unwanted_articles_saved += 1
-                    is_similar = True
-                    break  
-            except Exception as e:
-                print(f"[ERROR] Exception occurred during similarity check: {str(e)}")
-                raise
+    # Check for high similarity using OpenAI cosine similarity function
+    for content in last_10_contents:
+        try:
+            similarity_score = cosine_similarity_with_openai_classification(content, article_content)
+            if similarity_score >= 0.9:
+                data_manager.save_unwanted_article(title=title, content=content, reason="Article is too similar to a recent article", url=url, date=datetime.now(),bot_id=bot_id,created_at=datetime.now(),updated_at=datetime.now()),
+                unwanted_articles_saved += 1
+                is_similar = True
+                break  
+        except Exception as e:
+            print(f"[ERROR] Exception occurred during similarity check: {str(e)}")
+            raise
 
-        # Prepare the return dictionary
-        result = {
-            'unwanted_articles_saved': unwanted_articles_saved
-        }
+    # Prepare the return dictionary
+    result = {
+        'unwanted_articles_saved': unwanted_articles_saved
+    }
 
-        if is_similar:
-            result['error'] = f"Article is too similar to a recent article (similarity score: {similarity_score})"
-            result['articles_saved'] = None
-        else:
-            result['error'] = None
-            result['articles_saved'] = None  # You might want to save the article here if it's not similar
+    if is_similar:
+        result['error'] = f"Article is too similar to a recent article (similarity score: {similarity_score})"
+        result['articles_saved'] = None
+    else:
+        result['error'] = None
+        result['articles_saved'] = None  # You might want to save the article here if it's not similar
 
-        return result
+    return result
 
 
 def url_checker(url: str, bot_id: int) -> dict:

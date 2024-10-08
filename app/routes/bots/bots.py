@@ -551,7 +551,7 @@ def schedule_bot(bot, category):
         func=scheduled_job,
         name=bot_name,
         replace_existing=True,
-        args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category.slack_channel],
+        args=[bot_site, category.id, bot_id],
         trigger=DateTrigger(run_date=next_execution_time)
     )
 

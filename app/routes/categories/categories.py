@@ -385,10 +385,11 @@ def toggle_category_coins(category_id):
                             func=scheduled_job,
                             name=bot.name,
                             replace_existing=True,
-                            args=[site.url, bot.name, [bl.name for bl in session.query(Blacklist).filter_by(bot_id=bot.id).all()], bot.category_id, bot.id, category.slack_channel],
+                            args=[site.url,bot.name, bot.category_id, bot.id],
                             trigger='date',
                             run_date=next_execution_time
                         )
+                        
                         bot.is_active = True
                         session.commit()
                         activation_success += 1
@@ -398,6 +399,7 @@ def toggle_category_coins(category_id):
                         activation_failures += 1
                         failed_bot_ids.append(bot.id)
                         print(f'Error activating bot {bot.id}: {str(e)}')
+                        
                 elif action == 'deactivate' and bot.is_active:
                     try:
                         job = scheduler.get_job(id=str(bot.id))
@@ -485,10 +487,11 @@ def toggle_all_coins():
                                 func=scheduled_job,
                                 name=bot.name,
                                 replace_existing=True,
-                                args=[bot_site, bot.name, bot_blacklist, None, bot.id, None],
+                                args=[bot_site, bot.name, category.id, bot.id],
                                 trigger='date',
                                 run_date=next_execution_time
                             )
+                            print(f"Job added for bot {bot.id}: scheduled to run at {next_execution_time}")
                             bot.is_active = True
                             session.commit()
                             activation_success += 1

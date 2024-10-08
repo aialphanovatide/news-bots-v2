@@ -5,28 +5,23 @@ from app.news_bot.webscrapper.webscrapper import WebScraper
 from app.services.perplexity.article_convert import article_perplexity_remaker
 from app.services.slack.actions import send_NEWS_message_to_slack_channel
 from config import Category
-from .filters import filter_link, keywords_filter, last_10_article_checker, url_checker
+from .filters import filter_link, keywords_filter, last_10_article_checker, url_checker, datetime_checker
 from .analyzer import analyze_content
 from .image_generator import ImageGenerator
 from .data_manager import DataManager
-from config import Session, db
-
+from config import db
 
 class NewsScraper:
-    def __init__(self, url, bot_name, blacklist, category_id, bot_id, category_slack_channel):
+    def __init__(self, url, category_id, bot_id):
         self.url = url
-        self.bot_name = bot_name
-        self.blacklist = blacklist
         self.category_id = category_id
         self.bot_id = bot_id
-        self.category_slack_channel = category_slack_channel
         self.scraper = WebScraper(url)
         self.data_manager = DataManager()
         self.image_generator = ImageGenerator()
         
-        
     def process_url(self, link):
-    # Check if the URL has been processed before
+        # Check if the URL has been processed before
         url_check_result = url_checker(url=link, bot_id=self.bot_id)
         if url_check_result is not None:
             print(f"[INFO] URL already processed: {link}")
@@ -46,7 +41,6 @@ class NewsScraper:
 
         return True
         
-        
     def run(self):
         """
         Run the news scraping process.
@@ -61,19 +55,26 @@ class NewsScraper:
             - 'unwanted_articles_saved' (int): The number of articles filtered out and saved as unwanted.
             - 'error' (str, optional): Description of any error that occurred during processing.
         """
-        # Only the list of news links is returned from scrape_rss
-        news_links = self.scraper.scrape_rss()
-
+        # Scrape RSS feed and get news links along with their publication dates
+        news_items = self.scraper.scrape_rss()
+        category_id=self.category_id
         articles_saved = 0
         unwanted_articles_saved = 0
-
-        for l in news_links:
+        for item in news_items:
+            link = item['link']
+            pub_date = item['published']
+            
             try:
-                print(f"[INFO] Analyzing URL: {l}")
-                link = resolve_redirects_playwright(l)
+                print(f"[INFO] Analyzing URL: {link}")
+                link = resolve_redirects_playwright(link)
                 if not self.process_url(link):
                     continue
-                                
+                
+                # Check if the article date is valid and recent
+                if not datetime_checker(pub_date):
+                    print(f"[INFO] Article date is not recent or valid: {pub_date}")
+                    continue
+                
                 article_content = analyze_content(link)
 
                 if article_content.get('success', False):
@@ -85,8 +86,7 @@ class NewsScraper:
                 else:
                     print("[ERROR] - No content - No 200 Response.")
                     continue
-                    
-                    
+                
                 # Similarity check
                 similarity_check = last_10_article_checker(self.bot_id, article_text, title, url)
                 if similarity_check.get('error'):
@@ -94,8 +94,6 @@ class NewsScraper:
                     print(f"[INFO] Saved as unwanted article")
                     unwanted_articles_saved += similarity_check['unwanted_articles_saved']
                     continue
-
-                print("[INFO] Article is not similar to recent ones")
 
                 # Keyword filtering
                 result = keywords_filter(self.bot_id, article_text, title, url)
@@ -107,8 +105,11 @@ class NewsScraper:
                 if not used_keywords:
                     print("[ERROR] No keywords found for this article - Rejected.")
 
-                # # Perplexity summary
-                perplexity_result = article_perplexity_remaker(content=article_text, category_id=self.category_id)
+                # Perplexity summary
+                print(self.category_id)
+                print(article_text)
+
+                perplexity_result = article_perplexity_remaker(content=article_text, category_id=category_id)
                 if not perplexity_result['success']:
                     print(f"[ERROR] Perplexity error: {perplexity_result['error']}")
                     return {
@@ -117,7 +118,7 @@ class NewsScraper:
                         'unwanted_articles_saved': unwanted_articles_saved
                     }
 
-                # # Summary processing
+                # Summary processing
                 new_article_summary = perplexity_result['response']
                 final_summary = clean_text(new_article_summary)
                 lines = final_summary.splitlines()
@@ -128,7 +129,7 @@ class NewsScraper:
                 else:
                     new_article_title = title 
 
-                # # Generate image
+                # Generate image
                 image_result = self.image_generator.generate_poster_prompt(article=new_article_summary, bot_id=self.bot_id)
                 if not image_result['success']:
                     print(f"[ERROR] Image generation failed: {image_result['error']}")
@@ -143,7 +144,7 @@ class NewsScraper:
                 final_filename = re.sub(r'[^a-zA-Z0-9]', '', article_id)
                 image_filename = f"{final_filename}.jpg"
 
-                # # Resize and upload image
+                # Resize and upload image
                 resized_image_result = self.image_generator.resize_and_upload_image_to_s3(image, 'appnewsposters', image_filename)
                 if not resized_image_result['success']:
                     print(f"[ERROR] Image upload to AWS failed: {resized_image_result['error']}")
@@ -155,7 +156,7 @@ class NewsScraper:
                 
                 image_url = resized_image_result['response']
                 
-                # # Save the article to the database using data_manager
+                # Save the article to the database using data_manager
                 article_data = {
                     'title': new_article_title,
                     'content': final_summary,
@@ -176,15 +177,15 @@ class NewsScraper:
                     category = db.session.query(Category).filter(Category.id == self.category_id).first()
                     if category and category.slack_channel:
                         slack_channel = category.slack_channel
-                    # Notify on Slack about the article
-                    send_NEWS_message_to_slack_channel(
-                        channel_id=slack_channel, 
-                        title=new_article_title,
-                        article_url=link,
-                        content=final_summary, 
-                        used_keywords=used_keywords, 
-                        image=image_url
-                    )
+                        # Notify on Slack about the article
+                        send_NEWS_message_to_slack_channel(
+                            channel_id=slack_channel, 
+                            title=new_article_title,
+                            article_url=link,
+                            content=final_summary, 
+                            used_keywords=used_keywords, 
+                            image=image_url
+                        )
 
                 except Exception as e:
                     print(f"[ERROR] Failed to save article: {e}")
@@ -207,4 +208,3 @@ class NewsScraper:
             'articles_saved': articles_saved,
             'unwanted_articles_saved': unwanted_articles_saved
         }
-

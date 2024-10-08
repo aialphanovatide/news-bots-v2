@@ -205,8 +205,9 @@ class WebScraper:
             error_message = f"Error parsing XML content: {str(e)}"
             self.logger(error_message)
             return "", [], error_message, []
+        
 
-    def scrape_rss(self) -> List[str]:
+    def scrape_rss(self) -> List[Dict[str, str]]:
         # Log the start of RSS feed scraping
         self.logger(f"Scraping RSS feed: {self.url}")
         
@@ -217,21 +218,29 @@ class WebScraper:
         self.logger(f"Feed parsed successfully")
         self.logger(f"Number of entries: {len(feed.entries)}")
         
-        # Extract links from entries, if available
-        links = [entry.link for entry in feed.entries if 'link' in entry]
+        # Extract links and published dates from entries
+        items = []
+        for entry in feed.entries:
+            item = {
+                'link': entry.get('link', ''),
+                'published': entry.get('published', '')
+            }
+            if item['link']:  # Only add items with a valid link
+                items.append(item)
         
         # Log first few entries (optional for debugging)
         if feed.entries:
             self.logger("First 5 entries (if available):")
-            for entry in feed.entries[:1]:
+            for entry in feed.entries[:5]:
                 self.logger(f"Title: {entry.get('title', 'N/A')}")
                 self.logger(f"Link: {entry.get('link', 'N/A')}")
                 self.logger(f"Published: {entry.get('published', 'N/A')}")
                 self.logger("---")
         
-        # Return only the list of links
-        return links
-
+        # Log the scraped items
+        self.logger(f"Scraped items: {items}")
+        
+        return items
 
 
 

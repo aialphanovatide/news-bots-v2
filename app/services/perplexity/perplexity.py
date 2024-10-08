@@ -3,7 +3,7 @@ import requests
 from dotenv import load_dotenv 
 
 load_dotenv()
-PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY")
+PERPLEXITY_API = os.getenv("PERPLEXITY_API")
 
 def perplexity_api_request(content, prompt):
     url = "https://api.perplexity.ai/chat/completions"
@@ -24,7 +24,7 @@ def perplexity_api_request(content, prompt):
     headers = {
         "accept": "application/json",
         "content-type": "application/json",
-        "Authorization": f"Bearer {PERPLEXITY_API_KEY}"
+        "Authorization": f"Bearer {PERPLEXITY_API}"
     }
 
     try:

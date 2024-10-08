@@ -42,16 +42,13 @@ def calculate_next_execution_time(bot_name, current_time):
 
     return next_execution_time
 
-def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, category_slack_channel):
+def scheduled_job(bot_site, bot_name, category_id, bot_id):
     with scheduler.app.app_context():
         news_scraper = NewsScraper(
             url=bot_site,
-            bot_name=bot_name,
-            blacklist=bot_blacklist,
             category_id=category_id,
-            bot_id=bot_id,
-            category_slack_channel=category_slack_channel
-        )
+            bot_id=bot_id
+            )
         result = news_scraper.run()
         
         print(f"Scraping result: {result['message']}")
@@ -72,7 +69,7 @@ def scheduled_job(bot_site, bot_name, bot_blacklist, category_id, bot_id, catego
                 func=scheduled_job,
                 name=bot_name,
                 replace_existing=True,
-                args=[bot_site, bot_name, bot_blacklist, category_id, bot_id, category_slack_channel],
+                args=[bot_site,bot_name, category_id, bot_id],
                 trigger=DateTrigger(run_date=new_execution_time)  # Schedule with a specific time
             )
 
