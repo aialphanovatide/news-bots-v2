@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask import Blueprint, jsonify, request
-from app.utils.helpers import measure_execution_time
+
 from config import Article, db
 from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response, handle_db_session
@@ -16,9 +16,11 @@ slack_action_bp = Blueprint(
     static_folder='static'
 )
 
+# THIS IS PART OF THE TOP STORIES, ADD TO THE APPROPIATE PATH.
+
     
 @slack_action_bp.route("/slack/events", methods=["POST"])
-@measure_execution_time
+
 @handle_db_session
 def slack_events():
     try:
@@ -136,8 +138,6 @@ def handle_block_actions(data):
     except Exception as e:
         return {'success': False, 'error': f'Internal server error: {str(e)}'}
     
-
-
 def extract_url_from_blocks(blocks):
     """
     Extracts URL from message blocks.
@@ -161,7 +161,6 @@ def extract_url_from_blocks(blocks):
                 if url:
                     return url
     return None
-
 
 def extract_url_from_text(text):
     """

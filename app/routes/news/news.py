@@ -1,3 +1,7 @@
+
+# FILE DEPRACATED, SCHEDULE TO REMOVE AND DELETE AFTER articles.py is improved.
+
+
 from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta
 from sqlalchemy import desc

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from app.routes.routes_utils import create_response, handle_db_session
 from config import Article, UsedKeywords, db
 from sqlalchemy.exc import SQLAlchemyError
-from app.utils.helpers import measure_execution_time
+
 
 news_bots_features_bp = Blueprint(
     'news_bots_features_bp', __name__,
@@ -12,7 +12,7 @@ news_bots_features_bp = Blueprint(
 )
 
 @news_bots_features_bp.route('/api/get_used_keywords_to_download', methods=['GET'])
-@measure_execution_time
+
 @handle_db_session
 def get_used_keywords_to_download():
     """
@@ -67,7 +67,7 @@ def get_used_keywords_to_download():
 
 
 @news_bots_features_bp.route('/api/get/used_keywords', methods=['GET'])
-@measure_execution_time
+
 @handle_db_session
 def get_used_keywords():
     """
