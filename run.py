@@ -1,16 +1,16 @@
 import os
 import json
-
-import redis
 from config import db
+from app import create_app
 from flask_cors import CORS
 from flasgger import Swagger
 from flask_migrate import Migrate
 from app import create_app
 
+
 app = create_app()
 
-swagger_template_path = os.path.join(app.root_path, 'static', 'swagger_template.json')
+swagger_template_path = os.path.join(app.root_path, 'static', 'swagger.json')
 
 with open(swagger_template_path, 'r') as f:
     swagger_template = json.load(f)
@@ -34,6 +34,8 @@ swagger_config = {
         "tagsSorter": "alpha"
     }
 }
+
+
 swagger = Swagger(app, template=swagger_template, config=swagger_config)
 migrate = Migrate(app, db)
 CORS(app, origins='*', supports_credentials=True)

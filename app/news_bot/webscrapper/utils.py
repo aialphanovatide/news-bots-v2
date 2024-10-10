@@ -1,5 +1,4 @@
-import base64
-from datetime import datetime, timedelta
+
 import os
 import re
 import time
@@ -7,9 +6,8 @@ import json
 import aiofiles
 from functools import wraps
 from bs4 import BeautifulSoup
+from datetime import datetime, timedelta
 from playwright.sync_api import sync_playwright
-import requests
-
 
 # Takes a string, changes it to lowercase, and joins words with underscores
 def transform_string(input_string):
@@ -45,8 +43,7 @@ def resolve_redirects_playwright(url: str) -> str:
         print(f"Error using Playwright: {e}")
         return None
 
-
-    
+   
 # Saves a dictionary to a JSON file
 async def save_dict_to_json(data_dict, filename='data.json'):
     try:
@@ -87,9 +84,6 @@ def measure_execution_time(func):
     return wrapper
 
 
-
-
-
 def clean_text(text):
     text = re.sub(r'Headline:\n', '', text)
     text = re.sub(r'Summary:\n', '', text)
@@ -98,6 +92,7 @@ def clean_text(text):
     text = re.sub(r'\*\*\s*\*\*', '', text, flags=re.MULTILINE)
     text = re.sub(r'\#\#\#', '', text, flags=re.MULTILINE)
     return text
+
 
 def validate_yahoo_date(html: BeautifulSoup) -> bool:
     """

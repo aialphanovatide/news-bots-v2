@@ -2,11 +2,10 @@
 import os
 import boto3
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
+from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 from flask import Blueprint, jsonify, request
-from app.routes.bots.activate import scheduled_job
-from config import Blacklist, Bot, Category, Site, db, Session
+from config import Bot, Category, db, Session
 from app.routes.routes_utils import create_response
 from scheduler_config import reschedule, scheduler
 from redis_client.redis_client import cache_with_redis, update_cache_with_redis
@@ -145,7 +144,6 @@ def delete_category(category_id):
             return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
 
-
 @categories_bp.route('/categories', methods=['GET'])
 @cache_with_redis()
 def get_categories():
@@ -256,47 +254,28 @@ def get_category():
 @categories_bp.route('/categories/<int:category_id>', methods=['PUT'])
 @update_cache_with_redis(related_get_endpoints=['get_categories','get_category','get_articles_by_bot'])
 def update_category(category_id):
-    """
-    Update an existing category by ID.
-
-    Args:
-        category_id (int): ID of the category to update.
-
-    Request JSON:
-        name (str, optional): New name for the category.
-        alias (str, optional): New alias for the category.
-        prompt (str, optional): New prompt for the category.
-        slack_channel (str, optional): New Slack channel for the category.
-        icon (file, optional): New SVG file for the category icon.
-        border_color (str, optional): New HEX code for the border color.
-
-    Returns:
-        JSON: A response with the updated category data or an error message.
-    """
     with Session() as session:
         try:
-            data = request.form.to_dict()  # To support form-data for icon upload
-            # Fetch the category to update
+            data = request.form.to_dict()
             category = session.query(Category).get(category_id)
             if not category:
-                return jsonify({'error': f'Category with ID {category_id} not found'}), 404
+                return jsonify({'success': False, 'message': f'Category with ID {category_id} not found'}), 404
 
-            # Update category fields (only allow specific fields to be updated)
             allowed_fields = ['name', 'alias', 'prompt', 'slack_channel', 'border_color']
+            updated_fields = []
             for key, value in data.items():
                 if key in allowed_fields:
                     setattr(category, key, value)
+                    updated_fields.append(key)
 
-            # Handle SVG icon update
+            icon_updated = False
             if 'icon' in request.files:
                 icon_file = request.files['icon']
                 if icon_file.filename.lower().endswith('.svg'):
-                    # Delete old icon if exists
                     if category.icon:
                         old_icon_filename = category.icon.split('/')[-1]
                         s3.delete_object(Bucket='aialphaicons', Key=old_icon_filename)
 
-                    # Upload new icon
                     alias_normalized = category.alias.strip().replace(" ", "_")
                     icon_filename = f"{alias_normalized}.svg"
                     s3.upload_fileobj(
@@ -306,29 +285,41 @@ def update_category(category_id):
                         ExtraArgs={"ContentType": "image/svg+xml"}
                     )
                     category.icon = f'https://aialphaicons.s3.amazonaws.com/{icon_filename}'
+                    icon_updated = True
                 else:
-                    return jsonify({'error': 'Invalid file type. Only SVG files are allowed.'}), 400
+                    return jsonify({'success': False, 'message': 'Invalid file type. Only SVG files are allowed.'}), 400
 
-            # Update updated_at timestamp
             category.updated_at = datetime.now()
 
-            # Reschedule bots if necessary
+            rescheduled_bots = []
             if any(key in data for key in ['name', 'alias', 'prompt', 'slack_channel']):
                 for bot in category.bots:
                     reschedule(bot.id)
+                    rescheduled_bots.append(bot.name)
 
-            # Commit the update
             session.commit()
 
-            return jsonify({'success': True, 'data': category.as_dict()}), 200
+            message = "Category updated successfully."
+            if updated_fields:
+                message += f" Updated fields: {', '.join(updated_fields)}."
+            if icon_updated:
+                message += " Icon updated."
+            if rescheduled_bots:
+                message += f" Rescheduled bots: {', '.join(rescheduled_bots)}."
+
+            return jsonify({
+                'success': True, 
+                'message': message,
+                'data': category.as_dict()
+            }), 200
 
         except SQLAlchemyError as e:
             session.rollback()
-            return jsonify({'error': f'Database error: {str(e)}'}), 500
+            return jsonify({'success': False, 'message': f'Database error: {str(e)}'}), 500
 
         except Exception as e:
             session.rollback()
-            return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+            return jsonify({'success': False, 'message': f'Internal server error: {str(e)}'}), 500
 
 
 # @categories_bp.route('/categories/<int:category_id>/toggle-coins', methods=['POST'])
@@ -524,105 +515,4 @@ def toggle_category_activation(category_id):
             return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
         
 
-# DEPRECATED: THIS ENDPOINT WILL BE REMOVED
-@categories_bp.route('/toggle-all-coins', methods=['POST'])
-@update_cache_with_redis(related_get_endpoints=['get_categories','get_category','get_articles_by_bot'])
-def toggle_all_coins():
-    """
-    Toggle activation state of all coins in all categories.
 
-    Request JSON:
-        action (str): Either "activate" or "deactivate"
-
-    Returns:
-        JSON: A response detailing the status of each processed coin bot.
-    """
-    with Session() as session:
-        try:
-            data = request.get_json()
-            action = data.get('action')
-            if action not in ['activate', 'deactivate']:
-                return jsonify({'error': 'Invalid action. Must be "activate" or "deactivate"'}), 400
-
-            categories = session.query(Category).all()
-            if not categories:
-                return jsonify({'success': True, 'message': 'No categories found'}), 404
-
-            activation_success = 0
-            activation_failures = 0
-            failed_bot_ids = []
-
-            last_category_execution_time = datetime.now()
-
-            for category in categories:
-                bots = session.query(Bot).filter_by(category_id=category.id).all()
-                if not bots:
-                    continue
-
-                last_bot_execution_time = last_category_execution_time
-
-                for bot in bots:
-                    if action == 'activate' and not bot.is_active:
-                        try:
-                            site = session.query(Site).filter_by(bot_id=bot.id).first()
-                            if not site or not site.url:
-                                continue
-
-                            bot_site = site.url
-                            bot_blacklist = [bl.name for bl in session.query(Blacklist).filter_by(bot_id=bot.id).all()]
-                            next_execution_time = last_bot_execution_time + timedelta(minutes=23)
-
-                            scheduler.add_job(
-                                id=str(bot.id),
-                                func=scheduled_job,
-                                name=bot.name,
-                                replace_existing=True,
-                                args=[bot_site, bot.name, category.id, bot.id],
-                                trigger='date',
-                                run_date=next_execution_time
-                            )
-                            print(f"Job added for bot {bot.id}: scheduled to run at {next_execution_time}")
-                            bot.is_active = True
-                            session.commit()
-                            activation_success += 1
-                            last_bot_execution_time = next_execution_time
-                        except Exception as e:
-                            session.rollback()
-                            activation_failures += 1
-                            failed_bot_ids.append(bot.id)
-                            print(f'Error activating bot {bot.id}: {str(e)}')
-
-                    elif action == 'deactivate' and bot.is_active:
-                        try:
-                            job = scheduler.get_job(id=str(bot.id))
-                            if job:
-                                scheduler.remove_job(id=str(bot.id))
-                            
-                            bot.is_active = False
-                            session.commit()
-                            activation_success += 1
-                        except Exception as e:
-                            session.rollback()
-                            activation_failures += 1
-                            failed_bot_ids.append(bot.id)
-                            print(f'Error deactivating bot {bot.id}: {str(e)}')
-
-                last_category_execution_time = last_bot_execution_time + timedelta(minutes=5)
-
-            summary = {
-                'total_bots': len(session.query(Bot).all()),
-                'activated_count': activation_success if action == 'activate' else 0,
-                'deactivated_count': activation_success if action == 'deactivate' else 0,
-                'failed_count': activation_failures,
-                'failed_bot_ids': failed_bot_ids
-            }
-
-            return jsonify({'success': True, 'message': 'Operation completed successfully', 'data': summary}), 200
-
-        except SQLAlchemyError as e:
-            session.rollback()
-            return jsonify({'error': f'Database error: {str(e)}'}), 500
-
-        except Exception as e:
-            session.rollback()
-            return jsonify({'error': f'Internal server error: {str(e)}'}), 500
