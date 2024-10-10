@@ -1,9 +1,9 @@
-from typing import Any, Dict, List
 import re
-from app.utils.similarity import cosine_similarity_with_openai_classification
-from config import Article, Blacklist, Keyword, UnwantedArticle
-from app.news_bot.webscrapper.data_manager import DataManager
+from typing import Any, Dict, List
 from datetime import datetime, timedelta
+from app.news_bot.webscrapper.data_manager import DataManager
+from config import Article, Blacklist, Keyword, UnwantedArticle
+from app.utils.similarity import cosine_similarity_with_openai_classification
 
 def datetime_checker(date_string: str) -> bool:
     """
@@ -41,6 +41,7 @@ def datetime_checker(date_string: str) -> bool:
     
     # If no valid date format is found
     return False
+
 
 def last_10_article_checker(bot_id: int, article_content: str, title: str, url: str) -> Dict[str, Any]:
     """

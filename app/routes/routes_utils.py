@@ -1,7 +1,7 @@
-from flask import jsonify
 from sqlalchemy.exc import SQLAlchemyError
-from config import db
 from functools import wraps
+from flask import jsonify
+from config import db
 
 
 def create_response(success=False, data=None, error=None, **kwargs):
@@ -12,8 +12,6 @@ def create_response(success=False, data=None, error=None, **kwargs):
         **kwargs
     }
     return response
-
-
 
 def handle_db_session(func):
     @wraps(func)

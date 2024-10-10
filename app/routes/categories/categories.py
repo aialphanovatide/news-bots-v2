@@ -435,6 +435,7 @@ def toggle_category_coins(category_id):
 
 
 
+# DEPRECATED: THIS ENDPOINT WILL BE REMOVED
 @categories_bp.route('/toggle-all-coins', methods=['POST'])
 @update_cache_with_redis(related_get_endpoints=['get_categories','get_category','get_articles_by_bot'])
 def toggle_all_coins():

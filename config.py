@@ -1,6 +1,7 @@
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
+from sqlalchemy import Enum
 import os
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, func
@@ -72,6 +73,11 @@ class Bot(db.Model):
     background_color = db.Column(db.String)
     run_frequency = db.Column(db.String, default='20')
     is_active = db.Column(db.Boolean, default=False)
+    next_run_time = db.Column(db.DateTime)
+    status = db.Column(Enum('IDLE', 'RUNNING', 'ERROR', name='bot_status'), default='IDLE')
+    last_run_time = db.Column(db.DateTime)
+    last_run_status = db.Column(Enum('SUCCESS', 'FAILURE', name='run_status'))
+    run_count = db.Column(db.Integer, default=0)
     
     # relationships
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))

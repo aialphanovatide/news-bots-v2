@@ -10,7 +10,6 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 api_key = OPENAI_API_KEY
 
-
 def cosine_similarity_modified(content_1, content_2):
     try:
         vectorizer = TfidfVectorizer()
