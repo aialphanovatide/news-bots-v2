@@ -128,29 +128,65 @@ swagger = Swagger()
 
 
 
+# Create Category
 # success, message = swagger.add_or_update_endpoint(
-#     endpoint_route='/bot/{bot_id}',
-#     method='put',
-#     tag='Bots',
-#     description='Update an existing bot in the news bot server and reschedule if necessary',
-#     detail_description='This endpoint updates a bot entry with the provided details, saves the changes to the database, and reschedules the bot if it\'s active and its run frequency has changed.',
+#     endpoint_route='/category',
+#     method='post',
+#     tag='Categories',
+#     description='Create a new category on the news bot server',
+#     detail_description='This endpoint creates a new category with the provided details and saves it to the database.',
 #     params=[
 #         {
-#             'name': 'bot_id',
-#             'in': 'path',
-#             'description': 'The ID of the bot to be updated',
+#             'name': 'name',
+#             'in': 'body',
+#             'description': 'The name of the category',
 #             'required': True,
-#             'type': 'integer'
+#             'type': 'string'
+#         },
+#         {
+#             'name': 'alias',
+#             'in': 'body',
+#             'description': 'The alias of the category',
+#             'required': True,
+#             'type': 'string'
+#         },
+#         {
+#             'name': 'prompt',
+#             'in': 'body',
+#             'description': 'The prompt for the category',
+#             'required': False,
+#             'type': 'string'
+#         },
+#         {
+#             'name': 'slack_channel',
+#             'in': 'body',
+#             'description': 'The Slack channel associated with the category',
+#             'required': False,
+#             'type': 'string'
+#         },
+#         {
+#             'name': 'border_color',
+#             'in': 'body',
+#             'description': 'The HEX code for the border color',
+#             'required': False,
+#             'type': 'string'
+#         },
+#         {
+#             'name': 'icon',
+#             'in': 'body',
+#             'description': 'The filename of the SVG icon',
+#             'required': False,
+#             'type': 'string'
 #         }
 #     ],
 #     responses={
-#         '200': {
-#             'description': 'Bot updated successfully',
+#         '201': {
+#             'description': 'Category created successfully',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
 #                     'success': {'type': 'boolean'},
-#                     'message': {'type': 'string'}
+#                     'data': {'type': 'object'}
 #                 }
 #             }
 #         },
@@ -159,17 +195,6 @@ swagger = Swagger()
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
-#                     'success': {'type': 'boolean'},
-#                     'error': {'type': 'string'}
-#                 }
-#             }
-#         },
-#         '404': {
-#             'description': 'Bot not found',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'success': {'type': 'boolean'},
 #                     'error': {'type': 'string'}
 #                 }
 #             }
@@ -179,7 +204,6 @@ swagger = Swagger()
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
-#                     'success': {'type': 'boolean'},
 #                     'error': {'type': 'string'}
 #                 }
 #             }
@@ -187,7 +211,307 @@ swagger = Swagger()
 #     }
 # )
 
-# print(message)
+# # Delete Category
+# success, message = swagger.add_or_update_endpoint(
+#     endpoint_route='/category/{category_id}',
+#     method='delete',
+#     tag='Categories',
+#     description='Delete a category and its associated bots by ID',
+#     detail_description='This endpoint deletes a category and all its associated bots from the database.',
+#     params=[
+#         {
+#             'name': 'category_id',
+#             'in': 'path',
+#             'description': 'The ID of the category to be deleted',
+#             'required': True,
+#             'type': 'integer'
+#         }
+#     ],
+#     responses={
+#         '200': {
+#             'description': 'Category deleted successfully',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'data': {'type': 'object'}
+#                 }
+#             }
+#         },
+#         '404': {
+#             'description': 'Category not found',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         },
+#         '500': {
+#             'description': 'Internal server error',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         }
+#     }
+# )
+
+# # Get Categories
+# success, message = swagger.add_or_update_endpoint(
+#     endpoint_route='/categories',
+#     method='get',
+#     tag='Categories',
+#     description='Get all available categories along with their associated bots',
+#     detail_description='This endpoint retrieves all categories and their associated bots from the database.',
+#     params=[],
+#     responses={
+#         '200': {
+#             'description': 'Categories retrieved successfully',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'data': {
+#                         'type': 'object',
+#                         'properties': {
+#                             'categories': {
+#                                 'type': 'array',
+#                                 'items': {'type': 'object'}
+#                             }
+#                         }
+#                     }
+#                 }
+#             }
+#         },
+#         '404': {
+#             'description': 'No categories found',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         },
+#         '500': {
+#             'description': 'Internal server error',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         }
+#     }
+# )
+
+# # Get Category
+# success, message = swagger.add_or_update_endpoint(
+#     endpoint_route='/category',
+#     method='get',
+#     tag='Categories',
+#     description='Get a category by id or name',
+#     detail_description='This endpoint retrieves a specific category and its associated bots from the database.',
+#     params=[
+#         {
+#             'name': 'category_id',
+#             'in': 'query',
+#             'description': 'The ID of the category',
+#             'required': False,
+#             'type': 'integer'
+#         },
+#         {
+#             'name': 'category_name',
+#             'in': 'query',
+#             'description': 'The name of the category',
+#             'required': False,
+#             'type': 'string'
+#         }
+#     ],
+#     responses={
+#         '200': {
+#             'description': 'Category retrieved successfully',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'data': {'type': 'object'}
+#                 }
+#             }
+#         },
+#         '400': {
+#             'description': 'Bad request (no valid parameters provided)',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         },
+#         '404': {
+#             'description': 'Category not found',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         },
+#         '500': {
+#             'description': 'Internal server error',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         }
+#     }
+# )
+
+# # Update Category
+# success, message = swagger.add_or_update_endpoint(
+#     endpoint_route='/category/{category_id}',
+#     method='put',
+#     tag='Categories',
+#     description='Update an existing category in the news bot server',
+#     detail_description='This endpoint updates a category entry with the provided details and saves the changes to the database.',
+#     params=[
+#         {
+#             'name': 'category_id',
+#             'in': 'path',
+#             'description': 'The ID of the category to be updated',
+#             'required': True,
+#             'type': 'integer'
+#         },
+#         {
+#             'name': 'name',
+#             'in': 'body',
+#             'description': 'The name of the category',
+#             'required': False,
+#             'type': 'string'
+#         },
+#         {
+#             'name': 'alias',
+#             'in': 'body',
+#             'description': 'The alias of the category',
+#             'required': False,
+#             'type': 'string'
+#         },
+#         {
+#             'name': 'prompt',
+#             'in': 'body',
+#             'description': 'The prompt for the category',
+#             'required': False,
+#             'type': 'string'
+#         },
+#         {
+#             'name': 'slack_channel',
+#             'in': 'body',
+#             'description': 'The Slack channel associated with the category',
+#             'required': False,
+#             'type': 'string'
+#         },
+#         {
+#             'name': 'border_color',
+#             'in': 'body',
+#             'description': 'The HEX code for the border color',
+#             'required': False,
+#             'type': 'string'
+#         }
+#     ],
+#     responses={
+#         '200': {
+#             'description': 'Category updated successfully',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'message': {'type': 'string'},
+#                     'data': {'type': 'object'}
+#                 }
+#             }
+#         },
+#         '400': {
+#             'description': 'Bad request (invalid data)',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         },
+#         '404': {
+#             'description': 'Category not found',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         },
+#         '500': {
+#             'description': 'Internal server error',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         }
+#     }
+# )
+
+# # Toggle Category Activation
+# success, message = swagger.add_or_update_endpoint(
+#     endpoint_route='/category/{category_id}/toggle-activation',
+#     method='post',
+#     tag='Categories',
+#     description='Toggle activation for all bots within a specific category',
+#     detail_description='This endpoint toggles the activation status of all bots associated with the specified category.',
+#     params=[
+#         {
+#             'name': 'category_id',
+#             'in': 'path',
+#             'description': 'The ID of the category',
+#             'required': True,
+#             'type': 'integer'
+#         }
+#     ],
+#     responses={
+#         '200': {
+#             'description': 'Category activation toggled successfully',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'message': {'type': 'string'},
+#                     'data': {'type': 'object'}
+#                 }
+#             }
+#         },
+#         '404': {
+#             'description': 'Category not found',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         },
+#         '500': {
+#             'description': 'Internal server error',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         }
+#     }
+# )
 
 
 # ____Delete an endpoint____
