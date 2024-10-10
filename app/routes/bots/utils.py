@@ -107,6 +107,12 @@ def validate_bot_for_activation(bot, category):
 
     return validation_errors
 
+
+
+
+
+
+
 # def calculate_next_execution_time(current_time, run_frequency, existing_jobs):
 #     """
 #     Find the best time to run a new job without overlapping other scheduled jobs.

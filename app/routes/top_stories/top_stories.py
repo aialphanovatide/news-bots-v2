@@ -6,7 +6,6 @@ from http import HTTPStatus
 from sqlalchemy import desc
 from datetime import datetime
 from flask import Blueprint, jsonify, request
-from app.utils.helpers import measure_execution_time
 from config import Article, db
 from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response, handle_db_session
@@ -20,6 +19,7 @@ top_stories_bp = Blueprint(
     template_folder='templates',
     static_folder='static'
 )
+
 
 
 @top_stories_bp.route('/top-stories', methods=['GET'])
@@ -181,7 +181,6 @@ def remove_top_story(article_id):
     
 
 @top_stories_bp.route("/slack/events", methods=["POST"])
-@measure_execution_time
 @handle_db_session
 def post_top_stories():
     try:

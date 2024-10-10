@@ -1,9 +1,6 @@
 # routes.py
 
-# FILE DEPRACATED, SCHEDULE TO REMOVE AND DELETE AFTER SERVER UPDATE
-
 from flask import Blueprint, jsonify, request
-from app.utils.helpers import measure_execution_time
 from config import Blacklist, Keyword, db
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
@@ -174,7 +171,6 @@ def get_keywords_for_coin_bot(coin_bot_id):
 
 
 @keyword_bp.route('/keywords-search', methods=['GET'])
-@measure_execution_time
 @handle_db_session
 def dynamic_search():
     """
