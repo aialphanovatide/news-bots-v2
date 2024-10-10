@@ -22,17 +22,36 @@ def schedule_bot(bot, category):
     
     def bot_job_function():
         with scheduler.app.app_context():
-            scraper = NewsScraper(bot_id=bot_id, category_id=category.id, verbose=True)
-            result = scraper.run()
-            if not result['success']:
-                print(f"Job for bot {bot_name} failed: {result.get('error')}")
+            bot.status = 'RUNNING'
+            db.session.commit()
+
+            try:
+                scraper = NewsScraper(bot_id=bot_id, category_id=category.id, verbose=True)
+                result = scraper.run()
+                
+                if not result['success']:
+                    print(f"Job for bot {bot_name} failed: {result.get('error')}")
+                    bot.last_run_status = 'FAILURE'
+                else:
+                    print(f"Job for bot {bot_name} completed successfully: {result['message']}")
+                    bot.last_run_status = 'SUCCESS'
+                
+            except Exception as e:
+                print(f"An error occurred while running bot {bot_name}: {str(e)}")
+                bot.last_run_status = 'FAILURE'
+                bot.status = 'ERROR'
             else:
-                print(f"Job for bot {bot_name} completed successfully: {result['message']}")
-            
-            # Update category's updated_at timestamp
-            with db.session.begin():
-                category_obj = category.query.get(category.id)
-                category_obj.updated_at = datetime.now()
+                bot.status = 'IDLE'
+            finally:
+                bot.last_run_time = datetime.now()
+                bot.run_count += 1
+                
+                # Update next_run_time
+                job = scheduler.get_job(str(bot_name))
+                if job:
+                    bot.next_run_time = job.next_run_time
+                
+                db.session.commit()
 
     def threaded_job_function():
         thread = threading.Thread(target=bot_job_function)
@@ -41,6 +60,11 @@ def schedule_bot(bot, category):
     # Calculate initial delay
     initial_delay = random.randint(0, min(bot.run_frequency, 60))  # Max 60 minutes initial delay
     start_time = datetime.now() + timedelta(minutes=initial_delay)
+
+    # Update bot's next_run_time and status
+    bot.next_run_time = start_time
+    bot.status = 'IDLE'
+    db.session.commit()
 
     # Schedule the job with IntervalTrigger
     scheduler.add_job(
@@ -51,7 +75,37 @@ def schedule_bot(bot, category):
     )
 
     print(f"Bot {bot_name} scheduled to run every {bot.run_frequency} minutes, starting at {start_time}")
+    return True  # Indicate successful scheduling
+
+
+def validate_bot_for_activation(bot, category):
+    validation_errors = []
+
+    # Check bot fields
+    required_bot_fields = ['dalle_prompt', 'run_frequency']
+    for field in required_bot_fields:
+        if not getattr(bot, field):
+            validation_errors.append(f"Bot is missing {field}")
+
+    # Check associated data
+    if not bot.sites:
+        validation_errors.append("Bot does not have an associated site")
+    elif not bot.sites[0].url:
+        validation_errors.append("Bot's site is missing URL")
+
+    if not bot.keywords:
+        validation_errors.append("Bot does not have any keywords")
+
+    if not bot.blacklist:
+        validation_errors.append("Bot does not have a blacklist")
     
+    if category:
+        required_category_fields = ['prompt', 'slack_channel']
+        for field in required_category_fields:
+            if not getattr(category, field):
+                validation_errors.append(f"Bot's category is missing {field}")
+
+    return validation_errors
 
 # def calculate_next_execution_time(current_time, run_frequency, existing_jobs):
 #     """

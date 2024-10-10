@@ -1,26 +1,21 @@
 # routes.py
-from datetime import datetime, timedelta
 import os
+import boto3
+from dotenv import load_dotenv
+from datetime import datetime, timedelta
+from sqlalchemy.exc import SQLAlchemyError
 from flask import Blueprint, jsonify, request
 from app.routes.bots.activate import scheduled_job
 from config import Blacklist, Bot, Category, Site, db, Session
-from dotenv import load_dotenv
-import boto3
-from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response
-from redis_client.redis_client import cache_with_redis, update_cache_with_redis
 from scheduler_config import reschedule, scheduler
-
+from redis_client.redis_client import cache_with_redis, update_cache_with_redis
+from app.routes.bots.utils import schedule_bot, validate_bot_for_activation
 
 load_dotenv()
 
-SERVER_LINK = os.getenv('SERVER_LINK')
-load_dotenv()
-
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 AWS_ACCESS = os.getenv('AWS_ACCESS')
 AWS_SECRET_KEY = os.getenv('AWS_SECRET_KEY')
-
 
 categories_bp = Blueprint(
     'categories_bp', __name__,
@@ -336,11 +331,109 @@ def update_category(category_id):
             return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
 
-@categories_bp.route('/categories/<int:category_id>/toggle-coins', methods=['POST'])
-@update_cache_with_redis(related_get_endpoints=['get_categories','get_category','get_articles_by_bot'])
-def toggle_category_coins(category_id):
+# @categories_bp.route('/categories/<int:category_id>/toggle-coins', methods=['POST'])
+# @update_cache_with_redis(related_get_endpoints=['get_categories','get_category','get_articles_by_bot'])
+# def toggle_category_coins(category_id):
+#     """
+#     Activate or deactivate all coins within a specific category.
+
+#     Args:
+#         category_id (int): The ID of the category to process.
+
+#     Request JSON:
+#         action (str): Either "activate" or "deactivate"
+
+#     Returns:
+#         JSON: A response detailing the status of each processed coin bot.
+#     """
+#     with Session() as session:
+#         try:
+#             data = request.get_json()
+#             action = data.get('action')
+#             if action not in ['activate', 'deactivate']:
+#                 return jsonify({'error': 'Invalid action. Must be "activate" or "deactivate"'}), 400
+
+#             category = session.query(Category).get(category_id)
+#             if not category:
+#                 return jsonify({'error': f'Category with ID {category_id} not found'}), 404
+
+#             bots = session.query(Bot).filter_by(category_id=category_id).all()
+#             if not bots:
+#                 return jsonify({'success': True, 'message': 'No bots found in this category'}), 200
+
+#             activation_success = 0
+#             activation_failures = 0
+#             failed_bot_ids = []
+#             last_execution_time = datetime.now()
+
+#             for bot in bots:
+#                 if action == 'activate' and not bot.is_active:
+#                     site = session.query(Site).filter_by(bot_id=bot.id).first()
+#                     if not site or not hasattr(site, 'url') or not site.url:
+#                         activation_failures += 1
+#                         failed_bot_ids.append(bot.id)
+#                         continue
+#                     try:
+#                         next_execution_time = last_execution_time + timedelta(minutes=23)
+#                         scheduler.add_job(
+#                             id=str(bot.id),
+#                             func=scheduled_job,
+#                             name=bot.name,
+#                             replace_existing=True,
+#                             args=[site.url,bot.name, bot.category_id, bot.id],
+#                             trigger='date',
+#                             run_date=next_execution_time
+#                         )
+                        
+#                         bot.is_active = True
+#                         session.commit()
+#                         activation_success += 1
+#                         last_execution_time = next_execution_time
+#                     except Exception as e:
+#                         session.rollback()
+#                         activation_failures += 1
+#                         failed_bot_ids.append(bot.id)
+#                         print(f'Error activating bot {bot.id}: {str(e)}')
+                        
+#                 elif action == 'deactivate' and bot.is_active:
+#                     try:
+#                         job = scheduler.get_job(id=str(bot.id))
+#                         if job:
+#                             scheduler.remove_job(id=str(bot.id))
+                        
+#                         bot.is_active = False
+#                         session.commit()
+#                         activation_success += 1
+#                     except Exception as e:
+#                         session.rollback()
+#                         activation_failures += 1
+#                         failed_bot_ids.append(bot.id)
+#                         print(f'Error deactivating bot {bot.id}: {str(e)}')
+
+#             summary = {
+#                 'total_bots': len(bots),
+#                 'activated_count': activation_success if action == 'activate' else 0,
+#                 'deactivated_count': activation_success if action == 'deactivate' else 0,
+#                 'failed_count': activation_failures,
+#                 'failed_bot_ids': failed_bot_ids
+#             }
+
+#             return jsonify({'success': True, 'message': 'Operation completed successfully', 'data': summary}), 200
+
+#         except SQLAlchemyError as e:
+#             session.rollback()
+#             return jsonify({'error': f'Database error: {str(e)}'}), 500
+
+#         except Exception as e:
+#             session.rollback()
+#             return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+
+
+@categories_bp.route('/category/<int:category_id>/toggle-activation', methods=['POST'])
+@update_cache_with_redis(related_get_endpoints=['get_categories', 'get_category', 'get_articles_by_bot'])
+def toggle_category_activation(category_id):
     """
-    Activate or deactivate all coins within a specific category.
+    Activate or deactivate all bots within a specific category.
 
     Args:
         category_id (int): The ID of the category to process.
@@ -349,91 +442,87 @@ def toggle_category_coins(category_id):
         action (str): Either "activate" or "deactivate"
 
     Returns:
-        JSON: A response detailing the status of each processed coin bot.
+        JSON: A response detailing the status of each processed bot.
     """
     with Session() as session:
         try:
             data = request.get_json()
             action = data.get('action')
             if action not in ['activate', 'deactivate']:
-                return jsonify({'error': 'Invalid action. Must be "activate" or "deactivate"'}), 400
+                return jsonify(create_response(error='Invalid action. Must be "activate" or "deactivate"')), 400
 
             category = session.query(Category).get(category_id)
             if not category:
-                return jsonify({'error': f'Category with ID {category_id} not found'}), 404
+                return jsonify(create_response(error=f'Category with ID {category_id} not found')), 404
 
             bots = session.query(Bot).filter_by(category_id=category_id).all()
             if not bots:
-                return jsonify({'success': True, 'message': 'No bots found in this category'}), 200
+                return jsonify(create_response(success=True, message='No bots found in this category')), 200
 
-            activation_success = 0
-            activation_failures = 0
+            success_count = 0
+            failure_count = 0
             failed_bot_ids = []
-            last_execution_time = datetime.now()
+            validation_errors = {}
 
             for bot in bots:
-                if action == 'activate' and not bot.is_active:
-                    site = session.query(Site).filter_by(bot_id=bot.id).first()
-                    if not site or not hasattr(site, 'url') or not site.url:
-                        activation_failures += 1
-                        failed_bot_ids.append(bot.id)
-                        continue
-                    try:
-                        next_execution_time = last_execution_time + timedelta(minutes=23)
-                        scheduler.add_job(
-                            id=str(bot.id),
-                            func=scheduled_job,
-                            name=bot.name,
-                            replace_existing=True,
-                            args=[site.url,bot.name, bot.category_id, bot.id],
-                            trigger='date',
-                            run_date=next_execution_time
-                        )
-                        
-                        bot.is_active = True
-                        session.commit()
-                        activation_success += 1
-                        last_execution_time = next_execution_time
-                    except Exception as e:
-                        session.rollback()
-                        activation_failures += 1
-                        failed_bot_ids.append(bot.id)
-                        print(f'Error activating bot {bot.id}: {str(e)}')
-                        
-                elif action == 'deactivate' and bot.is_active:
-                    try:
-                        job = scheduler.get_job(id=str(bot.id))
-                        if job:
-                            scheduler.remove_job(id=str(bot.id))
-                        
+                try:
+                    if action == 'activate' and not bot.is_active:
+                        # Validate bot before activation
+                        bot_validation_errors = validate_bot_for_activation(bot, category)
+                        if bot_validation_errors:
+                            validation_errors[bot.id] = bot_validation_errors
+                            failure_count += 1
+                            failed_bot_ids.append(bot.id)
+                            continue
+
+                        # Schedule the bot
+                        scheduling_success = schedule_bot(bot, category)
+                        if scheduling_success:
+                            bot.is_active = True
+                            bot.status = 'IDLE'
+                            success_count += 1
+                        else:
+                            failure_count += 1
+                            failed_bot_ids.append(bot.id)
+
+                    elif action == 'deactivate' and bot.is_active:
+                        scheduler.remove_job(str(bot.id))
                         bot.is_active = False
-                        session.commit()
-                        activation_success += 1
-                    except Exception as e:
-                        session.rollback()
-                        activation_failures += 1
-                        failed_bot_ids.append(bot.id)
-                        print(f'Error deactivating bot {bot.id}: {str(e)}')
+                        bot.status = 'INACTIVE'
+                        bot.next_run_time = None
+                        success_count += 1
+
+                    bot.updated_at = datetime.now()
+                    session.commit()
+
+                except Exception as e:
+                    session.rollback()
+                    failure_count += 1
+                    failed_bot_ids.append(bot.id)
+                    print(f'Error processing bot {bot.id}: {str(e)}')
 
             summary = {
                 'total_bots': len(bots),
-                'activated_count': activation_success if action == 'activate' else 0,
-                'deactivated_count': activation_success if action == 'deactivate' else 0,
-                'failed_count': activation_failures,
-                'failed_bot_ids': failed_bot_ids
+                'success_count': success_count,
+                'failure_count': failure_count,
+                'failed_bot_ids': failed_bot_ids,
+                'validation_errors': validation_errors
             }
 
-            return jsonify({'success': True, 'message': 'Operation completed successfully', 'data': summary}), 200
+            return jsonify(create_response(
+                success=True,
+                message=f'Operation completed. {success_count} bots {"activated" if action == "activate" else "deactivated"} successfully.',
+                data=summary
+            )), 200
 
         except SQLAlchemyError as e:
             session.rollback()
-            return jsonify({'error': f'Database error: {str(e)}'}), 500
+            return jsonify(create_response(error=f'Database error: {str(e)}')), 500
 
         except Exception as e:
             session.rollback()
-            return jsonify({'error': f'Internal server error: {str(e)}'}), 500
-
-
+            return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
+        
 
 # DEPRECATED: THIS ENDPOINT WILL BE REMOVED
 @categories_bp.route('/toggle-all-coins', methods=['POST'])

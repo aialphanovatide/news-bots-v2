@@ -23,3 +23,5 @@ pyperclip
 google-api-python-client          
 flask_migrate       
 Flask-SQLAlchemy    
+gunicorn
+redis

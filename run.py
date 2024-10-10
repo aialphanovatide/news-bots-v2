@@ -7,8 +7,6 @@ from flask_cors import CORS
 from flasgger import Swagger
 from flask_migrate import Migrate
 from app import create_app
-from redis_client import redis_client
-
 
 app = create_app()
 
@@ -21,17 +19,21 @@ swagger_config = {
     "headers": [],
     "specs": [
         {
-            "endpoint": 'apispec_1',
-            "route": '/apispec_1.json',
+            "endpoint": 'swagger',
+            "route": '/swagger.json',
             "rule_filter": lambda rule: True,
             "model_filter": lambda tag: True,
         }
     ],
     "static_url_path": "/flasgger_static",
     "swagger_ui": True,
-    "specs_route": "/apidocs/"
+    "specs_route": "/docs/",
+    "title": "News Bot API",
+    "swagger_ui_config": {
+        "docExpansion": "none",
+        "tagsSorter": "alpha"
+    }
 }
-
 swagger = Swagger(app, template=swagger_template, config=swagger_config)
 migrate = Migrate(app, db)
 CORS(app, origins='*', supports_credentials=True)
@@ -39,15 +41,6 @@ CORS(app, origins='*', supports_credentials=True)
 app.static_folder = 'static'
 app.secret_key = os.urandom(24)
 
-try:
-    if redis_client.ping():
-        print('Successfully connected to Redis')
-    else:
-        print('Failed to connect to Redis')
-except redis.exceptions.AuthenticationError:
-    print("Redis authentication failed. Make sure the password is correct or not required.")
-except Exception as e:
-    print(f'Error connecting to Redis: {str(e)}')
 
 if __name__ == "__main__":
     try:
