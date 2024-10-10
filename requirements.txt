@@ -25,3 +25,4 @@ flask_migrate
 Flask-SQLAlchemy    
 gunicorn
 redis
+feedparser
