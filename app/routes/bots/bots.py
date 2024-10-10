@@ -4,7 +4,8 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from flask import Blueprint, jsonify, request
 from app.routes.bots.utils import validate_url
-from scheduler_config import reschedule, scheduler
+from flask import current_app
+from scheduler_config import scheduler
 from app.routes.routes_utils import create_response
 from config import Blacklist, Bot, Keyword, Session, Site, db, Category
 from app.routes.bots.utils import schedule_bot, validate_bot_for_activation
@@ -185,9 +186,11 @@ def create_bot():
                 )
                 session.add(new_site)
 
-            # Add keywords (whitelist) to the bot
+            # Validate and add keywords (whitelist) to the bot
             if 'whitelist' in data:
-                keywords = [keyword.strip().lower() for keyword in data['whitelist'].split(',')]
+                if not isinstance(data['whitelist'], str):
+                    return jsonify(create_response(error='Whitelist must be a comma-separated string')), 400
+                keywords = [keyword.strip().lower() for keyword in data['whitelist'].split(',') if keyword.strip()]
                 for keyword in keywords:
                     new_keyword = Keyword(
                         name=keyword,
@@ -197,10 +200,11 @@ def create_bot():
                     )
                     session.add(new_keyword)
 
-            # Add words to the bot Blacklist
-            blacklist = []
+            # Validate and add words to the bot Blacklist
             if 'blacklist' in data:
-                blacklist = [keyword.strip().lower() for keyword in data['blacklist'].split(',')]
+                if not isinstance(data['blacklist'], str):
+                    return jsonify(create_response(error='Blacklist must be a comma-separated string')), 400
+                blacklist = [word.strip().lower() for word in data['blacklist'].split(',') if word.strip()]
                 for word in blacklist:
                     new_blacklist_entry = Blacklist(
                         name=word,
@@ -263,7 +267,9 @@ def update_bot(bot_id):
     """
     with Session() as session:
         try:
-            bot = session.query(Bot).get(bot_id)
+            # bot = session.query(Bot).get(bot_id)
+              # Explicitly join with Category to ensure it's loaded
+            bot = session.query(Bot).options(joinedload(Bot.category)).get(bot_id)
             if not bot:
                 return jsonify(create_response(error=f'Bot with ID {bot_id} not found')), 404
 
@@ -332,21 +338,22 @@ def update_bot(bot_id):
                     schedule_message += ""
                 else:
                     try:
-                        reschedule(bot.name)
+                        schedule_bot(bot, bot.category)
                         schedule_message += " Bot rescheduled successfully."
                     except Exception as e:
                         schedule_message += f" Bot rescheduling failed: {str(e)}"
 
             return jsonify(create_response(
                 success=True,
+                data=bot.as_dict(),
                 message=schedule_message
             )), 200
 
         except SQLAlchemyError as e:
             session.rollback()
-            return jsonify(create_response(error="Database error occurred")), 500
+            return jsonify(create_response(error=f"Database error occurred: {str(e)}")), 500
         except Exception as e:
-            return jsonify(create_response(error="An unexpected error occurred")), 500
+            return jsonify(create_response(error=f"An unexpected error occurred: {str(e)}")), 500
 
 
 @bots_bp.route('/bot/<int:bot_id>', methods=['DELETE'])
@@ -411,84 +418,7 @@ def delete_bot(bot_id):
             response["error"] = error_msg
             return jsonify(response), 500
 
-# @bots_bp.route('/bot/<int:bot_id>/toggle-activation', methods=['POST'])
-# @update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot'])
-# def toggle_activation_bot(bot_id):
-#     """
-#     Toggle the activation status of the bot.
 
-#     This endpoint activates or deactivates a bot based on its current status.
-#     It performs necessary validations and schedules or unschedules the bot as needed.
-
-#     Args:
-#         bot_id (int): The ID of the bot to toggle
-
-#     Returns:
-#         JSON: A response containing:
-#             - success (bool): Indicates if the operation was successful
-#             - message (str): A message describing the result of the operation
-#             - error (str or None): Error message, if any
-#         HTTP Status Code:
-#             - 200: Operation successful
-#             - 404: Bot not found
-#             - 400: Validation failed
-#             - 500: Internal server error
-#     """
-#     with Session() as session:
-#         try:
-#             # Fetch bot with related data
-#             bot = session.query(Bot).options(
-#                 joinedload(Bot.sites),
-#                 joinedload(Bot.keywords),
-#                 joinedload(Bot.blacklist),
-#             ).get(bot_id)
-
-#             if not bot:
-#                 return jsonify(create_response(error=f"No bot found with ID: {bot_id}")), 404
-            
-#             category = session.query(Category).filter_by(id=bot.category_id).first()
-
-#             if not bot.is_active:
-#                 # Activation logic
-#                 validation_errors = validate_bot_for_activation(bot, category)
-                
-#                 if validation_errors:
-#                     return jsonify(create_response(
-#                         success=False,
-#                         error="Bot activation failed due to the following issues:",
-#                         validation_errors=validation_errors
-#                     )), 400
-
-#                 # All validations passed, activate the bot
-#                 bot.is_active = True
-                
-#                 try:
-#                     schedule_bot(bot, category)
-#                     message = f"Bot {bot.name} activated successfully"
-#                 except Exception as e:
-#                     bot.is_active = False  # Revert activation if scheduling fails
-#                     return jsonify(create_response(error=f"Failed to activate bot: {str(e)}")), 500
-#             else:
-#                 # Deactivation logic
-#                 bot.is_active = False
-#                 message = deactivate_bot(bot)
-
-#             bot.updated_at = datetime.now()
-#             session.commit()
-
-#             return jsonify(create_response(
-#                 success=True,
-#                 message=message,
-#                 bot=bot.as_dict()
-#             )), 200
-
-#         except SQLAlchemyError as e:
-#             session.rollback()
-#             return jsonify(create_response(error="A database error occurred")), 500
-#         except Exception as e:
-#             session.rollback()
-#             return jsonify(create_response(error="An unexpected error occurred")), 500
-        
 
 @bots_bp.route('/bot/<int:bot_id>/toggle-activation', methods=['POST'])
 @update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot'])
@@ -501,8 +431,19 @@ def toggle_activation_bot(bot_id):
             
             category = session.query(Category).filter_by(id=bot.category_id).first()
 
-            if not bot.is_active:
-                # Activation logic
+            if bot.is_active:
+                try:
+                    job = scheduler.get_job(str(bot.name))
+                    if job:
+                        scheduler.remove_job(str(bot.name))
+                    
+                    bot.is_active = False
+                    bot.status = 'IDLE'
+                    bot.next_run_time = None
+                    message = f"Bot {bot.name} deactivated successfully"
+                except Exception as e:
+                    return jsonify(create_response(error=f"Failed to deactivate bot: {str(e)}")), 500
+            else:
                 validation_errors = validate_bot_for_activation(bot, category)
                 
                 if validation_errors:
@@ -512,28 +453,16 @@ def toggle_activation_bot(bot_id):
                         validation_errors=validation_errors
                     )), 400
 
-                # All validations passed, try to schedule the bot
                 try:
                     scheduling_success = schedule_bot(bot, category)
                     if scheduling_success:
-                        # Only activate the bot if scheduling was successful
                         bot.is_active = True
-                        bot.status = 'IDLE'  # Set initial status
+                        bot.status = 'IDLE'
                         message = f"Bot {bot.name} scheduled and activated successfully"
                     else:
                         return jsonify(create_response(error="Failed to schedule bot")), 500
                 except Exception as e:
                     return jsonify(create_response(error=f"Failed to schedule bot: {str(e)}")), 500
-            else:
-                # Deactivation logic
-                try:
-                    scheduler.remove_job(str(bot.name))
-                    bot.is_active = False
-                    bot.status = 'INACTIVE'
-                    bot.next_run_time = None  # Clear the next run time
-                    message = f"Bot {bot.name} deactivated successfully"
-                except Exception as e:
-                    return jsonify(create_response(error=f"Failed to deactivate bot: {str(e)}")), 500
 
             bot.updated_at = datetime.now()
             session.commit()
@@ -550,6 +479,7 @@ def toggle_activation_bot(bot_id):
         except Exception as e:
             session.rollback()
             return jsonify(create_response(error=f"An unexpected error occurred: {str(e)}")), 500
+
 
 
 
