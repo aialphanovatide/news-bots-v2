@@ -20,8 +20,5 @@ RUN python -m playwright install
 EXPOSE 5000
 EXPOSE 5432
 
-# Create database and tables before starting the app (optional)
-# Note: This might not work as expected if your app requires a running database or environment variables
-# RUN python app.py
 
 CMD ["python", "run.py", "playwright install"]

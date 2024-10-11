@@ -1,10 +1,11 @@
 # routes.py
 
 from flask import Blueprint, jsonify, request
-from config import Blacklist, Keyword, db
+from config import Blacklist, Keyword, Bot, db
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response, handle_db_session
+from redis_client.redis_client import cache_with_redis, update_cache_with_redis
 
 keyword_bp = Blueprint(
     'keyword_bp', __name__,
@@ -12,194 +13,185 @@ keyword_bp = Blueprint(
     static_folder='static'
 )
 
-@keyword_bp.route('/get_keywords', methods=['GET'])
+
+@keyword_bp.route('/keywords', methods=['POST'])
 @handle_db_session
-def get_keywords_by_bot():
+@update_cache_with_redis(related_get_endpoints=['get_bot', 'dynamic_search', 'get_all_bots'])
+def create_keywords():
     """
-    Get all keywords filtered by bot_id.
-    Args:
-        bot_id (int): Bot ID to filter keywords.
+    Add keywords to multiple bots in bulk.
+    
+    Request Body:
+        JSON data with 'keywords' (list of str) and 'bot_ids' (list of int).
+    
     Response:
-        200: Successfully retrieved keywords.
-        400: Bot ID missing in request parameters.
-        404: No keywords found for the provided bot ID.
-        500: Internal server error or database error.
-    """
-    try:
-        bot_id = request.args.get('bot_id')
-
-        if not bot_id:
-            response = create_response(error='Bot ID missing in request parameters')
-            return jsonify(response), 400
-
-        keywords = Keyword.query.filter_by(bot_id=bot_id).all()
-
-        if not keywords:
-            response = create_response(error='No keywords found for the provided bot ID')
-            return jsonify(response), 404
-
-        keyword_data = [key.as_dict() for key in keywords]
-
-        response = create_response(success=True, data=keyword_data)
-        return jsonify(response), 200
-
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        response = create_response(error=f'Database error: {str(e)}')
-        return jsonify(response), 500
-
-    except Exception as e:
-        response = create_response(error=f'Internal server error: {str(e)}')
-        return jsonify(response), 500
-
-
-@keyword_bp.route('/add_keyword', methods=['POST'])
-@handle_db_session
-def add_keyword_to_bot():
-    """
-    Add keyword(s) to a bot.
-    Data:
-        JSON data with 'keyword' (str) and 'bot_id' (int).
-    Response:
-        200: Keywords added to bot successfully or no new keywords added.
-        400: Keyword or Bot ID missing in request data.
+        201: Keywords added to bots successfully.
+        400: Invalid request data.
         500: Internal server error or database error.
     """
     try:
         data = request.json
-        keyword = data.get('keyword')
-        bot_id = data.get('bot_id')
+        keywords = data.get('keywords', [])
+        bot_ids = data.get('bot_ids', [])
 
-        if not keyword or not bot_id:
-            response = create_response(error='Keyword or Bot ID missing in request data')
-            return jsonify(response), 400
+        if not keywords or not bot_ids or not isinstance(keywords, list) or not isinstance(bot_ids, list):
+            return jsonify(create_response(error='Invalid request data. Provide lists of keywords and bot_ids.')), 400
 
-        keywords = [keyword.strip() for keyword in keyword.split(',')]
+        # Validate bot_ids
+        valid_bots = Bot.query.filter(Bot.id.in_(bot_ids)).all()
+        valid_bot_ids = {bot.id for bot in valid_bots}
+        if len(valid_bot_ids) != len(bot_ids):
+            invalid_ids = set(bot_ids) - valid_bot_ids
+            return jsonify(create_response(error=f'Invalid bot IDs: {invalid_ids}')), 400
 
-        # Get existing keywords for the specified bot
-        existing_keywords = Keyword.query.filter_by(bot_id=bot_id).all()
-        existing_keyword_names = [kw.name.lower() for kw in existing_keywords]
+        # Get existing keywords for the specified bots
+        existing_keywords = Keyword.query.filter(Keyword.bot_id.in_(bot_ids)).all()
+        existing_keyword_map = {(kw.name.lower(), kw.bot_id) for kw in existing_keywords}
 
         new_keywords = []
         current_time = datetime.now()
 
-        # Filter out duplicate keywords
-        for kw in keywords:
-            if kw.lower() not in existing_keyword_names:
-                new_keywords.append(Keyword(name=kw, bot_id=bot_id, created_at=current_time, updated_at=current_time))
+        # Prepare new keywords
+        for bot_id in valid_bot_ids:
+            for kw in keywords:
+                kw = kw.strip().lower()
+                if (kw, bot_id) not in existing_keyword_map:
+                    new_keywords.append(Keyword(
+                        name=kw,
+                        bot_id=bot_id,
+                        created_at=current_time,
+                        updated_at=current_time
+                    ))
 
-        # Add new keywords to the database
+        # Bulk insert new keywords
         if new_keywords:
-            db.session.add_all(new_keywords)
+            db.session.bulk_save_objects(new_keywords)
             db.session.commit()
-            response = create_response(success=True, message='Keywords added to bot successfully')
-            return jsonify(response), 200
-        else:
-            response = create_response(success=True, message='No new keywords added')
-            return jsonify(response), 200
+
+        response = create_response(
+            success=True,
+            message=f'{len(new_keywords)} keywords added across {len(valid_bot_ids)} bots.',
+            data={'added_count': len(new_keywords), 'affected_bots': len(valid_bot_ids)}
+        )
+        return jsonify(response), 201
 
     except SQLAlchemyError as e:
         db.session.rollback()
-        response = create_response(error=f'Database error: {str(e)}')
-        return jsonify(response), 500
+        return jsonify(create_response(error=f'Database error: {str(e)}')), 500
 
     except Exception as e:
-        response = create_response(error=f'Internal server error: {str(e)}')
-        return jsonify(response), 500
+        return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
 
 
-@keyword_bp.route('/delete_keyword', methods=['DELETE'])
+@keyword_bp.route('/keywords', methods=['DELETE'])
 @handle_db_session
-def delete_keyword_from_bot():
+def delete_keywords():
     """
-    Delete a keyword from a bot by ID.
-    Args:
-        keyword_id (int): ID of the keyword to delete.
+    Delete keywords from multiple bots in bulk.
+    
+    Request Body:
+        JSON data with 'keyword_ids' (list of int) or 'keywords' (list of str) and 'bot_ids' (list of int).
+    
     Response:
-        200: Keyword deleted from bot successfully.
-        400: Keyword ID missing in request data.
-        404: Keyword not found.
+        200: Keywords deleted successfully.
+        400: Invalid request data.
+        404: No matching keywords found.
         500: Internal server error or database error.
     """
     try:
-        keyword_id = request.args.get('keyword_id')
+        data = request.json
+        keyword_ids = data.get('keyword_ids', [])
+        keywords = data.get('keywords', [])
+        bot_ids = data.get('bot_ids', [])
 
-        if keyword_id is None:
-            response = create_response(error='Keyword ID missing in request data')
-            return jsonify(response), 400
+        if not (keyword_ids or keywords) or not bot_ids or \
+           not isinstance(keyword_ids, list) or not isinstance(keywords, list) or not isinstance(bot_ids, list):
+            return jsonify(create_response(error='Invalid request data. Provide keyword_ids (list) or keywords (list), and bot_ids (list).')), 400
 
-        keyword = Keyword.query.get(keyword_id)
-        if keyword:
+        query = Keyword.query.filter(Keyword.bot_id.in_(bot_ids))
+
+        if keyword_ids:
+            query = query.filter(Keyword.id.in_(keyword_ids))
+        elif keywords:
+            query = query.filter(Keyword.name.in_([kw.strip().lower() for kw in keywords]))
+
+        keywords_to_delete = query.all()
+
+        if not keywords_to_delete:
+            return jsonify(create_response(error='No matching keywords found')), 404
+
+        for keyword in keywords_to_delete:
             db.session.delete(keyword)
-            db.session.commit()
-            response = create_response(success=True, message='Keyword deleted from bot successfully')
-            return jsonify(response), 200
-        else:
-            response = create_response(error='Keyword not found')
-            return jsonify(response), 404
 
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        response = create_response(error=f'Database error: {str(e)}')
-        return jsonify(response), 500
+        db.session.commit()
 
-    except Exception as e:
-        response = create_response(error=f'Internal server error: {str(e)}')
-        return jsonify(response), 500
-
-
-@keyword_bp.route('/get_keywords_for_coin_bot/<int:coin_bot_id>', methods=['GET'])
-def get_keywords_for_coin_bot(coin_bot_id):
-    """
-    Get all keywords for a coin bot by bot_id.
-    Args:
-        coin_bot_id (int): Bot ID to filter keywords.
-    Response:
-        200: Successfully retrieved keywords for the coin bot.
-        500: Internal server error or database error.
-    """
-    try:
-        keywords = db.session.query(Keyword).filter_by(bot_id=coin_bot_id).all()
-        keywords_data = [{'id': keyword.id, 'word': keyword.name} for keyword in keywords]
-        response = create_response(success=True, data=keywords_data)
+        response = create_response(
+            success=True,
+            message=f'{len(keywords_to_delete)} keywords deleted across {len(set(kw.bot_id for kw in keywords_to_delete))} bots.',
+            data={
+                'deleted_count': len(keywords_to_delete),
+                'affected_bots': len(set(kw.bot_id for kw in keywords_to_delete))
+            }
+        )
         return jsonify(response), 200
 
-    except Exception as e:
-        response = create_response(error=f'Internal server error: {str(e)}')
-        return jsonify(response), 500
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify(create_response(error=f'Database error: {str(e)}')), 500
 
+    except Exception as e:
+        return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
 
 
 @keyword_bp.route('/keywords-search', methods=['GET'])
 @handle_db_session
 def dynamic_search():
     """
-    Search for related keywords and backlist words.
+    Search for related keywords and blacklist words across specified bots.
     Args:
         query (str): Word to search.
+        bot_ids (str): Comma-separated list of bot IDs to search within.
     Response:
         200: Successfully retrieved relevant words.
-        400: Missing query parameter.
+        400: Missing query parameter or bot IDs.
         404: No related words found.
         500: Server error.
     """
     try:
         query = request.args.get('query')
+        bot_ids_str = request.args.get('bot_ids')
 
-        if not query:
-            return jsonify(create_response(error='Query string missing in request parameters')), 400
+        if not query or not bot_ids_str:
+            return jsonify(create_response(error='Query string and bot IDs are required parameters')), 400
 
-        # Conduct search through the keyword and backlist tables
-        keyword_results = Keyword.query.filter(Keyword.name.ilike(f'%{query}%')).all()
-        backlist_results = Blacklist.query.filter(Blacklist.name.ilike(f'%{query}%')).all()
+        bot_ids = [int(id.strip()) for id in bot_ids_str.split(',')]
 
-        if not keyword_results and not backlist_results:
+        # Fetch bot names
+        bots = Bot.query.filter(Bot.id.in_(bot_ids)).all()
+        bot_id_to_name = {bot.id: bot.name for bot in bots}
+
+        # Conduct search through the keyword and blacklist tables
+        keyword_results = (Keyword.query
+                           .filter(Keyword.bot_id.in_(bot_ids))
+                           .filter(Keyword.name.ilike(f'%{query}%'))
+                           .all())
+        
+        blacklist_results = (Blacklist.query
+                             .filter(Blacklist.bot_id.in_(bot_ids))
+                             .filter(Blacklist.name.ilike(f'%{query}%'))
+                             .all())
+
+        if not keyword_results and not blacklist_results:
             return jsonify(create_response(error='No related words found')), 404
 
         # Prepare results
-        related_words = [kw.name for kw in keyword_results] + [bl.name for bl in backlist_results]
+        keywords = [{**kw.as_dict(), 'bot_name': bot_id_to_name.get(kw.bot_id, 'Unknown')} for kw in keyword_results]
+        blacklist = [{**bl.as_dict(), 'bot_name': bot_id_to_name.get(bl.bot_id, 'Unknown')} for bl in blacklist_results]
 
-        return jsonify(create_response(success=True, data=related_words)), 200
+        return jsonify(create_response(success=True, data={'whitelist': keywords, 'blacklist': blacklist})), 200
+
+    except ValueError:
+        return jsonify(create_response(error='Invalid bot ID format')), 400
 
     except SQLAlchemyError as e:
         db.session.rollback()
