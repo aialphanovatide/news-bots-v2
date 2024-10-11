@@ -9,6 +9,12 @@ from app.utils.timezones import check_server_timezone, check_database_timezone, 
 
 load_dotenv()
 
+basedir = os.path.abspath(os.path.dirname(__file__))
+upload_folder = os.path.join(basedir, 'app', 'static', 'TempUploads')
+
+# Ensure the upload folder exists
+os.makedirs(upload_folder, exist_ok=True)
+
 # Load environment variables
 DB_PORT = os.getenv('DB_PORT')
 DB_NAME = os.getenv('DB_NAME')
@@ -29,6 +35,7 @@ def create_app():
 
     # Database configuration
     app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+    app.config['UPLOAD_FOLDER'] = upload_folder
     
     # Initialize database
     db.init_app(app)

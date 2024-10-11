@@ -128,51 +128,48 @@ swagger = Swagger()
 
 
 success, message = swagger.add_or_update_endpoint(
-    endpoint_route='/bot/{bot_id}',
-    method='put',
-    tag='Bots',
-    description='Update an existing bot and reschedule if necessary',
+    endpoint_route='/keywords/extract',
+    method='post',
+    tag='Keywords',
+    description='Extract and clean keywords and blacklist from an uploaded Excel file',
     detail_description='''
-    This endpoint updates a bot entry with the provided details, saves the changes to the database,
-    and reschedules the bot if it's active and any field other than background_color or alias has changed.
-    Important notes:
-    - All fields except background_color and alias will trigger a bot reschedule if changed.
-    - Whitelist and blacklist must be provided as comma-separated values for multiple entries.
-    - If a URL is provided, the associated Site will be updated or created.
-    - Updating the alias will also update the bot's icon.
+    This endpoint processes an uploaded Excel file (.xls or .xlsx) to extract and clean keywords and blacklist items.
+
+    File Structure Requirements:
+    1. The Excel file can contain multiple sheets.
+    2. Sheets are processed if their names contain 'keyword' or 'blacklist' (case-insensitive).
+    3. Each relevant sheet must have a column with a header containing 'keyword' or 'blacklist' respectively.
+    4. The first matching column in each sheet will be used for data extraction.
+
+    Extraction and Cleaning Process:
+    - For sheets with 'keyword' in the name: 
+      * Extracts data from the first column with 'keyword' in its header.
+    - For sheets with 'blacklist' in the name:
+      * Extracts data from the first column with 'blacklist' in its header.
+    - Data is extracted from all rows below the header row.
+    - All extracted data is cleaned:
+      * Converted to lowercase
+      * Special characters (including hyphens, slashes, and parentheses) are removed
+      * Multiple spaces are replaced with a single space
+      * Leading and trailing spaces are removed
+    - Duplicate entries are automatically removed.
+    - Empty cells or cells that become empty after cleaning are ignored.
+
+    The endpoint returns comma-separated strings for both keywords and blacklist items.
+    If no data is found for either keywords or blacklist, an empty string is returned for that category.
     ''',
     params=[
         {
-            'name': 'bot_id',
-            'in': 'path',
-            'description': 'The ID of the bot to be updated',
+            'name': 'file',
+            'in': 'formData',
+            'description': 'Excel file (.xls or .xlsx) to be processed',
             'required': True,
-            'type': 'integer'
-        },
-        {
-            'name': 'body',
-            'in': 'body',
-            'description': 'Bot update details',
-            'required': True,
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'name': {'type': 'string', 'description': 'The name of the bot'},
-                    'alias': {'type': 'string', 'description': 'An alternative identifier for the bot'},
-                    'category_id': {'type': 'integer', 'description': 'The ID of the category the bot belongs to'},
-                    'dalle_prompt': {'type': 'string', 'description': 'The DALL-E prompt for the bot'},
-                    'background_color': {'type': 'string', 'description': 'HEX code string for visual representation'},
-                    'run_frequency': {'type': 'integer', 'description': 'The frequency to run the bot in minutes'},
-                    'url': {'type': 'string', 'description': 'The URL for the bot\'s site'},
-                    'whitelist': {'type': 'string', 'description': 'Comma-separated list of keywords'},
-                    'blacklist': {'type': 'string', 'description': 'Comma-separated list of blacklisted words'}
-                }
-            }
+            'type': 'file'
         }
     ],
     responses={
         '200': {
-            'description': 'Bot updated successfully',
+            'description': 'Keywords and blacklist extracted and cleaned successfully',
             'schema': {
                 'type': 'object',
                 'properties': {
@@ -180,17 +177,8 @@ success, message = swagger.add_or_update_endpoint(
                     'data': {
                         'type': 'object',
                         'properties': {
-                            'id': {'type': 'integer'},
-                            'name': {'type': 'string'},
-                            'alias': {'type': 'string'},
-                            'category_id': {'type': 'integer'},
-                            'dalle_prompt': {'type': 'string'},
-                            'icon': {'type': 'string'},
-                            'background_color': {'type': 'string'},
-                            'run_frequency': {'type': 'integer'},
-                            'is_active': {'type': 'boolean'},
-                            'created_at': {'type': 'string', 'format': 'date-time'},
-                            'updated_at': {'type': 'string', 'format': 'date-time'}
+                            'keywords': {'type': 'string', 'description': 'Comma-separated list of cleaned, extracted keywords'},
+                            'blacklist': {'type': 'string', 'description': 'Comma-separated list of cleaned, extracted blacklist items'}
                         }
                     },
                     'message': {'type': 'string'}
@@ -199,16 +187,6 @@ success, message = swagger.add_or_update_endpoint(
         },
         '400': {
             'description': 'Bad request',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'error': {'type': 'string'}
-                }
-            }
-        },
-        '404': {
-            'description': 'Bot not found',
             'schema': {
                 'type': 'object',
                 'properties': {

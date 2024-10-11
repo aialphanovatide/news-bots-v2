@@ -2975,6 +2975,187 @@
           }
         }
       }
+    },
+    "/keywords/trending": {
+      "get": {
+        "tags": [
+          "Keywords"
+        ],
+        "summary": "Retrieve trending keywords with optional bot and time period filtering",
+        "description": "\n    this endpoint retrieves used keywords from articles, with optional filtering by bot_id and time period.\n    it provides a count of keyword usage, allowing identification of trending keywords.\n    \n    keywords are extracted from the usedkeywords table, split if comma-separated, and aggregated to provide accurate usage counts.\n    results are sorted by usage count in descending order, showing the most used (trending) keywords first.\n    time periods:\n    - \"1w\": last 7 days\n    - \"1m\": last 30 days\n    - \"3m\": last 90 days\n    - \"all\": all time (default if not specified)\n\n    if no bot_id is provided, keywords from all bots will be included.\n    ",
+        "parameters": [
+          {
+            "name": "bot_id",
+            "in": "query",
+            "description": "Bot ID to filter keywords (optional). If not provided, includes keywords from all bots.",
+            "required": false,
+            "type": "integer",
+            "schema": {}
+          },
+          {
+            "name": "time_period",
+            "in": "query",
+            "description": "Time period for filtering: \"1w\" (7 days), \"1m\" (30 days), \"3m\" (90 days), or \"all\" (all time). Default is \"all\".",
+            "required": false,
+            "type": "string",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved used keywords",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "used_keywords": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "keyword": {
+                            "type": "string"
+                          },
+                          "count": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "total_unique_keywords": {
+                      "type": "integer"
+                    },
+                    "filter_applied": {
+                      "type": "object",
+                      "properties": {
+                        "bot_id": {
+                          "type": "integer",
+                          "nullable": true
+                        },
+                        "time_period": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid time period provided",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/keywords/extract": {
+      "post": {
+        "tags": [
+          "Keywords"
+        ],
+        "summary": "Extract and clean keywords and blacklist from an uploaded excel file",
+        "description": "\n    this endpoint processes an uploaded excel file (.xls or .xlsx) to extract and clean keywords and blacklist items.\n\n    file structure requirements:\n    1. the excel file can contain multiple sheets.\n    2. sheets are processed if their names contain 'keyword' or 'blacklist' (case-insensitive).\n    3. each relevant sheet must have a column with a header containing 'keyword' or 'blacklist' respectively.\n    4. the first matching column in each sheet will be used for data extraction.\n\n    extraction and cleaning process:\n    - for sheets with 'keyword' in the name: \n      * extracts data from the first column with 'keyword' in its header.\n    - for sheets with 'blacklist' in the name:\n      * extracts data from the first column with 'blacklist' in its header.\n    - data is extracted from all rows below the header row.\n    - all extracted data is cleaned:\n      * converted to lowercase\n      * special characters (including hyphens, slashes, and parentheses) are removed\n      * multiple spaces are replaced with a single space\n      * leading and trailing spaces are removed\n    - duplicate entries are automatically removed.\n    - empty cells or cells that become empty after cleaning are ignored.\n\n    the endpoint returns comma-separated strings for both keywords and blacklist items.\n    if no data is found for either keywords or blacklist, an empty string is returned for that category.\n    ",
+        "parameters": [
+          {
+            "name": "file",
+            "in": "formData",
+            "description": "Excel file (.xls or .xlsx) to be processed",
+            "required": true,
+            "type": "file",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Keywords and blacklist extracted and cleaned successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "keywords": {
+                      "type": "string",
+                      "description": "Comma-separated list of cleaned, extracted keywords"
+                    },
+                    "blacklist": {
+                      "type": "string",
+                      "description": "Comma-separated list of cleaned, extracted blacklist items"
+                    }
+                  }
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

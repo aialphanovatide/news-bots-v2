@@ -28,3 +28,4 @@ redis
 feedparser
 pytz
 psutil
+openpyxl

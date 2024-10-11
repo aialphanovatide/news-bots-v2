@@ -5,6 +5,7 @@ from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response, handle_db_session
 from redis_client.redis_client import cache_with_redis, update_cache_with_redis
+from app.services.file_extraction.file_extraction import process_uploaded_file
 
 keyword_bp = Blueprint(
     'keyword_bp', __name__,
@@ -195,3 +196,49 @@ def dynamic_search():
 
     except Exception as e:
         return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
+
+
+@keyword_bp.route('/keywords/extract', methods=['POST'])
+def extract_keywords_and_blacklist():
+    """
+    Extract keywords and blacklist from an uploaded Excel file (.xls or .xlsx).
+
+    This endpoint accepts an Excel file upload and extracts data from 'keywords' and 'blacklist' tabs.
+    The file must have tabs with names containing 'keywords' or 'blacklist' (case-insensitive).
+    Each relevant tab must have a column titled 'keywords' or 'blacklist' respectively.
+
+    Request:
+        - file: The Excel file to be processed (multipart/form-data)
+
+    Returns:
+        JSON response containing:
+        - success: Boolean indicating if the operation was successful
+        - data: Extracted keywords and blacklist as comma-separated strings
+        - message: Description of the operation result
+        - error: Error message if any
+
+    Responses:
+        200: File processed successfully
+        400: Bad request (no file, unsupported file type, missing required tabs/columns)
+        500: Internal server error
+    """
+    try:
+        if 'file' not in request.files:
+            return jsonify(create_response(error="No file part in the request")), 400
+
+        file = request.files['file']
+        keywords, blacklist = process_uploaded_file(file)
+
+        return jsonify(create_response(
+            success=True,
+            data={
+                "keywords": keywords,
+                "blacklist": blacklist
+            },
+            message="Keywords and blacklist extracted successfully"
+        )), 200
+
+    except ValueError as e:
+        return jsonify(create_response(error=str(e))), 400
+    except Exception as e:
+        return jsonify(create_response(error=f"An error occurred while processing the file: {str(e)}")), 500
