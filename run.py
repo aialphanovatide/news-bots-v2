@@ -47,7 +47,7 @@ app.secret_key = os.urandom(24)
 if __name__ == "__main__":
     try:
         print("Starting the server...")
-        app.run(debug=True, use_reloader=False, port=5002, threaded=True, host='0.0.0.0')
+        app.run(debug=False, use_reloader=False, port=5002, threaded=True, host='0.0.0.0')
     except Exception as e:
         print(f"An error occurred: {e}")
     finally:

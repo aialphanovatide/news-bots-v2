@@ -1,10 +1,8 @@
 #!/bin/bash
 set -e  # Exit immediately if a command exits with a non-zero status.
 
-# # Set environment variables
-export FLASK_ENV=${FLASK_ENV:-development} 
-
-
+# Set environment variables
+export FLASK_ENV=${FLASK_ENV:-development}
 
 # Function to check, create, and apply Alembic migrations
 check_create_and_apply_migrations() {
@@ -20,38 +18,46 @@ check_create_and_apply_migrations() {
         fi
     fi
 
-    # Check for existing migrations
-    if [ -z "$(ls -A migrations/versions)" ]; then
+    # Get the current revision and the head revision
+    current_rev=$(flask db current 2>/dev/null)
+    head_rev=$(flask db heads 2>/dev/null)
+
+    if [ -z "$current_rev" ] && [ -z "$head_rev" ]; then
         echo "No migrations found. Creating initial migration..."
         flask db migrate -m "Initial migration"
-        if [ $? -ne 0 ]; then
+        if [ $? -eq 0 ]; then
+            echo "Initial migration created successfully."
+            flask db upgrade
+        else
             echo "Error creating initial migration. Exiting."
             exit 1
         fi
-    fi
-
-    # Apply any pending migrations
-    echo "Applying migrations..."
-    flask db upgrade
-    if [ $? -ne 0 ]; then
-        echo "Error applying migrations. Exiting."
-        exit 1
+    elif [ "$current_rev" != "$head_rev" ]; then
+        echo "Pending migrations found. Applying migrations..."
+        flask db upgrade
+    else
+        echo "Database schema is up to date."
     fi
 
     echo "Database migrations check complete."
 }
 
-# Check, create, and apply migrations
+# Function to start the Flask application
+start_flask_app() {
+    echo "Starting Flask application in $FLASK_ENV mode..."
+    if [ "$FLASK_ENV" = "development" ]; then
+        python run.py --host=0.0.0.0 --port=9000
+    else
+        PORT=${PORT:-9000}
+        exec gunicorn --bind 0.0.0.0:$PORT --workers 3 --threads 2 --timeout 120 run:app
+    fi
+}
+
+# Main execution
+echo "Initializing application..."
+
+# Check and apply migrations
 check_create_and_apply_migrations
 
-
-# Start the application
-if [ "$FLASK_ENV" = "development" ]; then
-    echo "Starting Flask development server..."
-    python run.py --host=0.0.0.0 --port=9000
-else
-    echo "Starting Gunicorn production server..."
-    PORT=${PORT:-9000}
-    # exec gunicorn --workers 3 --threads 2 --timeout 120 server:app
-    exec gunicorn --bind 0.0.0.0:$PORT --workers 3 --threads 2 --timeout 120 run:app
-fi
+# Start the Flask application
+start_flask_app
