@@ -1,5 +1,3 @@
-# routes.py
-
 from flask import Blueprint, jsonify, request
 from config import Blacklist, Keyword, Bot, db
 from datetime import datetime
