@@ -12,25 +12,29 @@ import random
 import pytz
 
 def validate_url(url):
-    """Validate if the URL is well-formed and contains 'news' or 'google'."""
+    """Validate if the URL is well-formed and contains 'news', 'google', and 'rss'."""
     try:
         result = urlparse(url)
-        return all([result.scheme, result.netloc]) and ('news' in result.netloc or 'google' in result.netloc)
+        return all([result.scheme, result.netloc]) and ('news' in result.netloc or 'google' in result.netloc) and 'rss' in result.path.lower()
     except:
         return False
 
 
 def bot_job_function(bot, category):
-    from app import scheduler  # Import here to avoid circular imports
+
     with scheduler.app.app_context():
         bot_id = bot.id
         category_id = category.id
+
+        current_app.logger.debug(f"Starting bot job for bot: {bot.name}")
 
         bot.status = 'RUNNING'
         db.session.commit()
 
         try:
-            scraper = NewsScraper(url=bot.sites[0].url, bot_id=bot_id, category_id=category_id, verbose=True)
+            current_app.logger.debug(f"Initializing NewsScraper for bot: {bot.name}")
+            scraper = NewsScraper(url=bot.sites[0].url, bot_id=bot_id, category_id=category_id, verbose=True, debug=True)
+            current_app.logger.debug(f"Running scraper for bot: {bot.name}")
             result = scraper.run()
             
             if not result['success']:
@@ -62,7 +66,7 @@ def threaded_job_function(bot, category):
     thread.start()
 
 def schedule_bot(bot, category, fire_now=True):
-    from app import scheduler  # Import here to avoid circular imports
+  
     try:
         # Get the scheduler timezone from app config
         scheduler_tz = current_app.config.get('SCHEDULER_TIMEZONE') or pytz.UTC
@@ -88,7 +92,7 @@ def schedule_bot(bot, category, fire_now=True):
         try:
             interval_job =scheduler.add_job(
                 id=bot_name,
-                func=threaded_job_function,
+                func=bot_job_function,
                 trigger=IntervalTrigger(
                     minutes=run_frequency,
                     timezone=scheduler_tz,
@@ -105,9 +109,9 @@ def schedule_bot(bot, category, fire_now=True):
             if fire_now:
                 immediate_job = scheduler.add_job(
                     id=bot_name,
-                    func=threaded_job_function,
+                    func=bot_job_function,
                     trigger=DateTrigger(
-                        run_date=datetime.now(scheduler_tz),
+                        run_date=datetime.now(scheduler_tz) + timedelta(seconds=2),
                         timezone=scheduler_tz
                     ),
                     name=bot_name,

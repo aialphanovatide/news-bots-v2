@@ -1,6 +1,4 @@
 from flask_apscheduler import APScheduler
-from config import Bot, db
-from datetime import datetime
 from app.services.slack.actions import send_WARNING_message_to_slack_channel
 from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_MAX_INSTANCES, EVENT_JOB_EXECUTED
 from apscheduler.triggers.cron import CronTrigger
@@ -14,19 +12,8 @@ def job_executed(event):
         job_id = str(event.job_id).capitalize()
         scheduled_run_time = event.scheduled_run_time.strftime('%Y-%m-%d %H:%M:%S')
 
-        print(f'\n[INFO] Job "{job_id}" was executed successfully at {scheduled_run_time}.')
-        print(f'[INFO] Response: {event.retval}')
-        
-        try:
-            bot = Bot.query.filter_by(name=event.job_id).first()
-            if bot:
-                bot.updated_at = datetime.now()
-                db.session.commit()
-                print(f'[SUCCESS] Bot "{job_id}" updated successfully in the database.')
-            else:
-                print(f'[WARNING] Bot "{job_id}" not found in the database.')
-        except Exception as e:
-            print(f'[ERROR] Failed to update Bot "{job_id}": {str(e)}')
+        scheduler.app.logger.debug(f'Job "{job_id}" was executed successfully at {scheduled_run_time}.')
+        scheduler.app.logger.debug(f'Response: {event.retval}')
 
 
 # Define error event listener within the Flask app context

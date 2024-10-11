@@ -1,8 +1,6 @@
 import os
 from flask import Flask
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
-from flask_sqlalchemy import SQLAlchemy
-from flask_apscheduler import APScheduler
 from dotenv import load_dotenv
 from pytz import timezone
 from scheduler_config import scheduler
@@ -55,7 +53,7 @@ def create_app():
         check_scheduler_timezone()
 
         if scheduler.state != 1:
-            print('-----Scheduler started-----')
+            print('Scheduler started')
             scheduler.start()
           
 

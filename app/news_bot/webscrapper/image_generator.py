@@ -13,7 +13,7 @@ load_dotenv()
 
 class ImageGenerator:
     def __init__(self):
-        self.OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+        self.OPENAI_API_KEY = os.getenv('NEWS_BOT_OPENAI_API_KEY')
         self.AWS_ACCESS = os.getenv('AWS_ACCESS')
         self.AWS_SECRET_KEY = os.getenv('AWS_SECRET_KEY')
         self.client = OpenAI(api_key=self.OPENAI_API_KEY)
