@@ -250,6 +250,7 @@ def activate_bots_by_category():
         return create_response(error=f"Error activating bots for category '{category_name}': {e}"), 500
 
 
+
 @activate_bots_bp.route('/jobs', methods=['GET'])
 def list_jobs():
     """
@@ -260,7 +261,15 @@ def list_jobs():
     """
     try:
         jobs = scheduler.get_jobs(jobstore='default')
-        job_list = [{'id': job.id, 'name': job.name, 'next_run_time': job.next_run_time} for job in jobs]
+        job_list = []
+        for job in jobs:
+            job_info = {
+                'id': job.id,
+                'name': job.name,
+                'next_run_time': job.next_run_time.timestamp() if job.next_run_time else None
+            }
+            job_list.append(job_info)
+
         return create_response(success=True, data=job_list), 200
     
     except SQLAlchemyError as e:
@@ -268,4 +277,4 @@ def list_jobs():
         return create_response(error=f'Database error: {str(e)}'), 500
     
     except Exception as e:
-        return create_response(error=f"Error listing jobs: {e}"), 500
+        return create_response(error=f"Error listing jobs: {str(e)}"), 500

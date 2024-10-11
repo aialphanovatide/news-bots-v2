@@ -3,10 +3,13 @@ from scheduler_config import scheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from app.news_bot.webscrapper.init import NewsScraper
 from flask import current_app
+from apscheduler.triggers.date import DateTrigger
 from datetime import datetime, timedelta
+from pytz import timezone
 from config import db
 import threading
 import random
+import pytz
 
 def validate_url(url):
     """Validate if the URL is well-formed and contains 'news' or 'google'."""
@@ -50,7 +53,7 @@ def bot_job_function(bot, category):
             # Update next_run_time
             job = scheduler.get_job(str(bot.name))
             if job:
-                bot.next_run_time = job.next_run_time
+                bot.next_run_time = job.next_run_time.timestamp() if job.next_run_time else None
             
             db.session.commit()
 
@@ -58,9 +61,12 @@ def threaded_job_function(bot, category):
     thread = threading.Thread(target=bot_job_function, args=(bot, category))
     thread.start()
 
-def schedule_bot(bot, category, fire_now=False):
+def schedule_bot(bot, category, fire_now=True):
     from app import scheduler  # Import here to avoid circular imports
     try:
+        # Get the scheduler timezone from app config
+        scheduler_tz = current_app.config.get('SCHEDULER_TIMEZONE') or pytz.UTC
+
         bot_id = bot.id
         bot_name = str(bot.name)
 
@@ -72,7 +78,7 @@ def schedule_bot(bot, category, fire_now=False):
         
         # Calculate initial delay
         initial_delay = 0 if fire_now else random.randint(0, min(run_frequency, 5))
-        start_time = datetime.now() + timedelta(minutes=initial_delay)
+        start_time = datetime.now(scheduler_tz) + timedelta(minutes=initial_delay)
 
         # Update bot's status
         bot.status = 'IDLE'
@@ -80,24 +86,14 @@ def schedule_bot(bot, category, fire_now=False):
 
         # Schedule the job with IntervalTrigger
         try:
-            if fire_now:
-                immediate_job = scheduler.add_job(
-                    func=threaded_job_function,
-                    trigger='date',
-                    run_date=datetime.now(),
-                    id=bot_name,
-                    name=bot_name,
-                    args=[bot, category],
-                    replace_existing=True,
-                    jobstore='default'
-                )
-                current_app.logger.debug(f"Bot {bot_name} scheduled to run immediately for testing")
-                bot.next_run_time = immediate_job.next_run_time
-
             interval_job =scheduler.add_job(
                 id=bot_name,
                 func=threaded_job_function,
-                trigger=IntervalTrigger(minutes=run_frequency),
+                trigger=IntervalTrigger(
+                    minutes=run_frequency,
+                    timezone=scheduler_tz,
+                    jitter=60  # Add a jitter of up to 60 seconds
+                ),
                 start_date=start_time,
                 name=bot_name,
                 args=[bot, category],
@@ -106,10 +102,26 @@ def schedule_bot(bot, category, fire_now=False):
                 jobstore='default'
             )
 
+            if fire_now:
+                immediate_job = scheduler.add_job(
+                    id=bot_name,
+                    func=threaded_job_function,
+                    trigger=DateTrigger(
+                        run_date=datetime.now(scheduler_tz),
+                        timezone=scheduler_tz
+                    ),
+                    name=bot_name,
+                    args=[bot, category],
+                    replace_existing=True,
+                    jobstore='default'
+                )
+                current_app.logger.debug(f"Bot {bot_name} scheduled to run immediately for testing")
+                bot.next_run_time = immediate_job.next_run_time
+
             # Update bot's next_run_time with the actual next run time
             if fire_now:
                 # If fire_now is True, the next run will be from the interval job
-                bot.next_run_time = interval_job.next_run_time
+                bot.next_run_time =  interval_job.next_run_time
             else:
                 # If fire_now is False, use the next_run_time from the interval job
                 bot.next_run_time = interval_job.next_run_time

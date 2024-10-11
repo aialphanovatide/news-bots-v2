@@ -10,6 +10,7 @@ load_dotenv()
 db = SQLAlchemy()
 
 DB_URI = os.getenv('DB_URI')
+
 # Configure the engine with the timezone
 engine = create_engine(
     DB_URI, 

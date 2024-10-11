@@ -1,27 +1,9 @@
 from flask_apscheduler import APScheduler
-from config import DB_URI, Bot, db, engine
+from config import Bot, db
 from datetime import datetime
-from pytz import timezone, utc
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from app.services.slack.actions import send_WARNING_message_to_slack_channel
 from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_MAX_INSTANCES, EVENT_JOB_EXECUTED
 from apscheduler.triggers.cron import CronTrigger
-
-# Configuration for FlaskAPScheduler
-time_zone = timezone('America/Argentina/Buenos_Aires')
-
-class Config:
-    SCHEDULER_API_ENABLED = True
-    SCHEDULER_JOBSTORES = {
-        'default': SQLAlchemyJobStore(url=DB_URI, engine=engine)
-    }
-    SCHEDULER_EXECUTORS = {
-        'default': {
-            'type': 'threadpool',
-            'max_workers': 50
-        }
-    }
-    SCHEDULER_TIMEZONE = time_zone
 
 scheduler = APScheduler()
 logs_channel_id = "C070SM07NGL"
