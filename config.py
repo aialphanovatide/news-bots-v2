@@ -10,7 +10,13 @@ load_dotenv()
 db = SQLAlchemy()
 
 DB_URI = os.getenv('DB_URI')
-engine = create_engine(DB_URI, pool_size=30, max_overflow=20)
+# Configure the engine with the timezone
+engine = create_engine(
+    DB_URI, 
+    pool_size=30, 
+    max_overflow=20,
+    connect_args={"options": "-c timezone=America/Argentina/Buenos_Aires"}
+)
 Session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 class Category(db.Model):
@@ -67,7 +73,7 @@ class Bot(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, nullable=False)
     alias = db.Column(db.String)
-    dalle_prompt = db.Column(db.String)
+    dalle_prompt = db.Column(db.String(1024))
     icon  = db.Column(db.String)
     dalle_prompt = db.Column(db.String)
     background_color = db.Column(db.String)

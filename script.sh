@@ -2,7 +2,7 @@
 set -e  # Exit immediately if a command exits with a non-zero status.
 
 # # Set environment variables
-export FLASK_ENV=${FLASK_ENV:-production} # if FLASK_ENV not set in .env file, then this variable will be used.
+export FLASK_ENV=${FLASK_ENV:-development} # if FLASK_ENV not set in .env file, then this variable will be used.
 
 
 # Start the application

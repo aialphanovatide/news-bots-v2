@@ -259,7 +259,7 @@ def list_jobs():
         500: Internal server error.
     """
     try:
-        jobs = scheduler.get_jobs()
+        jobs = scheduler.get_jobs(jobstore='default')
         job_list = [{'id': job.id, 'name': job.name, 'next_run_time': job.next_run_time} for job in jobs]
         return create_response(success=True, data=job_list), 200
     

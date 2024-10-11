@@ -391,3 +391,5 @@ class NewsScraper:
         except Exception as e:
             self.log(f"An unexpected error occurred during article processing: {e}", 'error')
             return {'success': False, 'error': f"An unexpected error occurred during article processing: {e}"}
+
+

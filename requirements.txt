@@ -26,3 +26,4 @@ Flask-SQLAlchemy
 gunicorn
 redis
 feedparser
+pytz

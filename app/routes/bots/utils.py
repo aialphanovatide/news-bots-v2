@@ -16,7 +16,50 @@ def validate_url(url):
     except:
         return False
 
-def schedule_bot(bot, category):
+
+def bot_job_function(bot, category):
+    from app import scheduler  # Import here to avoid circular imports
+    with scheduler.app.app_context():
+        bot_id = bot.id
+        category_id = category.id
+
+        bot.status = 'RUNNING'
+        db.session.commit()
+
+        try:
+            scraper = NewsScraper(url=bot.sites[0].url, bot_id=bot_id, category_id=category_id, verbose=True)
+            result = scraper.run()
+            
+            if not result['success']:
+                current_app.logger.debug(f"Job for bot {bot.name} failed: {result.get('error')}")
+                bot.last_run_status = 'FAILURE'
+            else:
+                current_app.logger.debug(f"Job for bot {bot.name} completed successfully: {result['message']}")
+                bot.last_run_status = 'SUCCESS'
+            
+        except Exception as e:
+            current_app.logger.error(f"An error occurred while running bot {bot.name}: {str(e)}")
+            bot.last_run_status = 'FAILURE'
+            bot.status = 'ERROR'
+        else:
+            bot.status = 'IDLE'
+        finally:
+            bot.last_run_time = datetime.now()
+            bot.run_count = (bot.run_count or 0) + 1
+            
+            # Update next_run_time
+            job = scheduler.get_job(str(bot.name))
+            if job:
+                bot.next_run_time = job.next_run_time
+            
+            db.session.commit()
+
+def threaded_job_function(bot, category):
+    thread = threading.Thread(target=bot_job_function, args=(bot, category))
+    thread.start()
+
+def schedule_bot(bot, category, fire_now=False):
+    from app import scheduler  # Import here to avoid circular imports
     try:
         bot_id = bot.id
         bot_name = str(bot.name)
@@ -25,63 +68,52 @@ def schedule_bot(bot, category):
         current_app.logger.debug(f"Bot ID: {bot_id}")
         current_app.logger.debug(f"Bot name: {bot_name}")
         
-        def bot_job_function():
-            with scheduler.app.app_context():
-                bot.status = 'RUNNING'
-                db.session.commit()
-
-                try:
-                    scraper = NewsScraper(bot_id=bot_id, category_id=category.id, verbose=True)
-                    result = scraper.run()
-                    
-                    if not result['success']:
-                        current_app.logger.debug(f"Job for bot {bot_name} failed: {result.get('error')}")
-                        bot.last_run_status = 'FAILURE'
-                    else:
-                        current_app.logger.debug(f"Job for bot {bot_name} completed successfully: {result['message']}")
-                        bot.last_run_status = 'SUCCESS'
-                    
-                except Exception as e:
-                    current_app.logger.error(f"An error occurred while running bot {bot_name}: {str(e)}")
-                    bot.last_run_status = 'FAILURE'
-                    bot.status = 'ERROR'
-                else:
-                    bot.status = 'IDLE'
-                finally:
-                    bot.last_run_time = datetime.now()
-                    bot.run_count += 1
-                    
-                    # Update next_run_time
-                    job = scheduler.get_job(str(bot_name))
-                    if job:
-                        bot.next_run_time = job.next_run_time
-                    
-                    db.session.commit()
-
-        def threaded_job_function():
-            thread = threading.Thread(target=bot_job_function)
-            thread.start()
-
         run_frequency = int(bot.run_frequency)
         
         # Calculate initial delay
-        initial_delay = random.randint(0, min(run_frequency, 30))  # Max 30 minutes initial delay
+        initial_delay = 0 if fire_now else random.randint(0, min(run_frequency, 5))
         start_time = datetime.now() + timedelta(minutes=initial_delay)
 
-        # Update bot's next_run_time and status
-        bot.next_run_time = start_time
+        # Update bot's status
         bot.status = 'IDLE'
         db.session.commit()
 
         # Schedule the job with IntervalTrigger
         try:
-            scheduler.add_job(
+            if fire_now:
+                immediate_job = scheduler.add_job(
+                    func=threaded_job_function,
+                    trigger='date',
+                    run_date=datetime.now(),
+                    id=bot_name,
+                    name=bot_name,
+                    args=[bot, category],
+                    replace_existing=True,
+                    jobstore='default'
+                )
+                current_app.logger.debug(f"Bot {bot_name} scheduled to run immediately for testing")
+                bot.next_run_time = immediate_job.next_run_time
+
+            interval_job =scheduler.add_job(
                 id=bot_name,
                 func=threaded_job_function,
-                trigger=IntervalTrigger(minutes=run_frequency, start_date=start_time),
+                trigger=IntervalTrigger(minutes=run_frequency),
+                start_date=start_time,
                 name=bot_name,
-                replace_existing=True
+                args=[bot, category],
+                replace_existing=True,
+                max_instances=2,
+                jobstore='default'
             )
+
+            # Update bot's next_run_time with the actual next run time
+            if fire_now:
+                # If fire_now is True, the next run will be from the interval job
+                bot.next_run_time = interval_job.next_run_time
+            else:
+                # If fire_now is False, use the next_run_time from the interval job
+                bot.next_run_time = interval_job.next_run_time
+
         except Exception as e:
             current_app.logger.error(f"Error adding job for bot {bot_name}: {str(e)}")
             raise  # Re-raise the exception to be handled by the caller
@@ -91,7 +123,9 @@ def schedule_bot(bot, category):
 
     except Exception as e:
         current_app.logger.error(f"Error scheduling bot {bot_name}: {str(e)}")
-        raise  # Re-raise the exception so the calling function can handle it  
+        raise  # Re-raise the exception so the calling function can handle it 
+
+
 
 def validate_bot_for_activation(bot, category):
     current_app.logger.debug(f"Starting validation for bot: {bot.name}")

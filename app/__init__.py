@@ -19,6 +19,7 @@ from app.routes.news.news import website_news_bp
 from app.routes.coingeko.coingeko_usage import coingecko_bp
 from app.routes.openai.openai_usage import openai_bp
 from app.routes.articles.news_creator import creator_tool_bp
+from scheduler_config import Config
 from data import initialize_categories, initialize_fixed_data, initialize_keywords, initialize_sites_data
 
 load_dotenv()
@@ -32,12 +33,16 @@ DB_HOST = os.getenv('DB_HOST')
 
 def create_app():
     app = Flask(__name__)
-    app.name = 'NEWS BOT'
+    app.name = 'NEWS BOT API'
+    app.config.from_object(Config)
 
     app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
     db.init_app(app)
+    
     scheduler.init_app(app)
-    scheduler.start()
+    if scheduler.state != 1:
+        print('-----Scheduler started-----')
+        scheduler.start()
 
 
     with app.app_context():

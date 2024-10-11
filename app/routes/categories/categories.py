@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from flask import Blueprint, jsonify, request, current_app
 from config import Bot, Category, db, Session
 from app.routes.routes_utils import create_response
-from scheduler_config import reschedule, scheduler
+from scheduler_config import scheduler
 from redis_client.redis_client import cache_with_redis, update_cache_with_redis
 from app.routes.bots.utils import schedule_bot, validate_bot_for_activation
 
