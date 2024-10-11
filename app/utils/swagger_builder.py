@@ -127,87 +127,87 @@ swagger = Swagger()
 # ____Add or update an endpoint____
 
 
-success, message = swagger.add_or_update_endpoint(
-    endpoint_route='/keywords/extract',
-    method='post',
-    tag='Keywords',
-    description='Extract and clean keywords and blacklist from an uploaded Excel file',
-    detail_description='''
-    This endpoint processes an uploaded Excel file (.xls or .xlsx) to extract and clean keywords and blacklist items.
+# success, message = swagger.add_or_update_endpoint(
+#     endpoint_route='/keywords/extract',
+#     method='post',
+#     tag='Keywords',
+#     description='Extract and clean keywords and blacklist from an uploaded Excel file',
+#     detail_description='''
+#     This endpoint processes an uploaded Excel file (.xls or .xlsx) to extract and clean keywords and blacklist items.
 
-    File Structure Requirements:
-    1. The Excel file can contain multiple sheets.
-    2. Sheets are processed if their names contain 'keyword' or 'blacklist' (case-insensitive).
-    3. Each relevant sheet must have a column with a header containing 'keyword' or 'blacklist' respectively.
-    4. The first matching column in each sheet will be used for data extraction.
+#     File Structure Requirements:
+#     1. The Excel file can contain multiple sheets.
+#     2. Sheets are processed if their names contain 'keyword' or 'blacklist' (case-insensitive).
+#     3. Each relevant sheet must have a column with a header containing 'keyword' or 'blacklist' respectively.
+#     4. The first matching column in each sheet will be used for data extraction.
 
-    Extraction and Cleaning Process:
-    - For sheets with 'keyword' in the name: 
-      * Extracts data from the first column with 'keyword' in its header.
-    - For sheets with 'blacklist' in the name:
-      * Extracts data from the first column with 'blacklist' in its header.
-    - Data is extracted from all rows below the header row.
-    - All extracted data is cleaned:
-      * Converted to lowercase
-      * Special characters (including hyphens, slashes, and parentheses) are removed
-      * Multiple spaces are replaced with a single space
-      * Leading and trailing spaces are removed
-    - Duplicate entries are automatically removed.
-    - Empty cells or cells that become empty after cleaning are ignored.
+#     Extraction and Cleaning Process:
+#     - For sheets with 'keyword' in the name: 
+#       * Extracts data from the first column with 'keyword' in its header.
+#     - For sheets with 'blacklist' in the name:
+#       * Extracts data from the first column with 'blacklist' in its header.
+#     - Data is extracted from all rows below the header row.
+#     - All extracted data is cleaned:
+#       * Converted to lowercase
+#       * Special characters (including hyphens, slashes, and parentheses) are removed
+#       * Multiple spaces are replaced with a single space
+#       * Leading and trailing spaces are removed
+#     - Duplicate entries are automatically removed.
+#     - Empty cells or cells that become empty after cleaning are ignored.
 
-    The endpoint returns comma-separated strings for both keywords and blacklist items.
-    If no data is found for either keywords or blacklist, an empty string is returned for that category.
-    ''',
-    params=[
-        {
-            'name': 'file',
-            'in': 'formData',
-            'description': 'Excel file (.xls or .xlsx) to be processed',
-            'required': True,
-            'type': 'file'
-        }
-    ],
-    responses={
-        '200': {
-            'description': 'Keywords and blacklist extracted and cleaned successfully',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'data': {
-                        'type': 'object',
-                        'properties': {
-                            'keywords': {'type': 'string', 'description': 'Comma-separated list of cleaned, extracted keywords'},
-                            'blacklist': {'type': 'string', 'description': 'Comma-separated list of cleaned, extracted blacklist items'}
-                        }
-                    },
-                    'message': {'type': 'string'}
-                }
-            }
-        },
-        '400': {
-            'description': 'Bad request',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'error': {'type': 'string'}
-                }
-            }
-        },
-        '500': {
-            'description': 'Internal server error',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'error': {'type': 'string'}
-                }
-            }
-        }
-    }
-)
-print(message)
+#     The endpoint returns comma-separated strings for both keywords and blacklist items.
+#     If no data is found for either keywords or blacklist, an empty string is returned for that category.
+#     ''',
+#     params=[
+#         {
+#             'name': 'file',
+#             'in': 'formData',
+#             'description': 'Excel file (.xls or .xlsx) to be processed',
+#             'required': True,
+#             'type': 'file'
+#         }
+#     ],
+#     responses={
+#         '200': {
+#             'description': 'Keywords and blacklist extracted and cleaned successfully',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'data': {
+#                         'type': 'object',
+#                         'properties': {
+#                             'keywords': {'type': 'string', 'description': 'Comma-separated list of cleaned, extracted keywords'},
+#                             'blacklist': {'type': 'string', 'description': 'Comma-separated list of cleaned, extracted blacklist items'}
+#                         }
+#                     },
+#                     'message': {'type': 'string'}
+#                 }
+#             }
+#         },
+#         '400': {
+#             'description': 'Bad request',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         },
+#         '500': {
+#             'description': 'Internal server error',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         }
+#     }
+# )
+# print(message)
 
 # ____Delete an endpoint____
 
