@@ -73,12 +73,13 @@ def create_app():
     from app.routes.coingeko.coingeko_usage import coingecko_bp
     from app.routes.openai.openai_usage import openai_bp
     from app.routes.articles.news_creator import creator_tool_bp
+    from app.routes.metrics.server_health_check import health_check_bp
 
     blueprints = [
         bots_bp, categories_bp, articles_bp, blacklist_bp, keyword_bp,
         top_stories_bp, unwanted_articles_bp, sites_bp, deactivate_bots_bp,
         activate_bots_bp, news_bots_features_bp, website_news_bp, coingecko_bp,
-        openai_bp, creator_tool_bp
+        openai_bp, creator_tool_bp, health_check_bp
     ]
 
     for blueprint in blueprints:

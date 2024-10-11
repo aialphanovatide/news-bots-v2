@@ -1267,87 +1267,6 @@
         }
       }
     },
-    "/keywords-search": {
-      "get": {
-        "tags": [
-          "Keywords"
-        ],
-        "summary": "Search for related keywords and backlist words",
-        "description": "This endpoint searches for related keywords and backlist words based on the provided query string. it searches through both the keyword and backlist tables, returning any matching results.",
-        "parameters": [
-          {
-            "name": "query",
-            "in": "query",
-            "description": "Word to search for related keywords and backlist words",
-            "required": true,
-            "type": "string",
-            "schema": {}
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved relevant words",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "data": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "description": "List of related keywords and backlist words"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Missing query parameter",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "error": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No related words found",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "error": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "error": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/bot": {
       "get": {
         "tags": [
@@ -1991,6 +1910,309 @@
           },
           "404": {
             "description": "Category not found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/keywords": {
+      "post": {
+        "tags": [
+          "Keywords"
+        ],
+        "summary": "Add keywords to multiple bots in bulk",
+        "description": "This endpoint adds multiple keywords to multiple bots in a single operation.",
+        "parameters": [
+          {
+            "name": "keywords",
+            "in": "body",
+            "description": "List of keywords to add",
+            "required": true,
+            "type": "array",
+            "schema": {}
+          },
+          {
+            "name": "bot_ids",
+            "in": "body",
+            "description": "List of bot IDs to add keywords to",
+            "required": true,
+            "type": "array",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Keywords added successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "added_count": {
+                      "type": "integer"
+                    },
+                    "affected_bots": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Keywords"
+        ],
+        "summary": "Delete keywords from multiple bots in bulk",
+        "description": "This endpoint deletes multiple keywords from multiple bots in a single operation.",
+        "parameters": [
+          {
+            "name": "keyword_ids",
+            "in": "body",
+            "description": "List of keyword IDs to delete (optional)",
+            "required": false,
+            "type": "array",
+            "schema": {}
+          },
+          {
+            "name": "keywords",
+            "in": "body",
+            "description": "List of keyword names to delete (optional)",
+            "required": false,
+            "type": "array",
+            "schema": {}
+          },
+          {
+            "name": "bot_ids",
+            "in": "body",
+            "description": "List of bot IDs to delete keywords from",
+            "required": true,
+            "type": "array",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Keywords deleted successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "deleted_count": {
+                      "type": "integer"
+                    },
+                    "affected_bots": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No matching keywords found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/keywords/search": {
+      "post": {
+        "tags": [
+          "Keywords"
+        ],
+        "summary": "Search for related keywords and blacklist words across specified bots",
+        "description": "This endpoint searches for keywords and blacklist words across multiple bots based on provided queries.",
+        "parameters": [
+          {
+            "name": "queries",
+            "in": "body",
+            "description": "List of search queries",
+            "required": true,
+            "type": "array",
+            "schema": {}
+          },
+          {
+            "name": "bot_ids",
+            "in": "body",
+            "description": "List of bot IDs to search within",
+            "required": true,
+            "type": "array",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search completed successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "whitelist": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "bot_id": {
+                            "type": "integer"
+                          },
+                          "bot_name": {
+                            "type": "string"
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updated_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "blacklist": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "bot_id": {
+                            "type": "integer"
+                          },
+                          "bot_name": {
+                            "type": "string"
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updated_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No related words found",
             "schema": {
               "type": "object",
               "properties": {

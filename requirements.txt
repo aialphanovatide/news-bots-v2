@@ -27,3 +27,4 @@ gunicorn
 redis
 feedparser
 pytz
+psutil

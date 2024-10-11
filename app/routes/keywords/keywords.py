@@ -3,6 +3,7 @@
 from flask import Blueprint, jsonify, request
 from config import Blacklist, Keyword, Bot, db
 from datetime import datetime
+from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response, handle_db_session
 from redis_client.redis_client import cache_with_redis, update_cache_with_redis
@@ -143,28 +144,28 @@ def delete_keywords():
         return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
 
 
-@keyword_bp.route('/keywords-search', methods=['GET'])
+@keyword_bp.route('/keywords/search', methods=['POST'])
 @handle_db_session
 def dynamic_search():
     """
-    Search for related keywords and blacklist words across specified bots.
-    Args:
-        query (str): Word to search.
-        bot_ids (str): Comma-separated list of bot IDs to search within.
+    Search for related keywords and blacklist words across specified bots for multiple queries.
+    
+    Request Body:
+        JSON data with 'queries' (list of str) and 'bot_ids' (list of int).
+    
     Response:
         200: Successfully retrieved relevant words.
-        400: Missing query parameter or bot IDs.
+        400: Invalid request data.
         404: No related words found.
         500: Server error.
     """
     try:
-        query = request.args.get('query')
-        bot_ids_str = request.args.get('bot_ids')
+        data = request.json
+        queries = data.get('queries', [])
+        bot_ids = data.get('bot_ids', [])
 
-        if not query or not bot_ids_str:
-            return jsonify(create_response(error='Query string and bot IDs are required parameters')), 400
-
-        bot_ids = [int(id.strip()) for id in bot_ids_str.split(',')]
+        if not queries or not bot_ids or not isinstance(queries, list) or not isinstance(bot_ids, list):
+            return jsonify(create_response(error='Invalid request data. Provide lists of queries and bot_ids.')), 400
 
         # Fetch bot names
         bots = Bot.query.filter(Bot.id.in_(bot_ids)).all()
@@ -173,12 +174,12 @@ def dynamic_search():
         # Conduct search through the keyword and blacklist tables
         keyword_results = (Keyword.query
                            .filter(Keyword.bot_id.in_(bot_ids))
-                           .filter(Keyword.name.ilike(f'%{query}%'))
+                           .filter(or_(*[Keyword.name.ilike(f'%{query.lower()}%') for query in queries]))
                            .all())
         
         blacklist_results = (Blacklist.query
                              .filter(Blacklist.bot_id.in_(bot_ids))
-                             .filter(Blacklist.name.ilike(f'%{query}%'))
+                             .filter(or_(*[Blacklist.name.ilike(f'%{query.lower()}%') for query in queries]))
                              .all())
 
         if not keyword_results and not blacklist_results:
@@ -189,9 +190,6 @@ def dynamic_search():
         blacklist = [{**bl.as_dict(), 'bot_name': bot_id_to_name.get(bl.bot_id, 'Unknown')} for bl in blacklist_results]
 
         return jsonify(create_response(success=True, data={'whitelist': keywords, 'blacklist': blacklist})), 200
-
-    except ValueError:
-        return jsonify(create_response(error='Invalid bot ID format')), 400
 
     except SQLAlchemyError as e:
         db.session.rollback()
