@@ -5,6 +5,7 @@ from config import db, Article
 from http import HTTPStatus
 from sqlalchemy import desc
 from datetime import datetime
+
 from flask import Blueprint, jsonify, request
 from config import Article, db
 from sqlalchemy.exc import SQLAlchemyError
@@ -20,56 +21,111 @@ top_stories_bp = Blueprint(
     static_folder='static'
 )
 
+@top_stories_bp.route('/top-stories/<int:article_id>', methods=['POST'])
+@handle_db_session
+def set_top_story(article_id):
+    """
+    Set an article as a top story.
+
+    This endpoint takes an article ID as a URL parameter and sets its is_top_story field to True.
+
+    URL Parameters:
+        article_id (int): The ID of the article to be set as a top story
+
+    Returns:
+        JSON: A JSON object containing:
+            - success (bool): Indicates if the operation was successful
+            - message (str): A message describing the result of the operation
+            - data (dict): The updated article information
+            - error (str or None): Error message, if any
+        HTTP Status Code
+
+    Raises:
+        404 Not Found: If the article with the given ID doesn't exist
+        500 Internal Server Error: If there's an unexpected error during execution
+    """
+    try:
+        article = Article.query.get(article_id)
+
+        if not article:
+            return jsonify(create_response(error=f"Article with ID {article_id} not found")), HTTPStatus.NOT_FOUND
+
+        article.is_top_story = True
+        article.updated_at = datetime.now()
+        db.session.commit()
+
+        return jsonify(create_response(
+            success=True,
+            message=f"Article {article_id} has been set as a top story",
+            data=article.as_dict()
+        )), HTTPStatus.OK
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(create_response(error=f"An unexpected error occurred: {str(e)}")), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @top_stories_bp.route('/top-stories', methods=['GET'])
 def get_top_stories():
     """
-    Retrieve top stories from the article database.
+    Retrieve top stories from the article database with optional pagination.
 
     This endpoint queries the database for articles marked as top stories,
-    ordered by date (most recent first), with an optional limit on the number of results.
+    ordered by date (most recent first). It supports optional pagination.
 
-    Args:
-        limit (int, optional): The maximum number of top stories to retrieve.
-                               Defaults to 10 if not provided.
+    Query Parameters:
+        page (int, optional): The page number for pagination.
+        per_page (int, optional): The number of items per page for pagination.
 
     Returns:
         JSON: A JSON object containing:
             - success (bool): Indicates if the operation was successful
             - data (list): List of top story articles, each as a dictionary
             - count (int): Number of articles returned
+            - total (int): Total number of top stories (only with pagination)
+            - page (int): Current page number (only with pagination)
+            - pages (int): Total number of pages (only with pagination)
             - error (str or None): Error message, if any
         HTTP Status Code
 
     Raises:
-        400 Bad Request: If the provided limit is not a valid integer
+        400 Bad Request: If the provided parameters are not valid
         500 Internal Server Error: If there's an unexpected error during execution
     """
     try:
-        # Get the limit parameter from the query string, default to 10 if not provided
-        limit = request.args.get('limit', default=10, type=int)
+        # Check if pagination is requested
+        page = request.args.get('page', type=int)
+        per_page = request.args.get('per_page', type=int)
         
-        if not isinstance(limit, int) or limit <= 0:
-            return jsonify(create_response(error="Invalid limit parameter")), HTTPStatus.BAD_REQUEST
+        # Query for top stories
+        query = Article.query.filter_by(is_top_story=True).order_by(desc(Article.date))
         
-        # Query the database for top stories
-        top_stories = Article.query.filter_by(is_top_story=True)\
-                                   .order_by(desc(Article.date))\
-                                   .limit(limit)\
-                                   .all()
-        
-        # Convert the results to a list of dictionaries
-        result = [article.as_dict() for article in top_stories]
-        
-        return jsonify(create_response(
-            success=True,
-            data=result,
-            count=len(result)
-        )), HTTPStatus.OK
+        if page is not None and per_page is not None:
+            # Use pagination
+            pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+            top_stories = pagination.items
+            result = [article.as_dict() for article in top_stories]
+            
+            return jsonify(create_response(
+                success=True,
+                data=result,
+                count=len(result),
+                total=pagination.total,
+                page=page,
+                pages=pagination.pages
+            )), HTTPStatus.OK
+        else:
+            # No pagination, return all top stories
+            top_stories = query.all()
+            result = [article.as_dict() for article in top_stories]
+            
+            return jsonify(create_response(
+                success=True,
+                data=result,
+                count=len(result)
+            )), HTTPStatus.OK
 
     except ValueError as ve:
-        db.session.rollback()
         return jsonify(create_response(error=f"Invalid input: {str(ve)}")), HTTPStatus.BAD_REQUEST
     
     except Exception as e:
@@ -180,6 +236,10 @@ def remove_top_story(article_id):
         )), HTTPStatus.INTERNAL_SERVER_ERROR
     
 
+
+
+
+# RESERVED ENDPOINT - DO NOT DELETE
 @top_stories_bp.route("/slack/events", methods=["POST"])
 @handle_db_session
 def post_top_stories():

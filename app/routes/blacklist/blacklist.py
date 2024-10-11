@@ -1,143 +1,184 @@
-
-# FILE DEPRACATED, SCHEDULE TO REMOVE AND DELETE AFTER SERVER UPDATE
-
 from flask import Blueprint, request, jsonify
-from app.routes.routes_utils import create_response, handle_db_session
-from config import Blacklist, db
-from datetime import datetime
+from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
+from app.routes.routes_utils import create_response, handle_db_session
+from config import db, Blacklist, Bot
+from datetime import datetime
 
-blacklist_bp = Blueprint(
-    'blacklist_bp', __name__,
-    template_folder='templates',
-    static_folder='static'
-)
+blacklist_bp = Blueprint('blacklist_bp', __name__)
 
-@blacklist_bp.route('/get_blacklist', methods=['GET'])
-@handle_db_session
-def get_blacklist_by_bot():
-    """
-    Get blacklist of a specific bot.
-
-    Args:
-        bot_id (int): The ID of the bot to retrieve the blacklist for.
-
-    Response:
-        200: Successfully retrieved the blacklist.
-        400: Bot ID missing in request data.
-        404: Blacklist not found for the specified bot ID.
-        500: Internal server error.
-
-    """
-    bot_id = request.args.get('bot_id')
-    if bot_id is None:
-        return create_response(error='Bot ID missing in request data'), 400
-
-    try:
-        blacklist_data = Blacklist.query.filter_by(bot_id=bot_id).all()
-        if not blacklist_data:
-            return create_response(error=f'Blacklist with ID: {str(bot_id)} not found'), 404
-    
-        response = create_response(success=True, data=[blacklist.as_dict() for blacklist in blacklist_data])
-        return jsonify(response), 200
-    
-    except SQLAlchemyError as e:
-        return create_response(error=f"Database error: {str(e)}"), 500
-    except Exception as e:
-        return create_response(error=f"Internal server error: {str(e)}"), 500
-
-
-
-@blacklist_bp.route('/add_to_blacklist', methods=['POST'])
+@blacklist_bp.route('/blacklist', methods=['POST'])
 @handle_db_session
 def add_to_blacklist():
     """
-    Add an entry to the blacklist for a specific bot.
+    Add entries to the blacklist for multiple bots.
 
-    Args:
-        bot_id (int): The ID of the bot to add entries to the blacklist for.
-        blacklist (str): A comma-separated list of entries to add to the blacklist.
+    Request Body:
+        JSON data with 'entries' (list of str) and 'bot_ids' (list of int).
 
     Response:
-        200: Successfully added entries to the blacklist.
-        400: Bot ID or blacklist entry missing in request data.
-        500: Internal server error.
+        201: Successfully added entries to the blacklist.
+        400: Invalid request data.
+        500: Internal server error or database error.
     """
-
-    response = {'data': [], 'error': None, 'success': False}
-    
-    data = request.json
-    bot_id = data.get('bot_id')
-    blacklist_entries = data.get('blacklist')
-
-    if not bot_id or not blacklist_entries:
-        return create_response(error='Bot ID or blacklist entry missing in request data'), 400
-
-    entries = [entry.strip() for entry in blacklist_entries.split(',')]
-
     try:
-        for entry in entries:
-            existing_blacklist = Blacklist.query.filter_by(bot_id=bot_id, name=entry.casefold()).first()
-            if existing_blacklist:
-                continue
+        data = request.json
+        entries = data.get('entries', [])
+        bot_ids = data.get('bot_ids', [])
 
-            new_entry = Blacklist(
-                name=entry,
-                bot_id=bot_id,
-                created_at=datetime.now(),
-                updated_at=datetime.now()
-            )
-            db.session.add(new_entry)
+        if not entries or not bot_ids or not isinstance(entries, list) or not isinstance(bot_ids, list):
+            return jsonify(create_response(error='Invalid request data. Provide lists of entries and bot_ids.')), 400
 
-        db.session.commit()
+        # Validate bot_ids
+        valid_bots = Bot.query.filter(Bot.id.in_(bot_ids)).all()
+        valid_bot_ids = {bot.id for bot in valid_bots}
+        if len(valid_bot_ids) != len(bot_ids):
+            invalid_ids = set(bot_ids) - valid_bot_ids
+            return jsonify(create_response(error=f'Invalid bot IDs: {invalid_ids}')), 400
 
-        new_entries = Blacklist.query.filter(Blacklist.name.in_(entries), Blacklist.bot_id == bot_id).all()
-        response = create_response(success=True, data=[entry.as_dict() for entry in new_entries], message='Entries added to blacklist successfully')
-        return jsonify(response), 200
-    
+        # Get existing blacklist entries for the specified bots
+        existing_entries = Blacklist.query.filter(Blacklist.bot_id.in_(bot_ids)).all()
+        existing_entry_map = {(entry.name.lower(), entry.bot_id) for entry in existing_entries}
+
+        new_entries = []
+        current_time = datetime.utcnow()
+
+        # Prepare new blacklist entries
+        for bot_id in valid_bot_ids:
+            for entry in entries:
+                entry = entry.strip().lower()
+                if (entry, bot_id) not in existing_entry_map:
+                    new_entries.append(Blacklist(
+                        name=entry,
+                        bot_id=bot_id,
+                        created_at=current_time,
+                        updated_at=current_time
+                    ))
+
+        # Bulk insert new entries
+        if new_entries:
+            db.session.bulk_save_objects(new_entries)
+            db.session.commit()
+
+        response = create_response(
+            success=True,
+            message=f'{len(new_entries)} entries added to blacklist across {len(valid_bot_ids)} bots.',
+            data={'added_count': len(new_entries), 'affected_bots': len(valid_bot_ids)}
+        )
+        return jsonify(response), 201
+
     except SQLAlchemyError as e:
         db.session.rollback()
-        return create_response(error=f"Database error: {str(e)}"), 500
+        return jsonify(create_response(error=f'Database error: {str(e)}')), 500
     except Exception as e:
-        return create_response(error=f"Internal server error: {str(e)}"), 500
+        return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
 
-
-@blacklist_bp.route('/delete_from_blacklist', methods=['DELETE'])
+@blacklist_bp.route('/blacklist', methods=['DELETE'])
 @handle_db_session
 def delete_from_blacklist():
     """
-    Delete an entry from the blacklist by ID.
-    
-    Args:
-        blacklist_id (int): The ID of the blacklist entry to delete.
-    
-    Returns:
-        JSON response with the result of deleting the entry from the blacklist or an error message.
+    Delete entries from the blacklist for multiple bots.
+
+    Request Body:
+        JSON data with 'entry_ids' (list of int) and/or 'entries' (list of str) and 'bot_ids' (list of int).
+
+    Response:
+        200: Entries deleted from blacklist successfully.
+        400: Invalid request data.
+        404: No matching blacklist entries found.
+        500: Internal server error or database error.
     """
-    blacklist_id = request.args.get('blacklist_id')
-
-    if not blacklist_id:
-        return create_response(error='Blacklist ID missing in request data'), 400
-
     try:
-        entry = Blacklist.query.get(blacklist_id)
-        if not entry:
-            return create_response(error='Entry not found'), 404
+        data = request.json
+        entry_ids = data.get('entry_ids', [])
+        entries = data.get('entries', [])
+        bot_ids = data.get('bot_ids', [])
 
-        db.session.delete(entry)
+        if not bot_ids or not isinstance(bot_ids, list):
+            return jsonify(create_response(error='Invalid request data. Provide bot_ids as a list.')), 400
+
+        if not entry_ids and not entries:
+            return jsonify(create_response(error='Invalid request data. Provide either entry_ids or entries.')), 400
+
+        query = Blacklist.query.filter(Blacklist.bot_id.in_(bot_ids))
+
+        conditions = []
+        if entry_ids:
+            conditions.append(Blacklist.id.in_(entry_ids))
+        if entries:
+            conditions.append(Blacklist.name.in_([entry.strip().lower() for entry in entries]))
+
+        query = query.filter(or_(*conditions))
+
+        entries_to_delete = query.all()
+
+        if not entries_to_delete:
+            return jsonify(create_response(error='No matching blacklist entries found')), 404
+
+        for entry in entries_to_delete:
+            db.session.delete(entry)
+
         db.session.commit()
 
-        response = create_response(success=True, message='Entry deleted from blacklist successfully')
+        response = create_response(
+            success=True,
+            message=f'{len(entries_to_delete)} entries deleted from blacklist across {len(set(entry.bot_id for entry in entries_to_delete))} bots.',
+            data={
+                'deleted_count': len(entries_to_delete),
+                'affected_bots': len(set(entry.bot_id for entry in entries_to_delete))
+            }
+        )
         return jsonify(response), 200
-    
+
     except SQLAlchemyError as e:
         db.session.rollback()
-        return create_response(error=f"Database error: {str(e)}"), 500
+        return jsonify(create_response(error=f'Database error: {str(e)}')), 500
     except Exception as e:
-        return create_response(error=f"Internal server error: {str(e)}"), 500
+        return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500
 
+@blacklist_bp.route('/blacklist/search', methods=['POST'])
+@handle_db_session
+def search_blacklist():
+    """
+    Search for blacklist entries across specified bots for multiple queries.
 
+    Request Body:
+        JSON data with 'queries' (list of str) and 'bot_ids' (list of int).
 
+    Response:
+        200: Successfully retrieved relevant blacklist entries.
+        400: Invalid request data.
+        404: No related entries found.
+        500: Server error.
+    """
+    try:
+        data = request.json
+        queries = data.get('queries', [])
+        bot_ids = data.get('bot_ids', [])
 
+        if not queries or not bot_ids or not isinstance(queries, list) or not isinstance(bot_ids, list):
+            return jsonify(create_response(error='Invalid request data. Provide lists of queries and bot_ids.')), 400
 
+        # Fetch bot names
+        bots = Bot.query.filter(Bot.id.in_(bot_ids)).all()
+        bot_id_to_name = {bot.id: bot.name for bot in bots}
 
+        # Conduct search through the blacklist table
+        blacklist_results = (Blacklist.query
+                             .filter(Blacklist.bot_id.in_(bot_ids))
+                             .filter(or_(*[Blacklist.name.ilike(f'%{query.lower()}%') for query in queries]))
+                             .all())
+
+        if not blacklist_results:
+            return jsonify(create_response(error='No related entries found')), 404
+
+        # Prepare results
+        blacklist = [{**bl.as_dict(), 'bot_name': bot_id_to_name.get(bl.bot_id, 'Unknown')} for bl in blacklist_results]
+
+        return jsonify(create_response(success=True, data={'blacklist': blacklist})), 200
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify(create_response(error=f'Database error: {str(e)}')), 500
+    except Exception as e:
+        return jsonify(create_response(error=f'Internal server error: {str(e)}')), 500

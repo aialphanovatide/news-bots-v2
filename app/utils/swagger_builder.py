@@ -127,136 +127,92 @@ swagger = Swagger()
 # ____Add or update an endpoint____
 
 
-# # 1. Create Keywords Endpoint
-# success, message = swagger.add_or_update_endpoint(
-#     endpoint_route='/keywords',
-#     method='post',
-#     tag='Keywords',
-#     description='Add keywords to multiple bots in bulk',
-#     detail_description='This endpoint adds multiple keywords to multiple bots in a single operation.',
-#     params=[
-#         {
-#             'name': 'keywords',
-#             'in': 'body',
-#             'description': 'List of keywords to add',
-#             'required': True,
-#             'type': 'array',
-#             'items': {'type': 'string'}
-#         },
-#         {
-#             'name': 'bot_ids',
-#             'in': 'body',
-#             'description': 'List of bot IDs to add keywords to',
-#             'required': True,
-#             'type': 'array',
-#             'items': {'type': 'integer'}
-#         }
-#     ],
-#     responses={
-#         '201': {
-#             'description': 'Keywords added successfully',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'success': {'type': 'boolean'},
-#                     'message': {'type': 'string'},
-#                     'data': {
-#                         'type': 'object',
-#                         'properties': {
-#                             'added_count': {'type': 'integer'},
-#                             'affected_bots': {'type': 'integer'}
-#                         }
-#                     }
-#                 }
-#             }
-#         },
-#         '400': {
-#             'description': 'Invalid request data',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'error': {'type': 'string'}
-#                 }
-#             }
-#         },
-#         '500': {
-#             'description': 'Internal server error',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'error': {'type': 'string'}
-#                 }
-#             }
-#         }
-#     }
-# )
-# print(message)
-
-# 2. Delete Keywords Endpoint
 success, message = swagger.add_or_update_endpoint(
-    endpoint_route='/keywords',
-    method='delete',
-    tag='Keywords',
-    description='Delete keywords from multiple bots in bulk',
-    detail_description='This endpoint deletes multiple keywords from multiple bots in a single operation, either by providing a list of keyword IDs or keyword names.',
+    endpoint_route='/bot/{bot_id}',
+    method='put',
+    tag='Bots',
+    description='Update an existing bot and reschedule if necessary',
+    detail_description='''
+    This endpoint updates a bot entry with the provided details, saves the changes to the database,
+    and reschedules the bot if it's active and any field other than background_color or alias has changed.
+    Important notes:
+    - All fields except background_color and alias will trigger a bot reschedule if changed.
+    - Whitelist and blacklist must be provided as comma-separated values for multiple entries.
+    - If a URL is provided, the associated Site will be updated or created.
+    - Updating the alias will also update the bot's icon.
+    ''',
     params=[
         {
-            'name': 'keyword_ids',
-            'in': 'body',
-            'description': 'List of keyword IDs to delete (optional)',
-            'required': False,
-            'type': 'array',
-            'items': {'type': 'integer'}
-        },
-        {
-            'name': 'keywords',
-            'in': 'body',
-            'description': 'List of keyword names to delete (optional)',
-            'required': False,
-            'type': 'array',
-            'items': {'type': 'string'}
-        },
-        {
-            'name': 'bot_ids',
-            'in': 'body',
-            'description': 'List of bot IDs to delete keywords from',
+            'name': 'bot_id',
+            'in': 'path',
+            'description': 'The ID of the bot to be updated',
             'required': True,
-            'type': 'array',
-            'items': {'type': 'integer'}
+            'type': 'integer'
+        },
+        {
+            'name': 'body',
+            'in': 'body',
+            'description': 'Bot update details',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'name': {'type': 'string', 'description': 'The name of the bot'},
+                    'alias': {'type': 'string', 'description': 'An alternative identifier for the bot'},
+                    'category_id': {'type': 'integer', 'description': 'The ID of the category the bot belongs to'},
+                    'dalle_prompt': {'type': 'string', 'description': 'The DALL-E prompt for the bot'},
+                    'background_color': {'type': 'string', 'description': 'HEX code string for visual representation'},
+                    'run_frequency': {'type': 'integer', 'description': 'The frequency to run the bot in minutes'},
+                    'url': {'type': 'string', 'description': 'The URL for the bot\'s site'},
+                    'whitelist': {'type': 'string', 'description': 'Comma-separated list of keywords'},
+                    'blacklist': {'type': 'string', 'description': 'Comma-separated list of blacklisted words'}
+                }
+            }
         }
     ],
     responses={
         '200': {
-            'description': 'Keywords deleted successfully',
+            'description': 'Bot updated successfully',
             'schema': {
                 'type': 'object',
                 'properties': {
                     'success': {'type': 'boolean'},
-                    'message': {'type': 'string'},
                     'data': {
                         'type': 'object',
                         'properties': {
-                            'deleted_count': {'type': 'integer'},
-                            'affected_bots': {'type': 'integer'}
+                            'id': {'type': 'integer'},
+                            'name': {'type': 'string'},
+                            'alias': {'type': 'string'},
+                            'category_id': {'type': 'integer'},
+                            'dalle_prompt': {'type': 'string'},
+                            'icon': {'type': 'string'},
+                            'background_color': {'type': 'string'},
+                            'run_frequency': {'type': 'integer'},
+                            'is_active': {'type': 'boolean'},
+                            'created_at': {'type': 'string', 'format': 'date-time'},
+                            'updated_at': {'type': 'string', 'format': 'date-time'}
                         }
-                    }
+                    },
+                    'message': {'type': 'string'}
                 }
             }
         },
         '400': {
-            'description': 'Invalid request data',
+            'description': 'Bad request',
             'schema': {
                 'type': 'object',
                 'properties': {
+                    'success': {'type': 'boolean'},
                     'error': {'type': 'string'}
                 }
             }
         },
         '404': {
-            'description': 'No matching keywords found',
+            'description': 'Bot not found',
             'schema': {
                 'type': 'object',
                 'properties': {
+                    'success': {'type': 'boolean'},
                     'error': {'type': 'string'}
                 }
             }
@@ -266,6 +222,7 @@ success, message = swagger.add_or_update_endpoint(
             'schema': {
                 'type': 'object',
                 'properties': {
+                    'success': {'type': 'boolean'},
                     'error': {'type': 'string'}
                 }
             }
@@ -274,108 +231,9 @@ success, message = swagger.add_or_update_endpoint(
 )
 print(message)
 
-# # 3. Dynamic Search Endpoint
-# success, message = swagger.add_or_update_endpoint(
-#     endpoint_route='/keywords/search',
-#     method='post',
-#     tag='Keywords',
-#     description='Search for related keywords and blacklist words across specified bots',
-#     detail_description='This endpoint searches for keywords and blacklist words across multiple bots based on provided queries.',
-#     params=[
-#         {
-#             'name': 'queries',
-#             'in': 'body',
-#             'description': 'List of search queries',
-#             'required': True,
-#             'type': 'array',
-#             'items': {'type': 'string'}
-#         },
-#         {
-#             'name': 'bot_ids',
-#             'in': 'body',
-#             'description': 'List of bot IDs to search within',
-#             'required': True,
-#             'type': 'array',
-#             'items': {'type': 'integer'}
-#         }
-#     ],
-#     responses={
-#         '200': {
-#             'description': 'Search completed successfully',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'success': {'type': 'boolean'},
-#                     'data': {
-#                         'type': 'object',
-#                         'properties': {
-#                             'whitelist': {
-#                                 'type': 'array',
-#                                 'items': {
-#                                     'type': 'object',
-#                                     'properties': {
-#                                         'id': {'type': 'integer'},
-#                                         'name': {'type': 'string'},
-#                                         'bot_id': {'type': 'integer'},
-#                                         'bot_name': {'type': 'string'},
-#                                         'created_at': {'type': 'string', 'format': 'date-time'},
-#                                         'updated_at': {'type': 'string', 'format': 'date-time'}
-#                                     }
-#                                 }
-#                             },
-#                             'blacklist': {
-#                                 'type': 'array',
-#                                 'items': {
-#                                     'type': 'object',
-#                                     'properties': {
-#                                         'id': {'type': 'integer'},
-#                                         'name': {'type': 'string'},
-#                                         'bot_id': {'type': 'integer'},
-#                                         'bot_name': {'type': 'string'},
-#                                         'created_at': {'type': 'string', 'format': 'date-time'},
-#                                         'updated_at': {'type': 'string', 'format': 'date-time'}
-#                                     }
-#                                 }
-#                             }
-#                         }
-#                     }
-#                 }
-#             }
-#         },
-#         '400': {
-#             'description': 'Invalid request data',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'error': {'type': 'string'}
-#                 }
-#             }
-#         },
-#         '404': {
-#             'description': 'No related words found',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'error': {'type': 'string'}
-#                 }
-#             }
-#         },
-#         '500': {
-#             'description': 'Internal server error',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'error': {'type': 'string'}
-#                 }
-#             }
-#         }
-#     }
-# )
-# print(message)
-
 # ____Delete an endpoint____
 
-# success, message = swagger.delete_endpoint(endpoint_route='/keywords-search')
+# success, message = swagger.delete_endpoint(endpoint_route='/delete_bot/{bot_id}')
 # print(message)
 
 

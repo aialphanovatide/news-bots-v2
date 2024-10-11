@@ -17,24 +17,22 @@
         "tags": [
           "Articles"
         ],
-        "summary": "Retrieve articles with optional pagination.",
-        "description": "This endpoint retrieves articles with optional pagination. if no pagination parameters (page and per_page) are provided, all articles will be returned. when pagination is used, the response includes pagination information. articles are sorted by creation date in descending order.",
+        "summary": "Retrieve articles with optional pagination",
+        "description": "This endpoint retrieves articles from the database, with optional pagination support.\nArticles are ordered by creation date (most recent first).\nIf pagination parameters are not provided, all articles are returned.",
         "parameters": [
           {
             "name": "page",
             "in": "query",
-            "description": "The page number for pagination (optional)",
+            "description": "Page number for pagination (optional)",
             "required": false,
-            "type": "integer",
-            "schema": {}
+            "type": "integer"
           },
           {
             "name": "per_page",
             "in": "query",
-            "description": "Number of articles per page for pagination (optional)",
+            "description": "Number of articles per page (optional)",
             "required": false,
-            "type": "integer",
-            "schema": {}
+            "type": "integer"
           }
         ],
         "responses": {
@@ -59,6 +57,22 @@
                       },
                       "content": {
                         "type": "string"
+                      },
+                      "summary": {
+                        "type": "string"
+                      },
+                      "date": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "url": {
+                        "type": "string"
+                      },
+                      "image_url": {
+                        "type": "string"
+                      },
+                      "bot_id": {
+                        "type": "integer"
                       },
                       "created_at": {
                         "type": "string",
@@ -86,8 +100,7 @@
                     "total_items": {
                       "type": "integer"
                     }
-                  },
-                  "nullable": true
+                  }
                 }
               }
             }
@@ -111,13 +124,10 @@
             }
           },
           "400": {
-            "description": "Bad request",
+            "description": "Bad request - invalid pagination parameters",
             "schema": {
               "type": "object",
               "properties": {
-                "success": {
-                  "type": "boolean"
-                },
                 "error": {
                   "type": "string"
                 }
@@ -129,9 +139,6 @@
             "schema": {
               "type": "object",
               "properties": {
-                "success": {
-                  "type": "boolean"
-                },
                 "error": {
                   "type": "string"
                 }
@@ -610,128 +617,6 @@
         }
       }
     },
-    "/create_bot": {
-      "post": {
-        "summary": "Create and schedule a new news Bot",
-        "tags": [
-          "Bots"
-        ],
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "category_id": {
-                  "type": "integer"
-                },
-                "url": {
-                  "type": "string"
-                },
-                "keywords": {
-                  "type": "string"
-                },
-                "blacklist": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "name",
-                "category_id",
-                "url",
-                "keywords",
-                "blacklist"
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "data": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "category_id": {
-                      "type": "integer"
-                    },
-                    "created_at": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updated_at": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  }
-                },
-                "success": {
-                  "type": "boolean"
-                },
-                "message": {
-                  "type": "string"
-                },
-                "error": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request"
-          },
-          "404": {
-            "description": "Category ID not found"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    },
-    "/delete_bot/{bot_id}": {
-      "delete": {
-        "summary": "Delete a single Bot by ID",
-        "tags": [
-          "Bots"
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "bot_id",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "ID of the bot to delete"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Bot deleted successfully"
-          },
-          "404": {
-            "description": "Bot not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
     "/jobs": {
       "get": {
         "summary": "List all scheduled jobs",
@@ -777,49 +662,104 @@
     "/top-stories": {
       "get": {
         "tags": [
-          "Top Stories"
+          "Top stories"
         ],
-        "summary": "Retrieve top stories",
-        "description": "Get a list of top stories from the article database",
+        "summary": "Retrieve top stories with optional pagination",
+        "description": "This endpoint retrieves articles marked as top stories, ordered by date (most recent first). it supports optional pagination.",
         "parameters": [
           {
-            "name": "limit",
+            "name": "page",
             "in": "query",
-            "description": "Maximum number of top stories to retrieve",
+            "description": "Page number for pagination",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 10
-            }
+            "type": "integer",
+            "schema": {}
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "Number of items per page for pagination",
+            "required": false,
+            "type": "integer",
+            "schema": {}
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TopStoriesResponse"
+            "description": "Successfully retrieved top stories",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      },
+                      "date": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "is_top_story": {
+                        "type": "boolean"
+                      },
+                      "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "total": {
+                  "type": "integer"
+                },
+                "page": {
+                  "type": "integer"
+                },
+                "pages": {
+                  "type": "integer"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+            "description": "Invalid input parameters",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
                 }
               }
             }
           },
           "500": {
             "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
                 }
               }
             }
@@ -830,58 +770,95 @@
     "/top-story/{article_id}": {
       "get": {
         "tags": [
-          "Top Stories"
+          "Top stories"
         ],
-        "summary": "Retrieve a single top story",
-        "description": "Get a specific top story article by its ID",
+        "summary": "Retrieve a single top story article by its id",
+        "description": "This endpoint retrieves a specific article that is marked as a top story based on the provided id.",
         "parameters": [
           {
             "name": "article_id",
             "in": "path",
+            "description": "ID of the top story article to retrieve",
             "required": true,
-            "description": "ID of the article to retrieve",
-            "schema": {
-              "type": "integer"
-            }
+            "type": "integer",
+            "schema": {}
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SingleTopStoryResponse"
+            "description": "Successfully retrieved the top story",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "is_top_story": {
+                      "type": "boolean"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
                 }
               }
             }
           },
           "404": {
-            "description": "Article not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+            "description": "Top story not found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+            "description": "Invalid input",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
                 }
               }
             }
           },
           "500": {
             "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
                 }
               }
             }
@@ -890,58 +867,81 @@
       },
       "delete": {
         "tags": [
-          "Top Stories"
+          "Top stories"
         ],
-        "summary": "Remove a top story",
-        "description": "Remove an article from top stories by setting its is_top_story flag to False",
+        "summary": "Remove an article from top stories",
+        "description": "This endpoint removes an article from top stories by setting its is_top_story flag to false.",
         "parameters": [
           {
             "name": "article_id",
             "in": "path",
-            "required": true,
             "description": "ID of the article to remove from top stories",
-            "schema": {
-              "type": "integer"
-            }
+            "required": true,
+            "type": "integer",
+            "schema": {}
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessResponse"
+            "description": "Article successfully removed from top stories",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "updated_id": {
+                      "type": "integer"
+                    }
+                  }
                 }
               }
             }
           },
           "404": {
-            "description": "Article not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+            "description": "Top story not found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+            "description": "Invalid input",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
                 }
               }
             }
           },
           "500": {
             "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
                 }
               }
             }
@@ -1401,6 +1401,166 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Bots"
+        ],
+        "summary": "Create a new bot",
+        "description": "\n    this endpoint creates a new bot with associated site, keywords (whitelist), and blacklist.\n    it performs various validations and sets up the bot with the provided information.\n    the bot's icon is automatically generated based on the alias.\n    if a url is provided, a corresponding site is created for the bot.\n    ",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Bot creation details",
+            "required": true,
+            "type": "string",
+            "schema": {
+              "type": "object",
+              "required": [
+                "name",
+                "alias",
+                "category_id"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The name of the bot"
+                },
+                "alias": {
+                  "type": "string",
+                  "description": "An alias for the bot"
+                },
+                "category_id": {
+                  "type": "integer",
+                  "description": "The ID of the category the bot belongs to"
+                },
+                "dalle_prompt": {
+                  "type": "string",
+                  "description": "The DALL-E prompt for the bot"
+                },
+                "background_color": {
+                  "type": "string",
+                  "description": "The background color for the bot"
+                },
+                "run_frequency": {
+                  "type": "integer",
+                  "description": "The frequency to run the bot in minutes"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "The URL for the bot's site"
+                },
+                "whitelist": {
+                  "type": "string",
+                  "description": "Comma-separated list of keywords"
+                },
+                "blacklist": {
+                  "type": "string",
+                  "description": "Comma-separated list of blacklisted words"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Bot created successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "bot": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "alias": {
+                      "type": "string"
+                    },
+                    "category_id": {
+                      "type": "integer"
+                    },
+                    "dalle_prompt": {
+                      "type": "string"
+                    },
+                    "icon": {
+                      "type": "string"
+                    },
+                    "background_color": {
+                      "type": "string"
+                    },
+                    "run_frequency": {
+                      "type": "integer"
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Category not found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/bot/{bot_id}": {
@@ -1408,8 +1568,8 @@
         "tags": [
           "Bots"
         ],
-        "summary": "Update an existing bot in the news bot server and reschedule if necessary",
-        "description": "This endpoint updates a bot entry with the provided details, saves the changes to the database, and reschedules the bot if it's active and its run frequency has changed.",
+        "summary": "Update an existing bot and reschedule if necessary",
+        "description": "\n    this endpoint updates a bot entry with the provided details, saves the changes to the database,\n    and reschedules the bot if it's active and any field other than background_color or alias has changed.\n    important notes:\n    - all fields except background_color and alias will trigger a bot reschedule if changed.\n    - whitelist and blacklist must be provided as comma-separated values for multiple entries.\n    - if a url is provided, the associated site will be updated or created.\n    - updating the alias will also update the bot's icon.\n    ",
         "parameters": [
           {
             "name": "bot_id",
@@ -1418,6 +1578,54 @@
             "required": true,
             "type": "integer",
             "schema": {}
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Bot update details",
+            "required": true,
+            "type": "string",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The name of the bot"
+                },
+                "alias": {
+                  "type": "string",
+                  "description": "An alternative identifier for the bot"
+                },
+                "category_id": {
+                  "type": "integer",
+                  "description": "The ID of the category the bot belongs to"
+                },
+                "dalle_prompt": {
+                  "type": "string",
+                  "description": "The DALL-E prompt for the bot"
+                },
+                "background_color": {
+                  "type": "string",
+                  "description": "HEX code string for visual representation"
+                },
+                "run_frequency": {
+                  "type": "integer",
+                  "description": "The frequency to run the bot in minutes"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "The URL for the bot's site"
+                },
+                "whitelist": {
+                  "type": "string",
+                  "description": "Comma-separated list of keywords"
+                },
+                "blacklist": {
+                  "type": "string",
+                  "description": "Comma-separated list of blacklisted words"
+                }
+              }
+            }
           }
         ],
         "responses": {
@@ -1429,6 +1637,46 @@
                 "success": {
                   "type": "boolean"
                 },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "alias": {
+                      "type": "string"
+                    },
+                    "category_id": {
+                      "type": "integer"
+                    },
+                    "dalle_prompt": {
+                      "type": "string"
+                    },
+                    "icon": {
+                      "type": "string"
+                    },
+                    "background_color": {
+                      "type": "string"
+                    },
+                    "run_frequency": {
+                      "type": "integer"
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                },
                 "message": {
                   "type": "string"
                 }
@@ -1436,7 +1684,7 @@
             }
           },
           "400": {
-            "description": "Bad request (invalid data)",
+            "description": "Bad request",
             "schema": {
               "type": "object",
               "properties": {
@@ -1470,6 +1718,77 @@
               "properties": {
                 "success": {
                   "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Bots"
+        ],
+        "summary": "Delete a bot and all its associated data",
+        "description": "This endpoint deletes a bot entry identified by the provided id. due to the cascade\n    configuration, it will also delete all associated sites, keywords, blacklist entries,\n    articles, and unwanted articles.\n    ",
+        "parameters": [
+          {
+            "name": "bot_id",
+            "in": "path",
+            "description": "The ID of the bot to be deleted",
+            "required": true,
+            "type": "integer",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bot deleted successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "error": {
+                  "type": "string",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bot not found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
                 },
                 "error": {
                   "type": "string"
@@ -1939,28 +2258,38 @@
           "Keywords"
         ],
         "summary": "Add keywords to multiple bots in bulk",
-        "description": "This endpoint adds multiple keywords to multiple bots in a single operation.",
+        "description": "This endpoint adds multiple keywords to multiple bots in a single operation. it checks for existing keywords to avoid duplicates and performs a bulk insert for efficiency.",
         "parameters": [
           {
-            "name": "keywords",
+            "name": "body",
             "in": "body",
-            "description": "List of keywords to add",
+            "description": "JSON object containing keywords and bot IDs",
             "required": true,
-            "type": "array",
-            "schema": {}
-          },
-          {
-            "name": "bot_ids",
-            "in": "body",
-            "description": "List of bot IDs to add keywords to",
-            "required": true,
-            "type": "array",
-            "schema": {}
+            "type": "string",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "keywords": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "List of keywords to add"
+                },
+                "bot_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  },
+                  "description": "List of bot IDs to add keywords to"
+                }
+              }
+            }
           }
         ],
         "responses": {
           "201": {
-            "description": "Keywords added successfully",
+            "description": "Keywords added to bots successfully",
             "schema": {
               "type": "object",
               "properties": {
@@ -1996,7 +2325,7 @@
             }
           },
           "500": {
-            "description": "Internal server error",
+            "description": "Internal server error or database error",
             "schema": {
               "type": "object",
               "properties": {
@@ -2013,31 +2342,40 @@
           "Keywords"
         ],
         "summary": "Delete keywords from multiple bots in bulk",
-        "description": "This endpoint deletes multiple keywords from multiple bots in a single operation.",
+        "description": "This endpoint deletes multiple keywords from multiple bots. it can delete keywords by their ids or by their names. if both keyword_ids and keywords are provided, keyword_ids takes precedence.",
         "parameters": [
           {
-            "name": "keyword_ids",
+            "name": "body",
             "in": "body",
-            "description": "List of keyword IDs to delete (optional)",
-            "required": false,
-            "type": "array",
-            "schema": {}
-          },
-          {
-            "name": "keywords",
-            "in": "body",
-            "description": "List of keyword names to delete (optional)",
-            "required": false,
-            "type": "array",
-            "schema": {}
-          },
-          {
-            "name": "bot_ids",
-            "in": "body",
-            "description": "List of bot IDs to delete keywords from",
+            "description": "JSON object containing keyword IDs or names and bot IDs",
             "required": true,
-            "type": "array",
-            "schema": {}
+            "type": "string",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "keyword_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  },
+                  "description": "List of keyword IDs to delete (optional)"
+                },
+                "keywords": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "List of keyword names to delete (optional)"
+                },
+                "bot_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  },
+                  "description": "List of bot IDs to delete keywords from"
+                }
+              }
+            }
           }
         ],
         "responses": {
@@ -2089,7 +2427,7 @@
             }
           },
           "500": {
-            "description": "Internal server error",
+            "description": "Internal server error or database error",
             "schema": {
               "type": "object",
               "properties": {
@@ -2108,28 +2446,38 @@
           "Keywords"
         ],
         "summary": "Search for related keywords and blacklist words across specified bots",
-        "description": "This endpoint searches for keywords and blacklist words across multiple bots based on provided queries.",
+        "description": "This endpoint searches for keywords and blacklist words across multiple bots based on provided queries. it returns matching entries along with their associated bot names, separated into whitelist (keywords) and blacklist categories.",
         "parameters": [
           {
-            "name": "queries",
+            "name": "body",
             "in": "body",
-            "description": "List of search queries",
+            "description": "JSON object containing search queries and bot IDs",
             "required": true,
-            "type": "array",
-            "schema": {}
-          },
-          {
-            "name": "bot_ids",
-            "in": "body",
-            "description": "List of bot IDs to search within",
-            "required": true,
-            "type": "array",
-            "schema": {}
+            "type": "string",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "queries": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "List of search queries"
+                },
+                "bot_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  },
+                  "description": "List of bot IDs to search within"
+                }
+              }
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Search completed successfully",
+            "description": "Successfully retrieved relevant words",
             "schema": {
               "type": "object",
               "properties": {
@@ -2223,10 +2571,402 @@
             }
           },
           "500": {
+            "description": "Server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blacklist": {
+      "post": {
+        "tags": [
+          "Blacklist"
+        ],
+        "summary": "Add entries to the blacklist for multiple bots",
+        "description": "This endpoint adds multiple entries to the blacklist for multiple bots in a single operation. it checks for existing entries to avoid duplicates.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "JSON object containing entries and bot IDs",
+            "required": true,
+            "type": "string",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "entries": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "List of entries to add to the blacklist"
+                },
+                "bot_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  },
+                  "description": "List of bot IDs to add entries to"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successfully added entries to the blacklist",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "added_count": {
+                      "type": "integer"
+                    },
+                    "affected_bots": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error or database error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Blacklist"
+        ],
+        "summary": "Delete entries from the blacklist for multiple bots",
+        "description": "This endpoint deletes multiple entries from the blacklist for multiple bots. it can delete entries by their ids or by their names.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "JSON object containing entry IDs or names and bot IDs",
+            "required": true,
+            "type": "string",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "entry_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  },
+                  "description": "List of entry IDs to delete (optional)"
+                },
+                "entries": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "List of entry names to delete (optional)"
+                },
+                "bot_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  },
+                  "description": "List of bot IDs to delete entries from"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Entries deleted from blacklist successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "deleted_count": {
+                      "type": "integer"
+                    },
+                    "affected_bots": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No matching blacklist entries found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error or database error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blacklist/search": {
+      "post": {
+        "tags": [
+          "Blacklist"
+        ],
+        "summary": "Search for blacklist entries across specified bots",
+        "description": "This endpoint searches for blacklist entries across multiple bots based on provided queries. it returns matching entries along with their associated bot names.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "JSON object containing search queries and bot IDs",
+            "required": true,
+            "type": "string",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "queries": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "List of search queries"
+                },
+                "bot_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  },
+                  "description": "List of bot IDs to search within"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved relevant blacklist entries",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "blacklist": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "bot_id": {
+                            "type": "integer"
+                          },
+                          "bot_name": {
+                            "type": "string"
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updated_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No related entries found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/top-stories/{article_id}": {
+      "post": {
+        "tags": [
+          "Top stories"
+        ],
+        "summary": "Set an article as a top story",
+        "description": "This endpoint sets the is_top_story field of a specific article to true, marking it as a top story.",
+        "parameters": [
+          {
+            "name": "article_id",
+            "in": "path",
+            "description": "ID of the article to be set as a top story",
+            "required": true,
+            "type": "integer",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Article successfully set as a top story",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "is_top_story": {
+                      "type": "boolean"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Article not found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
             "description": "Internal server error",
             "schema": {
               "type": "object",
               "properties": {
+                "success": {
+                  "type": "boolean"
+                },
                 "error": {
                   "type": "string"
                 }
