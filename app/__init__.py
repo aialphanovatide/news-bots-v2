@@ -69,7 +69,6 @@ def create_app():
     from app.routes.used_keywords.u_k import news_bots_features_bp
     from app.routes.top_stories.top_stories import top_stories_bp
     from app.routes.unwanted_articles.unwanted_article import unwanted_articles_bp
-    from app.routes.news.news import website_news_bp
     from app.routes.coingeko.coingeko_usage import coingecko_bp
     from app.routes.openai.openai_usage import openai_bp
     from app.routes.articles.news_creator import creator_tool_bp
@@ -78,7 +77,7 @@ def create_app():
     blueprints = [
         bots_bp, categories_bp, articles_bp, blacklist_bp, keyword_bp,
         top_stories_bp, unwanted_articles_bp, sites_bp, deactivate_bots_bp,
-        activate_bots_bp, news_bots_features_bp, website_news_bp, coingecko_bp,
+        activate_bots_bp, news_bots_features_bp, coingecko_bp,
         openai_bp, creator_tool_bp, health_check_bp
     ]
 
