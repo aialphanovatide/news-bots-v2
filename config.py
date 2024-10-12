@@ -27,20 +27,22 @@ class Category(db.Model):
         id (int): The unique identifier for the category.
         name (str): The name of the category.
         alias (str): An alias for the category.
-        prompt (str): A prompt associated with the category.
         slack_channel (str): The Slack channel linked to the category.
         icon (str): The icon representing the category.
         border_color (str): The border color for the category.
         is_active (bool): Indicates if the category is active.
         created_at (datetime): The timestamp when the category was created.
         updated_at (datetime): The timestamp when the category was last updated.
+        bots (relationship): Relationship to Bot model, representing bots in this category.
+
+    Methods:
+        as_dict(): Returns a dictionary representation of the category.
     """
     __tablename__ = 'category'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, nullable=False)
     alias = db.Column(db.String, nullable=False)
-    prompt = db.Column(db.String)
     slack_channel = db.Column(db.String)
     icon = db.Column(db.String)
     border_color = db.Column(db.String)
@@ -75,8 +77,8 @@ class Bot(db.Model):
     name = db.Column(db.String, nullable=False)
     alias = db.Column(db.String)
     dalle_prompt = db.Column(db.String(1024))
+    prompt = db.Column(db.Text)
     icon  = db.Column(db.String)
-    dalle_prompt = db.Column(db.String)
     background_color = db.Column(db.String)
     run_frequency = db.Column(db.String, default='20')
     is_active = db.Column(db.Boolean, default=False)
