@@ -1,44 +1,44 @@
 services:
-  postgres-prod:
+  postgres-dev:
     image: postgres:13
     volumes:
-      - postgres_data_prod:/var/lib/postgresql/data
+      - postgres_data_dev:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_DB: ${DB_NAME_DEV}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5433:5432"
+      - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}_prod"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME_DEV}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  redis-prod:
+  redis-dev:
     image: redis:6
     ports:
-      - "6380:6379"
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+      - "6379:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD_DEV}
 
-  app-prod:
+  app-dev:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "5001:5000"
+      - "5000:5000"
     depends_on:
-      postgres-prod:
+      postgres-dev:
         condition: service_healthy
-      redis-prod:
+      redis-dev:
         condition: service_started
     environment:
-      - DB_URI=postgresql://${DB_USER}:${DB_PASSWORD}@postgres-prod:5432/${DB_NAME}
-      - REDIS_HOST=redis-prod
+      - DB_URI=postgresql://${DB_USER}:${DB_PASSWORD}@postgres-dev:5432/${DB_NAME_DEV}
+      - REDIS_HOST=redis-dev
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - REDIS_DB=${REDIS_DB}
-      - FLASK_ENV=production
+      - REDIS_PASSWORD=${REDIS_PASSWORD_DEV}
+      - REDIS_DB=${REDIS_DB_DEV}
+      - FLASK_ENV=development
     volumes:
       - .:/app
     command: ["./script.sh"]
@@ -50,7 +50,7 @@ services:
     volumes:
       - .:/home/pwuser/app
     depends_on:
-      - app-prod
+      - app-dev
     environment:
       - DISPLAY=:99
     cap_add:
@@ -60,14 +60,14 @@ services:
     image: ngrok/ngrok:latest
     command:
       - "http"
-      - "--domain=${NGROK_DOMAIN}"
-      - "app-prod:5000"
+      - "--domain=${NGROK_DOMAIN_DEV}"
+      - "app-dev:5000"
     environment:
-      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN_DEV}
     ports:
-      - "4041:4040"
+      - "4040:4040"
     depends_on:
-      - app-prod
+      - app-dev
 
 volumes:
-  postgres_data_prod:
+  postgres_data_dev:

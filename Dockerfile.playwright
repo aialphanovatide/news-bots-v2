@@ -5,8 +5,10 @@ RUN apt-get update && apt-get install -y \
     xvfb \
     && rm -rf /var/lib/apt/lists/*
 
-# Create a non-root user
-RUN useradd -m pwuser
+# Check if pwuser exists, create if it doesn't
+RUN id -u pwuser &>/dev/null || useradd -m pwuser
+
+# Switch to the pwuser
 USER pwuser
 
 WORKDIR /home/pwuser/app
