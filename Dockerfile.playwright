@@ -1,7 +1,18 @@
 FROM mcr.microsoft.com/playwright:v1.45.1-jammy
 
+# Install additional dependencies for running browsers in headless mode
+RUN apt-get update && apt-get install -y \
+    xvfb \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create a non-root user
 RUN useradd -m pwuser
 USER pwuser
 
 WORKDIR /home/pwuser/app
+
+# Set up Xvfb for headless browser support
+ENV DISPLAY=:99
+
+# Start Xvfb and run the command
+CMD Xvfb :99 -screen 0 1024x768x16 & python -m playwright install && tail -f /dev/null

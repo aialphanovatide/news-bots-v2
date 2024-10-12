@@ -1,75 +1,122 @@
 version: '3.8'
 
 services:
-  postgres:
+  postgres-dev:
     image: postgres:13
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: always
+      - postgres_data_dev:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_DB: ${DB_NAME}_dev
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}_dev"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - app-network
 
-  app:
-    build: 
+  postgres-prod:
+    image: postgres:13
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${DB_NAME}_prod
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-dev:
+    image: redis:6
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+
+  redis-prod:
+    image: redis:6
+    ports:
+      - "6380:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+
+  app-dev:
+    build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "5000:5000"
     depends_on:
-      postgres:
+      postgres-dev:
         condition: service_healthy
+      redis-dev:
+        condition: service_started
     environment:
-      DB_PORT: ${DB_PORT}
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_HOST: postgres
-    command: ["python", "run.py"]
-    restart: unless-stopped
-    networks:
-      - app-network
+      - DB_URI=postgresql://${DB_USER}:${DB_PASSWORD}@postgres-dev:5432/${DB_NAME}_dev
+      - REDIS_HOST=redis-dev
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_DB=${REDIS_DB}
+      - FLASK_ENV=development
+    volumes:
+      - .:/app
+    command: ["./script.sh"]
+
+  app-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5000"
+    depends_on:
+      postgres-prod:
+        condition: service_healthy
+      redis-prod:
+        condition: service_started
+    environment:
+      - DB_URI=postgresql://${DB_USER}:${DB_PASSWORD}@postgres-prod:5432/${DB_NAME}_prod
+      - REDIS_HOST=redis-prod
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_DB=${REDIS_DB}
+      - FLASK_ENV=production
+    volumes:
+      - .:/app
+    command: ["./script.sh"]
 
   playwright:
-    image: mcr.microsoft.com/playwright:v1.45.1-jammy
+    build:
+      context: .
+      dockerfile: Dockerfile.playwright
     volumes:
-      - ./playwright_scripts:/app/playwright_scripts
-    working_dir: /app/playwright_scripts
-    ipc: host
+      - .:/home/pwuser/app
     depends_on:
-      - app
-    networks:
-      - app-network
+      - app-dev
+      - app-prod
+    environment:
+      - DISPLAY=:99
+    cap_add:
+      - SYS_ADMIN
 
   ngrok:
     image: ngrok/ngrok:latest
-    restart: unless-stopped
     command:
       - "http"
       - "--domain=${NGROK_DOMAIN}"
-      - "app:5000"
+      - "app-dev:5000"  # Change to app-prod:5000 for production
     environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
     ports:
       - "4040:4040"
     depends_on:
-      - app
-    networks:
-      - app-network
-
-networks:
-  app-network:
-    driver: bridge
+      - app-dev
+      - app-prod
 
 volumes:
-  postgres_data:
+  postgres_data_dev:
+  postgres_data_prod:
