@@ -126,88 +126,277 @@ swagger = Swagger()
 
 # ____Add or update an endpoint____
 
+# POST /category
+success, message = swagger.add_or_update_endpoint(
+    endpoint_route='/category',
+    method='post',
+    tag='Categories',
+    description='Create a new category for organizing bots',
+    detail_description='''
+    This endpoint allows you to create a new category, which serves as a container for grouping related bots.
+    
+    Key points:
+    - The 'name' and 'alias' fields are required. The 'name' is displayed to users, while the 'alias' is used internally.
+    - An icon URL is automatically generated based on the provided alias. This icon will be used in the UI to represent the category.
+    - The 'slack_channel' field, if provided, associates the category with a specific Slack channel for notifications.
+    - The 'border_color' field allows you to set a custom color (in HEX format) for visual distinction in the UI.
+    - New categories are created with 'is_active' set to false by default.
+    - The 'created_at' and 'updated_at' timestamps are automatically set.
 
-# success, message = swagger.add_or_update_endpoint(
-#     endpoint_route='/keywords/extract',
-#     method='post',
-#     tag='Keywords',
-#     description='Extract and clean keywords and blacklist from an uploaded Excel file',
-#     detail_description='''
-#     This endpoint processes an uploaded Excel file (.xls or .xlsx) to extract and clean keywords and blacklist items.
+    After creation, you can add bots to this category using the bot creation or update endpoints.
+    ''',
+    params=[
+        {
+            'name': 'body',
+            'in': 'body',
+            'description': 'Category details',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'name': {'type': 'string', 'description': 'Display name of the category (required)'},
+                    'alias': {'type': 'string', 'description': 'Unique identifier for the category, used for icon generation (required)'},
+                    'slack_channel': {'type': 'string', 'description': 'Slack channel ID for category notifications (optional)'},
+                    'border_color': {'type': 'string', 'description': 'HEX color code for category border in UI (optional, e.g., "#FF5733")'},
+                },
+                'required': ['name', 'alias']
+            }
+        }
+    ],
+    responses={
+        '201': {
+            'description': 'Category created successfully',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'data': {'$ref': '#/components/schemas/Category'}
+                }
+            }
+        },
+        '400': {
+            'description': 'Invalid input - This could occur if required fields are missing or if the alias is not unique',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'error': {'type': 'string'}
+                }
+            }
+        },
+        '500': {
+            'description': 'Internal server error - This could occur due to database issues or other server-side problems',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'error': {'type': 'string'}
+                }
+            }
+        }
+    }
+)
 
-#     File Structure Requirements:
-#     1. The Excel file can contain multiple sheets.
-#     2. Sheets are processed if their names contain 'keyword' or 'blacklist' (case-insensitive).
-#     3. Each relevant sheet must have a column with a header containing 'keyword' or 'blacklist' respectively.
-#     4. The first matching column in each sheet will be used for data extraction.
+print(message)
 
-#     Extraction and Cleaning Process:
-#     - For sheets with 'keyword' in the name: 
-#       * Extracts data from the first column with 'keyword' in its header.
-#     - For sheets with 'blacklist' in the name:
-#       * Extracts data from the first column with 'blacklist' in its header.
-#     - Data is extracted from all rows below the header row.
-#     - All extracted data is cleaned:
-#       * Converted to lowercase
-#       * Special characters (including hyphens, slashes, and parentheses) are removed
-#       * Multiple spaces are replaced with a single space
-#       * Leading and trailing spaces are removed
-#     - Duplicate entries are automatically removed.
-#     - Empty cells or cells that become empty after cleaning are ignored.
+# PUT /category/{category_id}
+success, message = swagger.add_or_update_endpoint(
+    endpoint_route='/category/{category_id}',
+    method='put',
+    tag='Categories',
+    description='Update an existing category',
+    detail_description='''
+    This endpoint allows you to update the details of an existing category. It's particularly useful for modifying category properties or correcting information.
 
-#     The endpoint returns comma-separated strings for both keywords and blacklist items.
-#     If no data is found for either keywords or blacklist, an empty string is returned for that category.
-#     ''',
-#     params=[
-#         {
-#             'name': 'file',
-#             'in': 'formData',
-#             'description': 'Excel file (.xls or .xlsx) to be processed',
-#             'required': True,
-#             'type': 'file'
-#         }
-#     ],
-#     responses={
-#         '200': {
-#             'description': 'Keywords and blacklist extracted and cleaned successfully',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'success': {'type': 'boolean'},
-#                     'data': {
-#                         'type': 'object',
-#                         'properties': {
-#                             'keywords': {'type': 'string', 'description': 'Comma-separated list of cleaned, extracted keywords'},
-#                             'blacklist': {'type': 'string', 'description': 'Comma-separated list of cleaned, extracted blacklist items'}
-#                         }
-#                     },
-#                     'message': {'type': 'string'}
-#                 }
-#             }
-#         },
-#         '400': {
-#             'description': 'Bad request',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'success': {'type': 'boolean'},
-#                     'error': {'type': 'string'}
-#                 }
-#             }
-#         },
-#         '500': {
-#             'description': 'Internal server error',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'success': {'type': 'boolean'},
-#                     'error': {'type': 'string'}
-#                 }
-#             }
-#         }
-#     }
-# )
-# print(message)
+    Key behaviors:
+    1. Partial updates are supported. You only need to include the fields you want to change in the request body.
+    2. If the 'alias' is updated, the category's icon URL will be automatically regenerated.
+    3. Updating certain fields (like 'slack_channel' or 'run_frequency') will trigger a rescheduling of all active bots in this category.
+    4. The 'updated_at' timestamp is automatically set to the current time upon successful update.
+
+    Important notes for frontend implementation:
+    - When updating the 'alias', be aware that this might change the category's icon, which could affect UI elements.
+    - If the update results in bot rescheduling, the response will include information about which bots were rescheduled or if any failed.
+    - The 'border_color' field accepts HEX color codes, which can be used to update the category's visual representation in the UI.
+
+    This endpoint is crucial for maintaining accurate and up-to-date category information, which directly impacts bot organization and functionality.
+    ''',
+    params=[
+        {
+            'name': 'category_id',
+            'in': 'path',
+            'description': 'Unique identifier of the category to update',
+            'required': True,
+            'type': 'integer'
+        },
+        {
+            'name': 'body',
+            'in': 'body',
+            'description': 'Updated category details',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'name': {'type': 'string', 'description': 'New display name for the category'},
+                    'alias': {'type': 'string', 'description': 'New alias for the category (will regenerate icon URL if changed)'},
+                    'slack_channel': {'type': 'string', 'description': 'New Slack channel ID for category notifications'},
+                    'border_color': {'type': 'string', 'description': 'New HEX color code for category border in UI (e.g., "#FF5733")'},
+                }
+            }
+        }
+    ],
+    responses={
+        '200': {
+            'description': 'Category updated successfully',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'message': {'type': 'string'},
+                    'data': {
+                        'type': 'object',
+                        'properties': {
+                            'category': {'$ref': '#/components/schemas/Category'},
+                            'rescheduled_bots': {
+                                'type': 'array',
+                                'items': {'type': 'string'},
+                                'description': 'Names of bots that were rescheduled due to the update'
+                            },
+                            'failed_reschedules': {
+                                'type': 'array',
+                                'items': {'type': 'string'},
+                                'description': 'Names of bots that failed to reschedule'
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '404': {
+            'description': 'Category not found - The specified category_id does not exist',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'error': {'type': 'string'}
+                }
+            }
+        },
+        '500': {
+            'description': 'Internal server error - This could occur due to database issues or problems with the scheduler',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'error': {'type': 'string'}
+                }
+            }
+        }
+    }
+)
+
+print(message)
+
+# POST /category/{category_id}/toggle-activation
+success, message = swagger.add_or_update_endpoint(
+    endpoint_route='/category/{category_id}/toggle-activation',
+    method='post',
+    tag='Categories',
+    description='Toggle activation status for all bots in a category',
+    detail_description='''
+    This endpoint provides a powerful way to activate or deactivate all bots within a specific category simultaneously. It's particularly useful for bulk operations or when you need to quickly enable or disable a group of related bots.
+
+    Key behaviors:
+    1. If the category is currently active (contains active bots):
+       - All active bots will be deactivated.
+       - Their scheduled jobs will be removed from the scheduler.
+       - Each bot's 'is_active' status will be set to false.
+       - Each bot's status will be changed to 'IDLE'.
+       - The 'next_run_time' for each bot will be cleared.
+
+    2. If the category is currently inactive (contains no active bots):
+       - Each bot in the category will be validated for activation.
+       - If a bot passes validation, it will be scheduled and activated.
+       - The bot's 'is_active' status will be set to true.
+       - The bot's status will be set to 'IDLE' (it will change to 'RUNNING' when the scheduler executes it).
+
+    Important notes for frontend implementation:
+    - This operation may take some time, especially for categories with many bots.
+    - The response includes detailed information about the operation's results, including counts of activated/deactivated bots and any failures.
+    - You may want to implement a loading indicator while this operation is in progress.
+    - After toggling, you should refresh any UI components that display bot statuses or category information.
+    - Be prepared to handle partial success scenarios where some bots may fail to activate or deactivate.
+
+    This endpoint is crucial for managing the overall activity of bot groups and can significantly impact system resource usage and bot operations.
+    ''',
+    params=[
+        {
+            'name': 'category_id',
+            'in': 'path',
+            'description': 'Unique identifier of the category whose bots should be toggled',
+            'required': True,
+            'type': 'integer'
+        }
+    ],
+    responses={
+        '200': {
+            'description': 'Category bots toggled successfully',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'message': {'type': 'string'},
+                    'data': {
+                        'type': 'object',
+                        'properties': {
+                            'total_bots': {'type': 'integer', 'description': 'Total number of bots in the category'},
+                            'activated_count': {'type': 'integer', 'description': 'Number of bots that were activated'},
+                            'deactivated_count': {'type': 'integer', 'description': 'Number of bots that were deactivated'},
+                            'success_count': {'type': 'integer', 'description': 'Total number of bots successfully processed'},
+                            'failure_count': {'type': 'integer', 'description': 'Number of bots that failed to toggle'},
+                            'processed_bots': {
+                                'type': 'array',
+                                'items': {
+                                    'type': 'object',
+                                    'properties': {
+                                        'id': {'type': 'integer', 'description': 'Bot ID'},
+                                        'name': {'type': 'string', 'description': 'Bot name'},
+                                        'previous_state': {'type': 'string', 'description': 'Bot state before toggling'},
+                                        'new_state': {'type': 'string', 'description': 'Bot state after toggling'},
+                                        'status': {'type': 'string', 'description': 'Status of the toggle operation for this bot'},
+                                        'error': {'type': 'string', 'description': 'Error message if the bot failed to toggle'}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '404': {
+            'description': 'Category not found - The specified category_id does not exist',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'error': {'type': 'string'}
+                }
+            }
+        },
+        '500': {
+            'description': 'Internal server error - This could occur due to database issues, problems with the scheduler, or other server-side errors',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'error': {'type': 'string'}
+                }
+            }
+        }
+    }
+)
+
+print(message)
 
 # ____Delete an endpoint____
 

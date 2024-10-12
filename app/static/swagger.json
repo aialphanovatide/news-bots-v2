@@ -564,7 +564,7 @@
           "Bots"
         ],
         "summary": "Get all bots data",
-        "description": "This endpoint retrieves data for all bots in the system. the bots are sorted alphabetically by their names.",
+        "description": "\n    this endpoint retrieves data for all bots in the system.\n    \n    the bots are returned as a list, sorted alphabetically by bot name.\n    \n    no parameters are required for this endpoint.\n    ",
         "parameters": [],
         "responses": {
           "200": {
@@ -585,6 +585,30 @@
                       },
                       "name": {
                         "type": "string"
+                      },
+                      "alias": {
+                        "type": "string"
+                      },
+                      "category_id": {
+                        "type": "integer"
+                      },
+                      "dalle_prompt": {
+                        "type": "string"
+                      },
+                      "prompt": {
+                        "type": "string"
+                      },
+                      "icon": {
+                        "type": "string"
+                      },
+                      "background_color": {
+                        "type": "string"
+                      },
+                      "run_frequency": {
+                        "type": "integer"
+                      },
+                      "is_active": {
+                        "type": "boolean"
                       },
                       "created_at": {
                         "type": "string",
@@ -1272,13 +1296,13 @@
         "tags": [
           "Bots"
         ],
-        "summary": "Get a specific bot by name or id, including related keywords, blacklist items, and site data",
-        "description": "This endpoint retrieves detailed information about a specific bot, including its related keywords, blacklist items, and associated site data. the bot can be identified either by its name or id.",
+        "summary": "Get a specific bot by name or id",
+        "description": "\n    this endpoint retrieves information for a specific bot, including related keywords, blacklist items, and site data.\n    \n    you must provide either the bot_name or bot_id as a query parameter.\n    \n    the response includes detailed information about the bot, including its associated keywords, blacklist items, and site data.\n    ",
         "parameters": [
           {
             "name": "bot_name",
             "in": "query",
-            "description": "Name of the bot to retrieve",
+            "description": "The name of the bot to retrieve",
             "required": false,
             "type": "string",
             "schema": {}
@@ -1286,7 +1310,7 @@
           {
             "name": "bot_id",
             "in": "query",
-            "description": "ID of the bot to retrieve",
+            "description": "The ID of the bot to retrieve",
             "required": false,
             "type": "integer",
             "schema": {}
@@ -1310,30 +1334,66 @@
                     "name": {
                       "type": "string"
                     },
+                    "alias": {
+                      "type": "string"
+                    },
+                    "category_id": {
+                      "type": "integer"
+                    },
+                    "dalle_prompt": {
+                      "type": "string"
+                    },
+                    "prompt": {
+                      "type": "string"
+                    },
+                    "icon": {
+                      "type": "string"
+                    },
+                    "background_color": {
+                      "type": "string"
+                    },
+                    "run_frequency": {
+                      "type": "integer"
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
                     "keywords": {
                       "type": "array",
                       "items": {
                         "type": "string"
-                      }
+                      },
+                      "description": "Sorted list of keywords associated with the bot"
                     },
                     "blacklist": {
                       "type": "array",
                       "items": {
                         "type": "string"
-                      }
+                      },
+                      "description": "Sorted list of blacklisted items for the bot"
                     },
                     "site": {
                       "type": "object",
-                      "nullable": true,
                       "properties": {
                         "id": {
                           "type": "integer"
                         },
-                        "bot_id": {
-                          "type": "integer"
+                        "name": {
+                          "type": "string"
                         },
                         "url": {
                           "type": "string"
+                        },
+                        "bot_id": {
+                          "type": "integer"
                         },
                         "created_at": {
                           "type": "string",
@@ -1343,15 +1403,8 @@
                           "type": "string",
                           "format": "date-time"
                         }
-                      }
-                    },
-                    "created_at": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updated_at": {
-                      "type": "string",
-                      "format": "date-time"
+                      },
+                      "description": "Site data associated with the bot, null if no site exists"
                     }
                   }
                 }
@@ -1407,60 +1460,87 @@
           "Bots"
         ],
         "summary": "Create a new bot",
-        "description": "\n    this endpoint creates a new bot with associated site, keywords (whitelist), and blacklist.\n    it performs various validations and sets up the bot with the provided information.\n    the bot's icon is automatically generated based on the alias.\n    if a url is provided, a corresponding site is created for the bot.\n    ",
+        "description": "\n    this endpoint handles the creation of a new bot with associated site, keywords, and blacklist.\n    \n    the bot will be created with is_active set to false by default. to activate the bot, use the toggle activation endpoint.\n    \n    the icon for the bot is automatically generated based on the provided alias.\n    \n    if a url is provided, a new site entry will be created and associated with the bot.\n    \n    keywords (whitelist) and blacklist entries can be provided as comma-separated strings. these will be processed, cleaned, and added to the respective tables.\n    ",
         "parameters": [
           {
-            "name": "body",
+            "name": "name",
             "in": "body",
-            "description": "Bot creation details",
+            "description": "The name of the bot",
             "required": true,
             "type": "string",
-            "schema": {
-              "type": "object",
-              "required": [
-                "name",
-                "alias",
-                "category_id"
-              ],
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "description": "The name of the bot"
-                },
-                "alias": {
-                  "type": "string",
-                  "description": "An alias for the bot"
-                },
-                "category_id": {
-                  "type": "integer",
-                  "description": "The ID of the category the bot belongs to"
-                },
-                "dalle_prompt": {
-                  "type": "string",
-                  "description": "The DALL-E prompt for the bot"
-                },
-                "background_color": {
-                  "type": "string",
-                  "description": "The background color for the bot"
-                },
-                "run_frequency": {
-                  "type": "integer",
-                  "description": "The frequency to run the bot in minutes"
-                },
-                "url": {
-                  "type": "string",
-                  "description": "The URL for the bot's site"
-                },
-                "whitelist": {
-                  "type": "string",
-                  "description": "Comma-separated list of keywords"
-                },
-                "blacklist": {
-                  "type": "string",
-                  "description": "Comma-separated list of blacklisted words"
-                }
-              }
-            }
+            "schema": {}
+          },
+          {
+            "name": "alias",
+            "in": "body",
+            "description": "An alias for the bot. This will be used to generate the icon URL.",
+            "required": true,
+            "type": "string",
+            "schema": {}
+          },
+          {
+            "name": "category_id",
+            "in": "body",
+            "description": "The ID of the category the bot belongs to",
+            "required": true,
+            "type": "integer",
+            "schema": {}
+          },
+          {
+            "name": "dalle_prompt",
+            "in": "body",
+            "description": "The DALL-E prompt for the bot",
+            "required": false,
+            "type": "string",
+            "schema": {}
+          },
+          {
+            "name": "prompt",
+            "in": "body",
+            "description": "The general prompt for the bot",
+            "required": false,
+            "type": "string",
+            "schema": {}
+          },
+          {
+            "name": "background_color",
+            "in": "body",
+            "description": "The background color for the bot (e.g., \"#FFFFFF\")",
+            "required": false,
+            "type": "string",
+            "schema": {}
+          },
+          {
+            "name": "run_frequency",
+            "in": "body",
+            "description": "The frequency to run the bot in minutes",
+            "required": false,
+            "type": "integer",
+            "schema": {}
+          },
+          {
+            "name": "url",
+            "in": "body",
+            "description": "The URL for the bot's site. If provided, a new Site entry will be created.",
+            "required": false,
+            "type": "string",
+            "schema": {}
+          },
+          {
+            "name": "whitelist",
+            "in": "body",
+            "description": "Comma-separated list of keywords",
+            "required": false,
+            "type": "string",
+            "schema": {}
+          },
+          {
+            "name": "blacklist",
+            "in": "body",
+            "description": "Comma-separated list of blacklisted words",
+            "required": false,
+            "type": "string",
+            "schema": {}
           }
         ],
         "responses": {
@@ -1488,6 +1568,9 @@
                       "type": "integer"
                     },
                     "dalle_prompt": {
+                      "type": "string"
+                    },
+                    "prompt": {
                       "type": "string"
                     },
                     "icon": {
@@ -1568,13 +1651,13 @@
         "tags": [
           "Bots"
         ],
-        "summary": "Update an existing bot and reschedule if necessary",
-        "description": "\n    this endpoint updates a bot entry with the provided details, saves the changes to the database,\n    and reschedules the bot if it's active and any field other than background_color or alias has changed.\n    important notes:\n    - all fields except background_color and alias will trigger a bot reschedule if changed.\n    - whitelist and blacklist must be provided as comma-separated values for multiple entries.\n    - if a url is provided, the associated site will be updated or created.\n    - updating the alias will also update the bot's icon.\n    ",
+        "summary": "Update an existing bot",
+        "description": "\n    this endpoint updates an existing bot identified by its id. it allows for modification of various bot properties and associated data.\n\n    key features and behaviors:\n    1. bot identification:\n       - the bot is identified by the bot_id provided in the url path.\n       - if no bot is found with the given id, a 404 error is returned.\n\n    2. updatable fields:\n       - name: the bot's name\n       - alias: an alternative identifier for the bot\n       - category_id: the id of the category the bot belongs to\n       - dalle_prompt: the dall-e prompt for the bot\n       - prompt: the general prompt for the bot\n       - background_color: hex code string for visual representation\n       - run_frequency: the frequency to run the bot in minutes\n\n    3. icon update:\n       - if the alias is updated, the bot's icon url is automatically regenerated based on the new alias.\n\n    4. site update:\n       - if a url is provided, the associated site entry is updated or created if it doesn't exist.\n       - the site name is extracted from the url.\n\n    5. keywords (whitelist) update:\n       - new keywords are added to the existing set of keywords.\n       - existing keywords are not removed.\n\n    6. blacklist update:\n       - new blacklist entries are added to the existing set of blacklisted items.\n       - existing blacklist entries are not removed.\n\n    7. bot rescheduling:\n       - if the bot is active and certain fields are updated (excluding background_color and alias), the bot is rescheduled.\n\n    note: this endpoint performs multiple database operations. all changes are committed atomically within a single transaction.\n    ",
         "parameters": [
           {
             "name": "bot_id",
             "in": "path",
-            "description": "The ID of the bot to be updated",
+            "description": "The ID of the bot to update",
             "required": true,
             "type": "integer",
             "schema": {}
@@ -1594,7 +1677,7 @@
                 },
                 "alias": {
                   "type": "string",
-                  "description": "An alternative identifier for the bot"
+                  "description": "An alias for the bot. This will be used to generate the icon URL."
                 },
                 "category_id": {
                   "type": "integer",
@@ -1604,9 +1687,13 @@
                   "type": "string",
                   "description": "The DALL-E prompt for the bot"
                 },
+                "prompt": {
+                  "type": "string",
+                  "description": "The general prompt for the bot"
+                },
                 "background_color": {
                   "type": "string",
-                  "description": "HEX code string for visual representation"
+                  "description": "The background color for the bot (e.g., \"#FFFFFF\")"
                 },
                 "run_frequency": {
                   "type": "integer",
@@ -1618,11 +1705,11 @@
                 },
                 "whitelist": {
                   "type": "string",
-                  "description": "Comma-separated list of keywords"
+                  "description": "Comma-separated list of keywords to add to the existing whitelist"
                 },
                 "blacklist": {
                   "type": "string",
-                  "description": "Comma-separated list of blacklisted words"
+                  "description": "Comma-separated list of words to add to the existing blacklist"
                 }
               }
             }
@@ -1655,6 +1742,9 @@
                     "dalle_prompt": {
                       "type": "string"
                     },
+                    "prompt": {
+                      "type": "string"
+                    },
                     "icon": {
                       "type": "string"
                     },
@@ -1666,6 +1756,16 @@
                     },
                     "is_active": {
                       "type": "boolean"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "next_run_time": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
                     },
                     "created_at": {
                       "type": "string",
@@ -1684,7 +1784,7 @@
             }
           },
           "400": {
-            "description": "Bad request",
+            "description": "Bad request - Invalid data provided",
             "schema": {
               "type": "object",
               "properties": {
@@ -1804,56 +1904,40 @@
         "tags": [
           "Categories"
         ],
-        "summary": "Create a new category on the news bot server",
-        "description": "This endpoint creates a new category with the provided details and saves it to the database.",
+        "summary": "Create a new category for organizing bots",
+        "description": "\n    this endpoint allows you to create a new category, which serves as a container for grouping related bots.\n    \n    key points:\n    - the 'name' and 'alias' fields are required. the 'name' is displayed to users, while the 'alias' is used internally.\n    - an icon url is automatically generated based on the provided alias. this icon will be used in the ui to represent the category.\n    - the 'slack_channel' field, if provided, associates the category with a specific slack channel for notifications.\n    - the 'border_color' field allows you to set a custom color (in hex format) for visual distinction in the ui.\n    - new categories are created with 'is_active' set to false by default.\n    - the 'created_at' and 'updated_at' timestamps are automatically set.\n\n    after creation, you can add bots to this category using the bot creation or update endpoints.\n    ",
         "parameters": [
           {
-            "name": "name",
+            "name": "body",
             "in": "body",
-            "description": "The name of the category",
+            "description": "Category details",
             "required": true,
             "type": "string",
-            "schema": {}
-          },
-          {
-            "name": "alias",
-            "in": "body",
-            "description": "The alias of the category",
-            "required": true,
-            "type": "string",
-            "schema": {}
-          },
-          {
-            "name": "prompt",
-            "in": "body",
-            "description": "The prompt for the category",
-            "required": false,
-            "type": "string",
-            "schema": {}
-          },
-          {
-            "name": "slack_channel",
-            "in": "body",
-            "description": "The Slack channel associated with the category",
-            "required": false,
-            "type": "string",
-            "schema": {}
-          },
-          {
-            "name": "border_color",
-            "in": "body",
-            "description": "The HEX code for the border color",
-            "required": false,
-            "type": "string",
-            "schema": {}
-          },
-          {
-            "name": "icon",
-            "in": "body",
-            "description": "The filename of the SVG icon",
-            "required": false,
-            "type": "string",
-            "schema": {}
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Display name of the category (required)"
+                },
+                "alias": {
+                  "type": "string",
+                  "description": "Unique identifier for the category, used for icon generation (required)"
+                },
+                "slack_channel": {
+                  "type": "string",
+                  "description": "Slack channel ID for category notifications (optional)"
+                },
+                "border_color": {
+                  "type": "string",
+                  "description": "HEX color code for category border in UI (optional, e.g., \"#FF5733\")"
+                }
+              },
+              "required": [
+                "name",
+                "alias"
+              ]
+            }
           }
         ],
         "responses": {
@@ -1866,16 +1950,19 @@
                   "type": "boolean"
                 },
                 "data": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/Category"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request (invalid data)",
+            "description": "Invalid input - This could occur if required fields are missing or if the alias is not unique",
             "schema": {
               "type": "object",
               "properties": {
+                "success": {
+                  "type": "boolean"
+                },
                 "error": {
                   "type": "string"
                 }
@@ -1883,10 +1970,13 @@
             }
           },
           "500": {
-            "description": "Internal server error",
+            "description": "Internal server error - This could occur due to database issues or other server-side problems",
             "schema": {
               "type": "object",
               "properties": {
+                "success": {
+                  "type": "boolean"
+                },
                 "error": {
                   "type": "string"
                 }
@@ -2030,56 +2120,44 @@
         "tags": [
           "Categories"
         ],
-        "summary": "Update an existing category in the news bot server",
-        "description": "This endpoint updates a category entry with the provided details and saves the changes to the database.",
+        "summary": "Update an existing category",
+        "description": "\n    this endpoint allows you to update the details of an existing category. it's particularly useful for modifying category properties or correcting information.\n\n    key behaviors:\n    1. partial updates are supported. you only need to include the fields you want to change in the request body.\n    2. if the 'alias' is updated, the category's icon url will be automatically regenerated.\n    3. updating certain fields (like 'slack_channel' or 'run_frequency') will trigger a rescheduling of all active bots in this category.\n    4. the 'updated_at' timestamp is automatically set to the current time upon successful update.\n\n    important notes for frontend implementation:\n    - when updating the 'alias', be aware that this might change the category's icon, which could affect ui elements.\n    - if the update results in bot rescheduling, the response will include information about which bots were rescheduled or if any failed.\n    - the 'border_color' field accepts hex color codes, which can be used to update the category's visual representation in the ui.\n\n    this endpoint is crucial for maintaining accurate and up-to-date category information, which directly impacts bot organization and functionality.\n    ",
         "parameters": [
           {
             "name": "category_id",
             "in": "path",
-            "description": "The ID of the category to be updated",
+            "description": "Unique identifier of the category to update",
             "required": true,
             "type": "integer",
             "schema": {}
           },
           {
-            "name": "name",
+            "name": "body",
             "in": "body",
-            "description": "The name of the category",
-            "required": false,
+            "description": "Updated category details",
+            "required": true,
             "type": "string",
-            "schema": {}
-          },
-          {
-            "name": "alias",
-            "in": "body",
-            "description": "The alias of the category",
-            "required": false,
-            "type": "string",
-            "schema": {}
-          },
-          {
-            "name": "prompt",
-            "in": "body",
-            "description": "The prompt for the category",
-            "required": false,
-            "type": "string",
-            "schema": {}
-          },
-          {
-            "name": "slack_channel",
-            "in": "body",
-            "description": "The Slack channel associated with the category",
-            "required": false,
-            "type": "string",
-            "schema": {}
-          },
-          {
-            "name": "border_color",
-            "in": "body",
-            "description": "The HEX code for the border color",
-            "required": false,
-            "type": "string",
-            "schema": {}
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "New display name for the category"
+                },
+                "alias": {
+                  "type": "string",
+                  "description": "New alias for the category (will regenerate icon URL if changed)"
+                },
+                "slack_channel": {
+                  "type": "string",
+                  "description": "New Slack channel ID for category notifications"
+                },
+                "border_color": {
+                  "type": "string",
+                  "description": "New HEX color code for category border in UI (e.g., \"#FF5733\")"
+                }
+              }
+            }
           }
         ],
         "responses": {
@@ -2095,27 +2173,38 @@
                   "type": "string"
                 },
                 "data": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request (invalid data)",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": {
-                  "type": "string"
+                  "type": "object",
+                  "properties": {
+                    "category": {
+                      "$ref": "#/components/schemas/Category"
+                    },
+                    "rescheduled_bots": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Names of bots that were rescheduled due to the update"
+                    },
+                    "failed_reschedules": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Names of bots that failed to reschedule"
+                    }
+                  }
                 }
               }
             }
           },
           "404": {
-            "description": "Category not found",
+            "description": "Category not found - The specified category_id does not exist",
             "schema": {
               "type": "object",
               "properties": {
+                "success": {
+                  "type": "boolean"
+                },
                 "error": {
                   "type": "string"
                 }
@@ -2123,10 +2212,13 @@
             }
           },
           "500": {
-            "description": "Internal server error",
+            "description": "Internal server error - This could occur due to database issues or problems with the scheduler",
             "schema": {
               "type": "object",
               "properties": {
+                "success": {
+                  "type": "boolean"
+                },
                 "error": {
                   "type": "string"
                 }
@@ -2197,13 +2289,13 @@
         "tags": [
           "Categories"
         ],
-        "summary": "Toggle activation for all bots within a specific category",
-        "description": "This endpoint toggles the activation status of all bots associated with the specified category.",
+        "summary": "Toggle activation status for all bots in a category",
+        "description": "\n    this endpoint provides a powerful way to activate or deactivate all bots within a specific category simultaneously. it's particularly useful for bulk operations or when you need to quickly enable or disable a group of related bots.\n\n    key behaviors:\n    1. if the category is currently active (contains active bots):\n       - all active bots will be deactivated.\n       - their scheduled jobs will be removed from the scheduler.\n       - each bot's 'is_active' status will be set to false.\n       - each bot's status will be changed to 'idle'.\n       - the 'next_run_time' for each bot will be cleared.\n\n    2. if the category is currently inactive (contains no active bots):\n       - each bot in the category will be validated for activation.\n       - if a bot passes validation, it will be scheduled and activated.\n       - the bot's 'is_active' status will be set to true.\n       - the bot's status will be set to 'idle' (it will change to 'running' when the scheduler executes it).\n\n    important notes for frontend implementation:\n    - this operation may take some time, especially for categories with many bots.\n    - the response includes detailed information about the operation's results, including counts of activated/deactivated bots and any failures.\n    - you may want to implement a loading indicator while this operation is in progress.\n    - after toggling, you should refresh any ui components that display bot statuses or category information.\n    - be prepared to handle partial success scenarios where some bots may fail to activate or deactivate.\n\n    this endpoint is crucial for managing the overall activity of bot groups and can significantly impact system resource usage and bot operations.\n    ",
         "parameters": [
           {
             "name": "category_id",
             "in": "path",
-            "description": "The ID of the category",
+            "description": "Unique identifier of the category whose bots should be toggled",
             "required": true,
             "type": "integer",
             "schema": {}
@@ -2211,7 +2303,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Category activation toggled successfully",
+            "description": "Category bots toggled successfully",
             "schema": {
               "type": "object",
               "properties": {
@@ -2222,16 +2314,73 @@
                   "type": "string"
                 },
                 "data": {
-                  "type": "object"
+                  "type": "object",
+                  "properties": {
+                    "total_bots": {
+                      "type": "integer",
+                      "description": "Total number of bots in the category"
+                    },
+                    "activated_count": {
+                      "type": "integer",
+                      "description": "Number of bots that were activated"
+                    },
+                    "deactivated_count": {
+                      "type": "integer",
+                      "description": "Number of bots that were deactivated"
+                    },
+                    "success_count": {
+                      "type": "integer",
+                      "description": "Total number of bots successfully processed"
+                    },
+                    "failure_count": {
+                      "type": "integer",
+                      "description": "Number of bots that failed to toggle"
+                    },
+                    "processed_bots": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "description": "Bot ID"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Bot name"
+                          },
+                          "previous_state": {
+                            "type": "string",
+                            "description": "Bot state before toggling"
+                          },
+                          "new_state": {
+                            "type": "string",
+                            "description": "Bot state after toggling"
+                          },
+                          "status": {
+                            "type": "string",
+                            "description": "Status of the toggle operation for this bot"
+                          },
+                          "error": {
+                            "type": "string",
+                            "description": "Error message if the bot failed to toggle"
+                          }
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
           },
           "404": {
-            "description": "Category not found",
+            "description": "Category not found - The specified category_id does not exist",
             "schema": {
               "type": "object",
               "properties": {
+                "success": {
+                  "type": "boolean"
+                },
                 "error": {
                   "type": "string"
                 }
@@ -2239,10 +2388,13 @@
             }
           },
           "500": {
-            "description": "Internal server error",
+            "description": "Internal server error - This could occur due to database issues, problems with the scheduler, or other server-side errors",
             "schema": {
               "type": "object",
               "properties": {
+                "success": {
+                  "type": "boolean"
+                },
                 "error": {
                   "type": "string"
                 }
@@ -3128,6 +3280,142 @@
           },
           "400": {
             "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bot/{bot_id}/toggle-activation": {
+      "post": {
+        "tags": [
+          "Bots"
+        ],
+        "summary": "Toggle activation status of a specific bot",
+        "description": "\n    this endpoint toggles the activation status of a bot identified by its id. it performs different actions based on the current activation status of the bot:\n\n    1. if the bot is currently active (is_active = true):\n       - it attempts to remove the bot's scheduled job from the scheduler.\n       - sets the bot's is_active status to false.\n       - changes the bot's status to 'idle'.\n       - clears the bot's next_run_time.\n\n    2. if the bot is currently inactive (is_active = false):\n       - it first validates the bot for activation using the validate_bot_for_activation function.\n       - if there are validation errors, it returns these errors and doesn't activate the bot.\n       - if validation passes, it attempts to schedule the bot using the schedule_bot function.\n       - if scheduling is successful, it sets the bot's is_active status to true and status to 'idle'.\n\n    the endpoint uses a database session to ensure all changes are committed atomically.\n    it also updates related cache endpoints ('get_all_bots' and 'get_bot') upon successful execution.\n\n",
+        "parameters": [
+          {
+            "name": "bot_id",
+            "in": "path",
+            "description": "The ID of the bot to toggle activation",
+            "required": true,
+            "type": "integer",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bot activation status toggled successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "bot": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "alias": {
+                      "type": "string"
+                    },
+                    "category_id": {
+                      "type": "integer"
+                    },
+                    "dalle_prompt": {
+                      "type": "string"
+                    },
+                    "prompt": {
+                      "type": "string"
+                    },
+                    "icon": {
+                      "type": "string"
+                    },
+                    "background_color": {
+                      "type": "string"
+                    },
+                    "run_frequency": {
+                      "type": "integer"
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "next_run_time": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Bot activation failed due to validation errors",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                },
+                "validation_errors": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bot not found",
             "schema": {
               "type": "object",
               "properties": {
