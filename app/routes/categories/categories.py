@@ -68,7 +68,6 @@ def create_category():
             new_category = Category(
                 name=data['name'],
                 alias=data['alias'],
-                prompt=data.get('prompt', ''),
                 slack_channel=data.get('slack_channel', ''),
                 border_color=data.get('border_color', ''),
                 icon=f'https://aialphaicons.s3.us-east-2.amazonaws.com/{icon_normalized}.svg',
@@ -230,7 +229,7 @@ def update_category(category_id):
             if not data:
                 return jsonify(create_response(error='No update data provided')), 400
             
-            allowed_fields = ['name', 'alias', 'prompt', 'slack_channel', 'border_color']
+            allowed_fields = ['name', 'alias', 'slack_channel', 'border_color']
             for field in allowed_fields:
                 if field in data:
                     setattr(category, field, data[field])
@@ -244,7 +243,7 @@ def update_category(category_id):
 
             rescheduled_bots = []
             failed_reschedules = []
-            if any(field in allowed_fields for field in ['name', 'alias', 'prompt', 'slack_channel']):
+            if any(field in allowed_fields for field in ['name', 'alias', 'slack_channel']):
                 active_bots = [bot for bot in category.bots if bot.is_active]
                 for bot in active_bots:
                     try:

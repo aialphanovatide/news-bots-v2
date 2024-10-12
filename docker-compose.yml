@@ -6,7 +6,7 @@ services:
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: ${DB_NAME}_dev
+      POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
@@ -22,7 +22,7 @@ services:
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: ${DB_NAME}_prod
+      POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
@@ -57,7 +57,7 @@ services:
       redis-dev:
         condition: service_started
     environment:
-      - DB_URI=postgresql://${DB_USER}:${DB_PASSWORD}@postgres-dev:5432/${DB_NAME}_dev
+      - DB_URI=postgresql://${DB_USER}:${DB_PASSWORD}@postgres-dev:5432/${DB_NAME}
       - REDIS_HOST=redis-dev
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
@@ -79,7 +79,7 @@ services:
       redis-prod:
         condition: service_started
     environment:
-      - DB_URI=postgresql://${DB_USER}:${DB_PASSWORD}@postgres-prod:5432/${DB_NAME}_prod
+      - DB_URI=postgresql://${DB_USER}:${DB_PASSWORD}@postgres-prod:5432/${DB_NAME}
       - REDIS_HOST=redis-prod
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
@@ -108,7 +108,7 @@ services:
     command:
       - "http"
       - "--domain=${NGROK_DOMAIN}"
-      - "app-dev:5000"  # Change to app-prod:5000 for production
+      # - "app-dev:5000"  # Change to app-prod:5000 for production
     environment:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
     ports:

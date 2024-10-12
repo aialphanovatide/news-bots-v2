@@ -162,6 +162,7 @@ def create_bot():
                 alias=data['alias'],
                 category_id=data['category_id'],
                 dalle_prompt=data.get('dalle_prompt', ''),
+                prompt=data.get('prompt', ''),
                 icon=f'https://aialphaicons.s3.us-east-2.amazonaws.com/{icon_normalized}.svg',
                 background_color=data.get('background_color', ''),
                 run_frequency=data.get('run_frequency'),
@@ -175,6 +176,8 @@ def create_bot():
             # Create new Site if URL is provided
             url = data.get('url')
             if url:
+                if not validate_url(url):
+                    return jsonify(create_response(error='Invalid URL provided')), 400
                 site_name_match = re.search(r"https://www\.([^.]+)\.com", url)
                 site_name = 'Google News' if not site_name_match else site_name_match.group(1)
                 new_site = Site(
@@ -247,11 +250,12 @@ def update_bot(bot_id):
         alias (str, optional): An alternative identifier for the bot
         category_id (int, optional): The ID of the category the bot belongs to
         dalle_prompt (str, optional): The DALL-E prompt for the bot
+        prompt (str, optional): The general prompt for the bot
         background_color (str, optional): HEX code string for visual representation
         run_frequency (int, optional): The frequency to run the bot in minutes
         url (str, optional): The URL for the bot's site
-        whitelist (str, optional): Comma-separated list of keywords
-        blacklist (str, optional): Comma-separated list of blacklisted words
+        whitelist (str, optional): Comma-separated list of keywords to add to the existing whitelist
+        blacklist (str, optional): Comma-separated list of words to add to the existing blacklist
 
     Returns:
         JSON: A response containing:
@@ -268,7 +272,7 @@ def update_bot(bot_id):
     with Session() as session:
         try:
             # bot = session.query(Bot).get(bot_id)
-              # Explicitly join with Category to ensure it's loaded
+            # Explicitly join with Category to ensure it's loaded
             bot = session.query(Bot).options(joinedload(Bot.category)).get(bot_id)
             if not bot:
                 return jsonify(create_response(error=f'Bot with ID {bot_id} not found')), 404
@@ -278,7 +282,7 @@ def update_bot(bot_id):
                 return jsonify(create_response(error='No update data provided')), 400
 
             # Update fields if provided
-            updatable_fields = ['name', 'alias', 'category_id', 'dalle_prompt', 'background_color', 'run_frequency']
+            updatable_fields = ['name', 'alias', 'category_id', 'dalle_prompt', 'prompt', 'background_color', 'run_frequency']
             for field in updatable_fields:
                 if field in data:
                     setattr(bot, field, data[field])
@@ -310,17 +314,19 @@ def update_bot(bot_id):
 
             # Update keywords (whitelist)
             if 'whitelist' in data:
-                session.query(Keyword).filter_by(bot_id=bot.id).delete()
-                keywords = [keyword.strip().lower() for keyword in data['whitelist'].split(',') if keyword.strip()]
-                for keyword in keywords:
+                existing_keywords = set(k.name for k in bot.keywords)
+                new_keywords = set(keyword.strip().lower() for keyword in data['whitelist'].split(',') if keyword.strip())
+                keywords_to_add = new_keywords - existing_keywords
+                for keyword in keywords_to_add:
                     new_keyword = Keyword(name=keyword, bot_id=bot.id)
                     session.add(new_keyword)
 
             # Update blacklist
             if 'blacklist' in data:
-                session.query(Blacklist).filter_by(bot_id=bot.id).delete()
-                blacklist = [word.strip().lower() for word in data['blacklist'].split(',') if word.strip()]
-                for word in blacklist:
+                existing_blacklist = set(b.name for b in bot.blacklist)
+                new_blacklist = set(word.strip().lower() for word in data['blacklist'].split(',') if word.strip())
+                blacklist_to_add = new_blacklist - existing_blacklist
+                for word in blacklist_to_add:
                     new_blacklist_entry = Blacklist(name=word, bot_id=bot.id)
                     session.add(new_blacklist_entry)
 
