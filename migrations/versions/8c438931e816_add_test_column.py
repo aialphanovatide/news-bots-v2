@@ -1,4 +1,4 @@
-"""add test column
+"""add test column - curated
 
 Revision ID: 8c438931e816
 Revises: 
