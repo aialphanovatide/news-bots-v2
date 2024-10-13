@@ -57,7 +57,7 @@ start_flask_app() {
 echo "Initializing application..."
 
 # Check and apply migrations
-check_create_and_apply_migrations
+# check_create_and_apply_migrations
 
 # Start the Flask application
 start_flask_app
