@@ -1,112 +1,3 @@
-<!-- # News Bots v2 - Docker Environment Guide
-
-Welcome to the News Bots v2 project! This guide will help you set up and manage the Docker environment for both development and production. Let's get started!
-
-## Getting Started
-
-First, make sure you have Docker and Docker Compose installed on your system.
-
-### Development Environment
-
-To start the development environment:
-
-```bash
-docker compose -f docker-compose-dev.yml up -d  -p news-bot-prod
-```
-
-
-This command starts all services defined in the development configuration.
-
-### Production Environment
-
-For the production environment:
-
-```bash
-docker compose up -d
-```
-
-
-## Accessing Data
-
-### Redis
-
-To access Redis data:
-
-1. Connect to the Redis container:
-   ```bash
-   docker compose exec redis-dev redis-cli -a ${REDIS_PASSWORD}
-   ```
-   Replace `${REDIS_PASSWORD}` with your actual Redis password.
-
-2. Once connected, you can use Redis commands like:
-   ```
-   KEYS *
-   GET key_name
-   ```
-
-### PostgreSQL
-
-To access PostgreSQL data:
-
-1. Connect to the PostgreSQL container:
-   ```bash
-   docker compose exec postgres-dev psql -U ${DB_USER} -d ${DB_NAME}_dev
-   ```
-   Replace `${DB_USER}` and `${DB_NAME}` with your actual database user and name.
-
-2. Once connected, you can run SQL queries, for example:
-   ```sql
-   SELECT * FROM your_table_name;
-   ```
-
-## Container Management
-
-### View Running Containers
-
-```bash
-docker compose ps
-```
-
-#### This command will effectively clean up all resources (containers, networks, volumes, and images) associated with your docker-compose-dev.yml file. 
-
-```bash
-docker-compose -f docker-compose-dev.yml down -v --rmi all --remove-orphans
-```
-
-
-### View Container Logs
-
-```bash
-docker compose logs -f service_name
-```
-
-### 
-```bash
-docker-compose -f docker-compose.yml -p news-bot-prod up
-```
-
-```bash
-docker-compose -f docker-compose-dev.yml -p news-bot-prod #last part etiquete for naming the namesoce up
-```
-
-
-Replace `service_name` with the actual service name.
-
-## Helpful Tips
-
-- The development environment uses ports 5432 for PostgreSQL and 6379 for Redis.
-- The production environment uses ports 5433 for PostgreSQL and 6380 for Redis.
-- Always use environment variables for sensitive information like passwords.
-- Check the `docker-compose-dev.yml` and `docker-compose.yml` files for detailed service configurations.
-
-## Troubleshooting
-
-If you encounter any issues:
-1. Ensure all required environment variables are set.
-2. Check container logs for error messages.
-3. Try rebuilding the containers: `docker compose -f docker-compose-dev.yml up --build -d` -->
-
-
 # News Bots v2 - Docker Environment Guide
 
 Welcome to the News Bots v2 project! This guide will help you set up and manage the Docker environment for both development and production.
@@ -179,6 +70,11 @@ SELECT * FROM your_table_name;
 ### View Running Containers
 ```bash
 docker compose ps
+```
+
+### View Running Containers Formatted
+```bash
+docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}"
 ```
 
 ### Clean Up Resources
@@ -278,3 +174,68 @@ docker compose up -d --no-deps service_name
 ```
 
 Remember to replace placeholders like `${DB_USER}`, `${DB_PASSWORD}`, `${DB_NAME}`, `volume_name`, `network_name`, and `service_name` with actual values from your setup.
+
+
+## Database Operations with Docker Volumes
+
+### Importing Data into Docker Volumes
+
+#### For Plain SQL Dumps (.sql files)
+
+Use the `psql` command:
+
+```bash
+docker exec -i <container_name> psql -U <username> -d <database_name> -f /path/to/dump.sql
+```
+
+Example:
+```bash
+docker exec -i news-bot-dev-postgres-dev-1 psql -U postgres -d news-bots-database-replica-dev -f /backups/news-bot-database-10-10-2024.sql
+```
+
+#### For Custom Format Dumps
+
+Use the `pg_restore` command:
+
+```bash
+docker exec -i <container_name> pg_restore -U <username> -d <database_name> -v /path/to/dump
+```
+
+Example:
+```bash
+docker exec -i news-bot-dev-postgres-dev-1 pg_restore -U postgres -d news-bots-database-replica-dev -v /backups/news-bot-database-custom.dump
+```
+
+### Exporting Data from Docker Volumes
+
+#### To Plain SQL Format
+
+```bash
+docker exec -i <container_name> pg_dump -U <username> -d <database_name> > /path/on/host/dump.sql
+```
+
+Example:
+```bash
+docker exec -i news-bot-dev-postgres-dev-1 pg_dump -U postgres -d news-bots-database-replica-dev > ./backups/exported_data.sql
+```
+
+#### To Custom Format
+
+```bash
+docker exec -i <container_name> pg_dump -U <username> -Fc -d <database_name> > /path/on/host/dump.custom
+```
+
+Example:
+```bash
+docker exec -i news-bot-dev-postgres-dev-1 pg_dump -U postgres -Fc -d news-bots-database-replica-dev > ./backups/exported_data.custom
+```
+
+### Notes
+
+- Replace `<container_name>`, `<username>`, `<database_name>`, and file paths with your specific values.
+- Ensure the target database exists before importing.
+- For large databases, consider adding the `-v` flag for verbose output to monitor progress.
+- When exporting, the `>` operator redirects the output to a file on your host machine.
+- The `-Fc` flag in the export command creates a custom-format archive suitable for input into pg_restore.
+
+Remember to adjust file permissions if needed, and always backup your data before performing import or export operations.
