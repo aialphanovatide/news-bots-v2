@@ -4,10 +4,12 @@ services:
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
       - ./backups:/backups
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     environment:
       POSTGRES_DB: ${DB_NAME_DEV}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+      BACKUP_FILE: /backups/news-bot-database-10-10-2024.sql
     ports:
       - "5431:5432"
     healthcheck:
@@ -17,6 +19,11 @@ services:
       retries: 5
     networks:
       - app-network-dev
+    command: >
+      bash -c "
+        chmod +x /docker-entrypoint-initdb.d/init-db.sh &&
+        docker-entrypoint.sh postgres
+      "
 
   app-dev:
     build:
