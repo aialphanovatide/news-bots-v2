@@ -51,9 +51,9 @@ def create_app():
     scheduler.init_app(app)
     with app.app_context():
         db.create_all()  # Create tables if they don't exist
-        # check_server_timezone()
-        # check_database_timezone()
-        # check_scheduler_timezone()
+        check_server_timezone()
+        check_database_timezone()
+        check_scheduler_timezone()
 
         if scheduler.state != 1:
             print('Scheduler started')
@@ -87,12 +87,12 @@ def create_app():
         app.register_blueprint(blueprint)
 
     # Uncomment these lines if you need to initialize data
-    # from app.data import initialize_categories, initialize_fixed_data, initialize_keywords, initialize_sites_data
-    # with app.app_context():
-    #     initialize_categories()
-    #     initialize_fixed_data()
-    #     initialize_sites_data()
-    #     initialize_keywords()
+    from data import initialize_categories, initialize_fixed_data, initialize_keywords, initialize_sites_data
+    with app.app_context():
+        initialize_categories()
+        initialize_fixed_data()
+        initialize_sites_data()
+        initialize_keywords()
 
     return app
 

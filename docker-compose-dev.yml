@@ -85,9 +85,6 @@ services:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN_DEV}
     ports:
       - "4040:4040"
-    depends_on:
-      app-dev:
-        condition: service_healthy
     networks:
       - app-network-dev
 
