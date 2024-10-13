@@ -67,11 +67,9 @@ start_flask_app() {
 # Main execution
 echo "Initializing application..."
 
-# Wait for the database to be ready
-wait_for_db
 
 # Check and apply migrations
-check_create_and_apply_migrations
+# check_create_and_apply_migrations
 
 # Start the Flask application
 start_flask_app
