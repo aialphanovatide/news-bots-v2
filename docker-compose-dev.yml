@@ -25,6 +25,22 @@ services:
         docker-entrypoint.sh postgres
       "
 
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    networks:
+      - app-network-dev
+      - shared-network
+    depends_on:
+      - postgres-dev
+  
   app-dev:
     build:
       context: .
@@ -87,7 +103,10 @@ services:
 
 volumes:
   postgres_data_dev:
+  pgadmin_data:
 
 networks:
   app-network-dev:
     name: app-network-dev
+  shared-network:
+    external: true
