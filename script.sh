@@ -48,7 +48,7 @@ start_flask_app() {
     if [ "$FLASK_ENV" = "development" ]; then
         python run.py --host=0.0.0.0 --port=9000
     else
-        PORT=${PORT:-9000}
+        PORT=${PORT:-5000}
         exec gunicorn --bind 0.0.0.0:$PORT --workers 3 --threads 2 --timeout 120 run:app
     fi
 }
