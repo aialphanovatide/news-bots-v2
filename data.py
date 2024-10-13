@@ -557,7 +557,8 @@ def initialize_categories():
                     db.session.add(new_category)
             db.session.commit()
             print("Fixed data inserted into the 'Category' table.")
-       
+        else:
+            print("The 'Category' table is already populated.")
     except Exception as e:
         print(f"Error initializing categories: {e}")
         db.session.rollback()
