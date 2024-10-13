@@ -67,6 +67,12 @@ To access PostgreSQL data:
 docker compose ps
 ```
 
+#### This command will effectively clean up all resources (containers, networks, volumes, and images) associated with your docker-compose-dev.yml file. 
+
+```bash
+docker-compose -f docker-compose-dev.yml down -v --rmi all --remove-orphans
+```
+
 
 ### View Container Logs
 

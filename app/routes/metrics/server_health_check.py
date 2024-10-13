@@ -8,6 +8,10 @@ from app.routes.routes_utils import create_response
 health_check_bp = Blueprint('health_check', __name__,
                             template_folder='templates')
 
+@health_check_bp.route('/health')
+def health_check():
+    return 'OK', 200
+
 @health_check_bp.route('/', methods=['GET'])
 def welcome():
     """
