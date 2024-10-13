@@ -120,7 +120,7 @@ Ensure Docker and Docker Compose are installed on your system.
 Start the development environment:
 
 ```bash
-docker compose -f docker-compose-dev.yml up -d -p news-bot-dev
+docker compose -f docker-compose-dev.yml up -d
 ```
 
 ### Production Environment
@@ -128,7 +128,7 @@ docker compose -f docker-compose-dev.yml up -d -p news-bot-dev
 Start the production environment:
 
 ```bash
-docker compose -f docker-compose.yml up -d -p news-bot-prod
+docker compose -f docker-compose.yml up -d
 ```
 
 ## Accessing Data
@@ -193,7 +193,7 @@ docker compose logs -f service_name
 
 ### Start Specific Service Group
 ```bash
-docker-compose -f docker-compose.yml -p news-bot-prod --profile group1 up
+docker-compose -f docker-compose.yml -p news-bot-prod --profile group1 up -d
 ```
 
 ## Volume Management
