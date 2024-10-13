@@ -17,14 +17,6 @@ services:
     networks:
       - app-network-dev
 
-  redis-dev:
-    image: redis:6
-    ports:
-      - "6379:6379"
-    command: redis-server --requirepass ${REDIS_PASSWORD_DEV}
-    networks:
-      - app-network-dev
-
   app-dev:
     build:
       context: .
@@ -34,14 +26,11 @@ services:
     depends_on:
       postgres-dev:
         condition: service_healthy
-      redis-dev:
-        condition: service_started
     environment:
       - DB_URI=postgresql://${DB_USER}:${DB_PASSWORD}@postgres-dev:5432/${DB_NAME_DEV}
-      - REDIS_HOST=redis-dev
+      - REDIS_HOST=host.docker.internal
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD_DEV}
-      - REDIS_DB=${REDIS_DB_DEV}
+      - REDIS_DB=1
       - FLASK_ENV=development
     volumes:
       - .:/app
@@ -50,6 +39,7 @@ services:
       - -c
       - |
         chmod +x /app/script.sh
+        flask db upgrade
         ./script.sh
     networks:
       - app-network-dev
