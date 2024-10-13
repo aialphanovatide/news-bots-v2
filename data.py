@@ -9,11 +9,11 @@ def initialize_keywords():
         "name": "Bitcoin Regulation,ETF,bitcoin,SEC,Institutional Investment,Lightning Network,Taxation,Legislation, Scalability, Inflation, Global Economic Outlook, FOMC, NFP, CPI, PPI, G7 and G20, Central Bank Policy, Interest Rates, Economic Recession, Global Trade, Currency Devaluation, Unemployment, GDP Growth, Fiscal Policy, Monetary Policy, Economic Stimulus, Debt Crisis, Stock Market Crash, Commodity Prices, Geopolitical Tensions, Economic Sanctions, Emerging Markets, Capital Controls, Financial Crisis, EU, Bank Collapse, Oil Prices, Breakout, Consolidation, Slump, Rally, Price Trough, Surge, Correction, Retracement, AML Policies, Regulatory Clarity, Legal Challenges, Government Policies, Bans, Tax Implications, AML, KYC, Retail Investors, Institutional Investors, OTC Desks, Bond Yields, Real Estate, NASDAQ, S&P 500, OIL, Bonds, DXY, MACD, 50-day MA, 200-day MA, Stochastic Oscillator, Golden Cross, Death Cross, Ascending Triangle, Descending Triangle, Head and Shoulders, Gary Gensler, Outflows, Blockchain, EURUSD, China, Hong Kong, Chainlink"  
         },
         {
-            "bot_id": 2,
+        "bot_id": 2,
         "name": "aml, validators, smart, stability, classic, exchanges, consensus, drop, pool, market, growth, usage, participants, bots, recession, trading, solidity, exchange, compliance, digital, crash, pair, ethereum/lsd, orders, your, ethereum/chainlink, rise, interest, gold, governance, pairs, bearish, sentiment, relative, evm, average, liquidity, framework, financial, supply, mechanism, security, kyc, breakdown, consumer, etf, stop, downtrend, lido, blackrock, eth/bnb, securities, customer, economic, applications, fibonacci, volume, proof, mining, take, ethereum/eur, frax, rally, know, manipulation, van, oversold, whales, traders, shoulders, breaches, eth/sol, key, uptrend, ether, pos, protection, slump, all-time, ethereum/btc, ath, gas, adoption, providers, macd, breakout, crypto-crypto, creators, demand, finance, support, hack, retail, loss, anti-money, ethereum, work, fiat-crypto, virtual, stake, policy, volatility, limit, resistance, strength, staking, overbought, signals, grayscale, tokenization, upgrade, wallet, bands, gdp, profit, ethereum/cake, peak, 50-day, eth/usdt, dapps, surge, sharding, chainlink, rate, bullish, language, bollinger, etfs, pow, privacy, ichimoku, eth/usd, high, ethereum/usd, correction, head, price, sma, fees, words, eth/btc, fork, capitalization, cross-border, eth, crisis, data, trend, soft, book, defi, divergence, stochastic, institutional, historical, dpos, line, hard, cloud, algorithms, rocket, stakers, decentralized, oscillator, nodes, programming, moving, transactions, contract, convergence, order, monetary, miners, taxation, delegated, index, developers, eck, etc, 200-day, inflation, investors, rsi, keywords, ma, scalability, machine, retracement, rates, ema, laundering, momentum"
         },
         {
-            "bot_id": 3,
+        "bot_id": 3,
         "name": "hack, operational, Ezra Reguerra, Rakesh Upadhyay, private, compensation, reward, actor, incentive, storage, meltdown, code, vulnerability, ripple, lost, verification, fake, attacker, tools, reentrancy, takeover, malwarevulnerability, logic, chain, cracking, anti-malware, flash, vulnerable, supply, software, language, recovery, link, liquidation, attempt, withdraw, keylogger, bounty, collapse, cybercriminal, earn, forceripple, pause, cybersecurity, key, high-level, hacker, theft, swap, multi-signature, bug, freeze, trustless, loss, protection, measures, phishing, repay, ethical, pull, program, funds, exploiter, white, security, bridhe, scammer, account, malware, malicious, two-factor, bad, breach, audit, cold, compromise, crypto, smart, recover, weakness, coding, penetration, steal, fraud, partially, unauthorised, hardware, negative, 2fa, rainbow, force, mfa, shutdown, reimburse, email, keywords, exit, stolen, message, defi, drained, scam, password, hat, brudge, sim, copycat, low-level, flaw, exploit, rug, programming, assets, issue, words, not, financial, trusted, impact, victim, hot, exchange, suffer, cryptocurrency, token, testing, ethereum, wallet, return, contract, multi-factor, attack, brute, failure, stole, authentication, loan, effect, bridge, frozen, cross-chain, exploitability, firewall, cryptocurrency regulations, blockchain laws, crypto compliance, AML regulations, KYC requirements, virtual asset regulations, cryptocurrency legislation, crypto policy, regulatory framework, financial regulatory authorities, crypto licensing, taxation on cryptocurrencies, anti-money laundering laws, know your customer, AML/CFT regulations, financial surveillance, legal framework for crypto, crypto regulatory updates, national cryptocurrency laws, compliance standards, regulatory compliance, cryptocurrency reporting, securities regulations, privacy laws for crypto, cross-border regulations, international crypto laws, cryptocurrency restrictions, cryptocurrency ban, regulatory guidelines, crypto enforcement actions, cryptojacking, compromised, sandbox, double-spending, ransomware, permissionless, hashing, encryption, security breach, nonce, tamper-proof, zero-day, decentralized, consensus, immutable, hard fork, soft fork, zero-knowledge, trustless, peer-to-peer, elliptic curve, zero-trust, elliptic curve cryptography, tokenomics, cryptographic, quantum-resistant, zero-knowledge proofs, side channel, replay attack, fork resistance, smart contract audit, atomic swap, address collision, DDoS (Distributed Denial of Service), hardware wallet, passphrase, on-chain, off-chain, deterministic wallet, permissioned, nonce reuse, permissioned blockchain, sharding, Merkle tree, ring signature, hardening, key management, elliptic curve digital signature algorithm (ECDSA), interoperability, sybil attack, pegged, consortium blockchain, multisig, gas fees, zk-SNARKs, privacy coin, tumbling, whitepaper, block reward, delegated proof-of-stake (DPoS), liquid democracy, off-chain scaling, permissionless innovation, plasma, soft consensus, stablecoin, token issuance, token swap, staking, voting power, premine, quantum computing resistance, cross-border transactions, token standard, state channel, scalability, ring confidential transactions (RingCT), exploit, crypto crime, law enforcement, blockchain analytics, hacks, bad actors, bridge exploitation, crypto assets, Poloniex, unauthorized withdrawals, Internal Revenue Service (IRS), cryptocurrency cases, TRM Labs, survey, investigations, crypto studies, law enforcement professionals, crypto training, blockchain regulations, market value, stablecoins, Tether (USDT), USDC, tickers, regulatory framework, Anti-Money Laundering (AML), Financial Action Task Force (FATF), PwC Global Crypto Regulation Report, stablecoin legislation, regulatory assessment"
         },
     {
@@ -541,13 +541,23 @@ def initialize_categories():
               
             ]
 
-            for category_data in categories_data:
-                new_category = Category(**category_data)
-                db.session.add(new_category)
+            for data in categories_data:
+                existing_category = Category.query.filter_by(name=data['name']).first()
+                if not existing_category:
+                    new_category = Category(
+                        name=data['name'],
+                        alias=data['alias'],
+                        slack_channel=data['slack_channel'],
+                        icon=data['icon'],
+                        border_color=data['border_color'],
+                        is_active=data['is_active'],
+                        created_at=datetime.now(),
+                        updated_at=datetime.now()
+                    )
+                    db.session.add(new_category)
             db.session.commit()
             print("Fixed data inserted into the 'Category' table.")
-        else:
-            print("The 'Category' table is already populated.")
+       
     except Exception as e:
         print(f"Error initializing categories: {e}")
         db.session.rollback()
