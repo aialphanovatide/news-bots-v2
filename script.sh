@@ -135,7 +135,7 @@ echo "Initializing application..."
 # wait_for_db
 
 # Check and apply migrations
-# check_create_and_apply_migrations
+check_create_and_apply_migrations
 
 # Start the Flask application
 start_flask_app
