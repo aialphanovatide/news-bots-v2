@@ -9,6 +9,7 @@ services:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+      BACKUP_FILE: /backups/news-bot-database-10-10-2024.sql
     ports:
       - "5434:5432"
     healthcheck:
@@ -18,7 +19,6 @@ services:
       retries: 5
     networks:
       - app-network-prod
-      - shared-network
     command: >
       bash -c "
         chmod +x /docker-entrypoint-initdb.d/restore_db.sh &&
@@ -37,7 +37,6 @@ services:
       - "5051:80"
     networks:
       - app-network-prod
-      - shared-network
     depends_on:
       - postgres-prod
 
@@ -107,9 +106,8 @@ services:
 
 volumes:
   postgres_data_prod:
+  pgadmin_data:
 
 networks:
   app-network-prod:
     name: app-network-prod
-  shared-network:
-    external: true
