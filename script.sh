@@ -4,6 +4,17 @@ set -e  # Exit immediately if a command exits with a non-zero status.
 # Set environment variables
 export FLASK_ENV=${FLASK_ENV:-development}
 
+# Function to wait for the database
+wait_for_db() {
+    echo "Waiting for database to be ready..."
+    while ! pg_isready -h postgres-dev -p 5432 -U ${DB_USER}
+    do
+        echo "Database is unavailable - sleeping"
+        sleep 1
+    done
+    echo "Database is up - executing command"
+}
+
 # Function to check, create, and apply Alembic migrations
 check_create_and_apply_migrations() {
     echo "Checking for pending database migrations..."
@@ -56,8 +67,11 @@ start_flask_app() {
 # Main execution
 echo "Initializing application..."
 
+# Wait for the database to be ready
+wait_for_db
+
 # Check and apply migrations
-# check_create_and_apply_migrations
+check_create_and_apply_migrations
 
 # Start the Flask application
 start_flask_app

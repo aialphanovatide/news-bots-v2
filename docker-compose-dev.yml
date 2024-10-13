@@ -39,7 +39,6 @@ services:
       - -c
       - |
         chmod +x /app/script.sh
-        flask db upgrade
         ./script.sh
     networks:
       - app-network-dev
