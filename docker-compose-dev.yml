@@ -14,12 +14,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network-dev
 
   redis-dev:
     image: redis:6
     ports:
       - "6379:6379"
     command: redis-server --requirepass ${REDIS_PASSWORD_DEV}
+    networks:
+      - app-network-dev
 
   app-dev:
     build:
@@ -47,6 +51,14 @@ services:
       - |
         chmod +x /app/script.sh
         ./script.sh
+    networks:
+      - app-network-dev
+    healthcheck:
+      test: ["CMD-SHELL", "ps aux | grep 'python app.py' | grep -v grep"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   playwright:
     build:
@@ -60,6 +72,8 @@ services:
       - DISPLAY=:99
     cap_add:
       - SYS_ADMIN
+    networks:
+      - app-network-dev
 
   ngrok:
     image: ngrok/ngrok:latest
@@ -72,7 +86,14 @@ services:
     ports:
       - "4040:4040"
     depends_on:
-      - app-dev
+      app-dev:
+        condition: service_healthy
+    networks:
+      - app-network-dev
 
 volumes:
   postgres_data_dev:
+
+networks:
+  app-network-dev:
+    name: app-network-dev
