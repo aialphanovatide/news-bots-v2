@@ -18,7 +18,7 @@ done
 if is_db_empty "$POSTGRES_DB"; then
     echo "Database is empty. Restoring from backup..."
     if [ -f "$BACKUP_FILE" ]; then
-        psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$BACKUP_FILE"
+        pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$BACKUP_FILE"
         echo "Backup restored successfully."
     else
         echo "Backup file not found: $BACKUP_FILE"

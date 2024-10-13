@@ -4,7 +4,7 @@ services:
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
       - ./backups:/backups
-      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+      - ./restore_db.sh:/docker-entrypoint-initdb.d/restore_db.sh
     environment:
       POSTGRES_DB: ${DB_NAME_DEV}
       POSTGRES_USER: ${DB_USER}
@@ -21,7 +21,7 @@ services:
       - app-network-dev
     command: >
       bash -c "
-        chmod +x /docker-entrypoint-initdb.d/init-db.sh &&
+        chmod +x /docker-entrypoint-initdb.d/restore_db.sh &&
         docker-entrypoint.sh postgres
       "
 
