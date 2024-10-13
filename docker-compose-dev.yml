@@ -37,9 +37,9 @@ services:
       - "5050:80"
     networks:
       - app-network-dev
+      - shared-network
     depends_on:
       - postgres-dev
-  
   
   app-dev:
     build:
@@ -108,3 +108,5 @@ volumes:
 networks:
   app-network-dev:
     name: app-network-dev
+  shared-network:
+    external: true
