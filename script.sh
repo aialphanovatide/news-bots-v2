@@ -46,9 +46,9 @@ check_create_and_apply_migrations() {
 start_flask_app() {
     echo "Starting Flask application in $FLASK_ENV mode..."
     if [ "$FLASK_ENV" = "development" ]; then
-        python run.py --host=0.0.0.0 --port=9000
+        python run.py --host=0.0.0.0 --port=5000
     else
-        PORT=${PORT:-9000}
+        PORT=${PORT:-5000}
         exec gunicorn --bind 0.0.0.0:$PORT --workers 3 --threads 2 --timeout 120 run:app
     fi
 }
