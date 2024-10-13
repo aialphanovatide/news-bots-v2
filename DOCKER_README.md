@@ -193,7 +193,7 @@ docker compose logs -f service_name
 
 ### Start Specific Service Group
 ```bash
-docker-compose -f docker-compose.yml -p news-bot-prod --profile group1 up -d
+docker-compose -f docker-compose-dev.yml -p news-bot-dev --profile group1 up -d
 ```
 
 ## Volume Management
