@@ -1,6 +1,6 @@
 services:
   postgres-dev:
-    image: postgres:13
+    image: postgres:16
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
       - ./backups:/backups
