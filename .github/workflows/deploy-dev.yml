@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - develop
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -20,12 +21,19 @@ jobs:
         # Ensure we're in the correct directory
         cd $GITHUB_WORKSPACE || exit 1
         
-        # Fetch latest changes
+        echo "Fetching the latest changes..."
+        # Fetch the latest changes
         git fetch origin
         
+        echo "Checking out the develop branch..."
+        # Ensure we're on the develop branch
+        git checkout develop
+        
+        echo "Pulling the latest changes from the develop branch..."
         # Store current commit hash
         PREVIOUS_COMMIT=$(git rev-parse HEAD)
         
+        echo "Pulling the latest changes from the develop branch..."
         # Pull latest changes from develop branch
         git pull origin develop
         
@@ -71,10 +79,13 @@ jobs:
         }
         
         # Main deployment logic
+        echo "Stopping containers..."
         stop_containers
+        echo "Starting containers..."
         if start_containers; then
           echo "Waiting for services to start..."
-          sleep 180
+          sleep 300
+          echo "Performing health check..."
           if health_check; then
             echo "Deployment successful. Health check passed."
           else
