@@ -71,7 +71,6 @@ services:
       timeout: 10s
       retries: 5
       start_period: 160s
-    restart: unless-stopped
 
   playwright:
     build:
