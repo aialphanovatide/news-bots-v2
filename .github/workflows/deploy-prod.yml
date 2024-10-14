@@ -7,37 +7,28 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    env:
-      HOST: ${{ secrets.MACOS_HOST_IP }}
-      USER: ${{ secrets.MACOS_USERNAME }}
-      PROJECT_PATH: /Users/amananand/Desktop/AI Alpha/news-bots-v2.1/news-bots-v2
+    runs-on: self-hosted
     steps:
     - uses: actions/checkout@v2
     - name: Deploy to Production
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.MACOS_SSH_PRIVATE_KEY }}
       run: |
         echo "Starting deployment to Production environment..."
-        echo "$SSH_PRIVATE_KEY" > private_key && chmod 600 private_key
-        ssh -o StrictHostKeyChecking=no -i private_key ${USER}@${HOST} '
-          cd ${{ env.PROJECT_PATH }} &&
-          git fetch origin &&
-          PREVIOUS_COMMIT=$(git rev-parse HEAD) &&
-          git pull origin main &&
-          docker-compose -f docker-compose.yml up -d --build &&
-          echo "Waiting for services to start..." &&
-          sleep 60 &&
-          if curl -f http://localhost:5001/health; then
-            echo "Deployment successful. Health check passed."
-          else
-            echo "Health check failed. Rolling back..."
-            git reset --hard $PREVIOUS_COMMIT
-            docker-compose -f docker-compose.yml up -d --build
-            echo "Rollback complete."
-            exit 1
-          fi
-        '
+        cd /Users/amananand/Desktop/AI Alpha/news-bots-v2.1/news-bots-v2
+        git fetch origin
+        PREVIOUS_COMMIT=$(git rev-parse HEAD)
+        git pull origin main
+        docker-compose -f docker-compose.yml up -d --build
+        echo "Waiting for services to start..."
+        sleep 60
+        if curl -f http://localhost:5001/health; then
+          echo "Deployment successful. Health check passed."
+        else
+          echo "Health check failed. Rolling back..."
+          git reset --hard $PREVIOUS_COMMIT
+          docker-compose -f docker-compose.yml up -d --build
+          echo "Rollback complete."
+          exit 1
+        fi
     - name: Deployment Status
       if: always()
       run: |
