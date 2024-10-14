@@ -10,7 +10,7 @@ jobs:
     runs-on: self-hosted
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -29,21 +29,61 @@ jobs:
         # Pull latest changes from develop branch
         git pull origin develop
         
-        # Start Docker services
-        docker-compose -f docker-compose-dev.yml up -d --build
+        # Function to start containers
+        start_containers() {
+          docker-compose -f docker-compose-dev.yml -p news-bot-dev up -d --build
+          if [ $? -ne 0 ]; then
+            echo "Failed to start containers"
+            return 1
+          fi
+          return 0
+        }
         
-        echo "Waiting for services to start..."
-        sleep 60
+        # Function to stop containers
+        stop_containers() {
+          docker-compose -f docker-compose-dev.yml -p news-bot-dev down
+        }
         
-        # Perform health check
-        if curl -f http://localhost:5000/health; then
-          echo "Deployment successful. Health check passed."
-        else
-          echo "Health check failed. Rolling back..."
+        # Function to perform health check
+        health_check() {
+          for i in {1..5}; do
+            if curl -f http://localhost:5000/health; then
+              return 0
+            fi
+            echo "Health check attempt $i failed. Retrying in 10 seconds..."
+            sleep 10
+          done
+          return 1
+        }
+        
+        # Function to rollback
+        rollback() {
+          echo "Rolling back to previous commit..."
           git reset --hard $PREVIOUS_COMMIT
-          docker-compose -f docker-compose-dev.yml up -d --build
-          echo "Rollback complete."
-          exit 1
+          stop_containers
+          start_containers
+          if health_check; then
+            echo "Rollback successful"
+          else
+            echo "Rollback failed. Manual intervention required."
+            exit 1
+          fi
+        }
+        
+        # Main deployment logic
+        stop_containers
+        if start_containers; then
+          echo "Waiting for services to start..."
+          sleep 30
+          if health_check; then
+            echo "Deployment successful. Health check passed."
+          else
+            echo "Health check failed. Rolling back..."
+            rollback
+          fi
+        else
+          echo "Failed to start containers. Rolling back..."
+          rollback
         fi
 
     - name: Deployment Status
