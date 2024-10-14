@@ -9,17 +9,33 @@ jobs:
   deploy:
     runs-on: self-hosted
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
     - name: Deploy to Production
       run: |
         echo "Starting deployment to Production environment..."
-        cd /Users/amananand/Desktop/AI Alpha/news-bots-v2.1/news-bots-v2
+        # Ensure we're in the correct directory
+        cd $GITHUB_WORKSPACE || exit 1
+        
+        # Fetch latest changes
         git fetch origin
+        
+        # Store current commit hash
         PREVIOUS_COMMIT=$(git rev-parse HEAD)
+        
+        # Pull latest changes from main branch
         git pull origin main
+        
+        # Start Docker services
         docker-compose -f docker-compose.yml up -d --build
+        
         echo "Waiting for services to start..."
         sleep 60
+        
+        # Perform health check
         if curl -f http://localhost:5001/health; then
           echo "Deployment successful. Health check passed."
         else
@@ -29,6 +45,7 @@ jobs:
           echo "Rollback complete."
           exit 1
         fi
+
     - name: Deployment Status
       if: always()
       run: |
@@ -37,3 +54,16 @@ jobs:
         else
           echo "Deployment to Production failed. Please check the logs for details."
         fi
+
+    - name: Debug Information
+      if: failure()
+      run: |
+        echo "Current directory: $(pwd)"
+        echo "Contents of directory:"
+        ls -la
+        echo "Git status:"
+        git status
+        echo "Docker version:"
+        docker --version
+        echo "Docker Compose version:"
+        docker-compose --version
