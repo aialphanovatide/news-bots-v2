@@ -67,10 +67,10 @@ services:
       - app-network-dev
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 160s
+      interval: 150s
+      timeout: 50s
+      retries: 3
+      start_period: 180s
 
   playwright:
     build:
