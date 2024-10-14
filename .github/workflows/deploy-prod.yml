@@ -74,7 +74,7 @@ jobs:
         stop_containers
         if start_containers; then
           echo "Waiting for services to start..."
-          sleep 60
+          sleep 400
           if health_check; then
             echo "Deployment successful. Health check passed."
           else
