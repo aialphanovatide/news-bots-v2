@@ -166,8 +166,8 @@ jobs:
         # Main deployment logic
         echo "Starting new deployment..."
         if start_new_deployment; then
-          # echo "Waiting for essential services..."
-          # wait_for_services 
+          echo "Waiting for essential services..."
+          wait_for_services 
           echo "Waiting for services to start..."
           sleep 80
           echo "Performing health check..."
