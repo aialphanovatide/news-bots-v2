@@ -65,27 +65,43 @@ jobs:
         
         # Function to start new deployment
         start_new_deployment() {
-          docker-compose -f docker-compose.yml -p news-bot-prod up -d --no-deps --build $NEW_DEPLOYMENT
+          docker-compose -f docker-compose.yml -p news-bot-prod up -d --no-deps --build --remove-orphans $NEW_DEPLOYMENT
           return $?
         }
         
         # Function to perform health check
         health_check() {
-          NEW_PORT=$(docker-compose -f docker-compose.yml -p news-bot-prod port $NEW_DEPLOYMENT 5000 | cut -d: -f2)
-          for i in {1..5}; do
-            if curl -f http://localhost:$NEW_PORT/health; then
-              return 0
-            fi
-            echo "Health check attempt $i failed. Retrying in 30 seconds..."
-            sleep 30
+          CONTAINER_IDS=$(docker-compose -f docker-compose.yml -p news-bot-prod ps -q $NEW_DEPLOYMENT)
+          for CONTAINER_ID in $CONTAINER_IDS; do
+            PORT=$(docker port $CONTAINER_ID 5000/tcp | cut -d: -f2)
+            for i in {1..5}; do
+              if curl -f http://localhost:$PORT/health; then
+                return 0
+              fi
+              echo "Health check attempt $i failed for container $CONTAINER_ID. Retrying in 30 seconds..."
+              sleep 30
+            done
           done
           return 1
         }
         
         # Function to switch traffic
         switch_traffic() {
-          sed -i "s/server $OLD_DEPLOYMENT:5000;/server $NEW_DEPLOYMENT:5000;/" nginx/conf.d/app.conf
-          sed -i "s/server $NEW_DEPLOYMENT:5000 backup;/server $OLD_DEPLOYMENT:5000 backup;/" nginx/conf.d/app.conf
+          CONTAINER_IDS=$(docker-compose -f docker-compose.yml -p news-bot-prod ps -q $NEW_DEPLOYMENT)
+          NEW_UPSTREAM="upstream app_servers {"
+          for CONTAINER_ID in $CONTAINER_IDS; do
+            PORT=$(docker port $CONTAINER_ID 5000/tcp | cut -d: -f2)
+            NEW_UPSTREAM="${NEW_UPSTREAM}server localhost:$PORT;"
+          done
+          # Add the old deployment as backup
+          OLD_CONTAINER_IDS=$(docker-compose -f docker-compose.yml -p news-bot-prod ps -q $OLD_DEPLOYMENT)
+          for CONTAINER_ID in $OLD_CONTAINER_IDS; do
+            PORT=$(docker port $CONTAINER_ID 5000/tcp | cut -d: -f2)
+            NEW_UPSTREAM="${NEW_UPSTREAM}server localhost:$PORT backup;"
+          done
+          NEW_UPSTREAM="${NEW_UPSTREAM}}"
+          
+          sed -i "s/upstream app_servers {.*}/$NEW_UPSTREAM/" nginx/conf.d/app.conf
           docker-compose -f docker-compose.yml -p news-bot-prod exec -T nginx nginx -s reload
         }
         
