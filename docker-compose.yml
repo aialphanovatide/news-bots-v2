@@ -61,7 +61,6 @@ services:
       - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
       - COINMARKET_API_KEY=${COINMARKET_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
       - .:/app
     command: 
