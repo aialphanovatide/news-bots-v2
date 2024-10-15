@@ -101,7 +101,11 @@ jobs:
           done
           NEW_UPSTREAM="${NEW_UPSTREAM}}"
           
-          sed -i "s/upstream app_servers {.*}/$NEW_UPSTREAM/" nginx/conf.d/app.conf
+          # Escape special characters in the NEW_UPSTREAM variable
+          ESCAPED_NEW_UPSTREAM=$(printf '%s\n' "$NEW_UPSTREAM" | sed -e 's/[\/&]/\\&/g')
+          
+          # Use a different delimiter for sed to avoid conflicts with slashes in the replacement string
+          sed -i "s|upstream app_servers {.*}|${ESCAPED_NEW_UPSTREAM}|" nginx/conf.d/app.conf
           docker-compose -f docker-compose.yml -p news-bot-prod exec -T nginx nginx -s reload
         }
         
