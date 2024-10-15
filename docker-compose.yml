@@ -257,10 +257,10 @@ services:
       - app-network-prod
     healthcheck:
       test: ["CMD", "curl", "-f", "http://app-prod:5000/health"]
-      interval: 150s
-      timeout: 50s
+      interval: 15s
+      timeout: 10s
       retries: 3
-      start_period: 180s
+      start_period: 20s
 
   playwright:
     build:
