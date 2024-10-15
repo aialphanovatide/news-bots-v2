@@ -32,9 +32,6 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Ensure nginx config directory exists
-      run: mkdir -p nginx
-
     - name: Deploy to Production
       run: |
         echo "Starting deployment to Production environment..."
@@ -47,12 +44,15 @@ jobs:
         git checkout main
         
         echo "Pulling the latest changes from the main branch..."
-        PREVIOUS_COMMIT=$(git rev-parse HEAD)
         git pull origin main
         
         # Determine current active deployment
         ACTIVE_DEPLOYMENT=$(docker-compose -f docker-compose.yml -p news-bot-prod ps | grep -E "app-(blue|green)" | grep "Up" | awk '{print $1}')
-        if [[ $ACTIVE_DEPLOYMENT == *"blue"* ]]; then
+        if [[ -z "$ACTIVE_DEPLOYMENT" ]]; then
+          echo "No active deployment found. Starting initial deployment..."
+          NEW_DEPLOYMENT="app-blue"
+          OLD_DEPLOYMENT="app-green"
+        elif [[ $ACTIVE_DEPLOYMENT == *"blue"* ]]; then
           NEW_DEPLOYMENT="app-green"
           OLD_DEPLOYMENT="app-blue"
         else
@@ -63,19 +63,22 @@ jobs:
         echo "Current active deployment: $ACTIVE_DEPLOYMENT"
         echo "New deployment: $NEW_DEPLOYMENT"
         
-        # Function to start new deployment
-        start_new_deployment() {
-          echo "Starting new deployment: $NEW_DEPLOYMENT"
-          docker-compose -f docker-compose.yml -p news-bot-prod up -d --build $NEW_DEPLOYMENT
+        # Function to start essential services and new deployment
+        start_services() {
+          echo "Starting essential services and new deployment: $NEW_DEPLOYMENT"
+          docker-compose -f docker-compose.yml -p news-bot-prod up -d --build postgres-prod pgadmin nginx playwright ngrok $NEW_DEPLOYMENT
           return $?
         }
 
         # Function to wait for essential services
         wait_for_services() {
           echo "Waiting for essential services to be ready..."
-          docker-compose -f docker-compose.yml -p news-bot-prod up -d postgres-prod nginx playwright ngrok pgadmin
           while ! docker-compose -f docker-compose.yml -p news-bot-prod exec -T postgres-prod pg_isready -U ${DB_USER} -d ${DB_NAME}; do
             echo "Waiting for postgres-prod to be ready..."
+            sleep 5
+          done
+          while ! curl -s http://localhost:80 > /dev/null; do
+            echo "Waiting for nginx to be ready..."
             sleep 5
           done
           echo "Essential services are ready."
@@ -127,10 +130,6 @@ jobs:
             }
           ' nginx/app.conf > nginx/app.conf.tmp && mv nginx/app.conf.tmp nginx/app.conf
 
-          # Print the updated nginx configuration for debugging
-          echo "Updated nginx configuration:"
-          cat nginx/app.conf
-
           # Test nginx configuration before reloading
           docker-compose -f docker-compose.yml -p news-bot-prod exec -T nginx nginx -t
 
@@ -147,9 +146,13 @@ jobs:
         
         # Function to cleanup old deployment
         cleanup_old_deployment() {
-          echo "Cleaning up old deployment: $OLD_DEPLOYMENT"
-          docker-compose -f docker-compose.yml -p news-bot-prod stop $OLD_DEPLOYMENT
-          docker-compose -f docker-compose.yml -p news-bot-prod rm -f $OLD_DEPLOYMENT
+          if [[ -n "$ACTIVE_DEPLOYMENT" ]]; then
+            echo "Cleaning up old deployment: $OLD_DEPLOYMENT"
+            docker-compose -f docker-compose.yml -p news-bot-prod stop $OLD_DEPLOYMENT
+            docker-compose -f docker-compose.yml -p news-bot-prod rm -f $OLD_DEPLOYMENT
+          else
+            echo "No old deployment to clean up."
+          fi
         }
         
         # Function to rollback
@@ -165,11 +168,9 @@ jobs:
         
         # Main deployment logic
         echo "Starting new deployment..."
-        if start_new_deployment; then
+        if start_services; then
           echo "Waiting for essential services..."
           wait_for_services 
-          echo "Waiting for services to start..."
-          sleep 80
           echo "Performing health check..."
           if health_check; then
             echo "New deployment is healthy. Switching traffic..."
@@ -192,7 +193,7 @@ jobs:
             exit 1
           fi
         else
-          echo "Failed to start new deployment. Old deployment still active."
+          echo "Failed to start services. Deployment failed."
           exit 1
         fi
 
