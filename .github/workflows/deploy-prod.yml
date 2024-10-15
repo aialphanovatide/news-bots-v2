@@ -63,11 +63,22 @@ jobs:
         echo "Current active deployment: $ACTIVE_DEPLOYMENT"
         echo "New deployment: $NEW_DEPLOYMENT"
         
-        # Function to start new deployment
+        # Function to start all services and new deployment
         start_new_deployment() {
-          echo "Starting new deployment..."
-          docker-compose -f docker-compose.yml -p news-bot-prod up -d --build $NEW_DEPLOYMENT
+          echo "----------------------------------------Starting all services and new deployment----------------------------------------"
+          docker-compose -f docker-compose.yml -p news-bot-prod up -d --build
           return $?
+        }
+
+        # Function to wait for essential services
+        wait_for_services() {
+          echo "Waiting for essential services to be ready..."
+          docker-compose -f docker-compose.yml -p news-bot-prod up -d postgres-prod nginx
+          while ! docker-compose -f docker-compose.yml -p news-bot-prod exec -T postgres-prod pg_isready -U ${DB_USER} -d ${DB_NAME}; do
+            echo "Waiting for postgres-prod to be ready..."
+            sleep 5
+          done
+          echo "Essential services are ready."
         }
         
         # Function to perform health check
@@ -126,14 +137,15 @@ jobs:
         # Main deployment logic
         echo "Starting new deployment..."
         if start_new_deployment; then 
+          wait_for_services
           echo "Waiting for services to start..."
-          sleep 60
+          sleep 80
           echo "Performing health check..."
           if health_check; then
             echo "New deployment is healthy. Switching traffic..."
             switch_traffic
             echo "Waiting for traffic switch to stabilize..."
-            sleep 30
+            sleep 50
             echo "Stopping old deployment..."
             docker-compose -f docker-compose.yml -p news-bot-prod stop $OLD_DEPLOYMENT
             echo "Deployment successful."
