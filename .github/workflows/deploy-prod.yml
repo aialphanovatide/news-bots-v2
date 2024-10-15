@@ -111,9 +111,7 @@ jobs:
             /upstream app_servers {/,/}/ {
               if ($0 ~ /server/) {
                 if (!printed) {
-                  print "    upstream app_servers {"
-                  print "        " new_upstream
-                  print "    }"
+                  print "   server " new_upstream
                   printed = 1
                 }
                 next
@@ -121,6 +119,10 @@ jobs:
             }
             {print}
           ' nginx/app.conf > nginx/app.conf.tmp && mv nginx/app.conf.tmp nginx/app.conf
+
+          # Print the updated nginx configuration for debugging
+          echo "Updated nginx configuration:"
+          cat nginx/app.conf
 
           # Test nginx configuration before reloading
           docker-compose -f docker-compose.yml -p news-bot-prod exec -T nginx nginx -t
