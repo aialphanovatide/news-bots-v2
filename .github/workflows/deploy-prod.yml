@@ -88,24 +88,27 @@ jobs:
         # Function to switch traffic
         switch_traffic() {
           CONTAINER_IDS=$(docker-compose -f docker-compose.yml -p news-bot-prod ps -q $NEW_DEPLOYMENT)
-          NEW_UPSTREAM="upstream app_servers {"
+          NEW_UPSTREAM=""
           for CONTAINER_ID in $CONTAINER_IDS; do
             PORT=$(docker port $CONTAINER_ID 5000/tcp | cut -d: -f2)
             NEW_UPSTREAM="${NEW_UPSTREAM}server localhost:$PORT;"
           done
-          # Add the old deployment as backup
-          OLD_CONTAINER_IDS=$(docker-compose -f docker-compose.yml -p news-bot-prod ps -q $OLD_DEPLOYMENT)
-          for CONTAINER_ID in $OLD_CONTAINER_IDS; do
-            PORT=$(docker port $CONTAINER_ID 5000/tcp | cut -d: -f2)
-            NEW_UPSTREAM="${NEW_UPSTREAM}server localhost:$PORT backup;"
-          done
-          NEW_UPSTREAM="${NEW_UPSTREAM}}"
-          
-          # Escape special characters in the NEW_UPSTREAM variable
-          ESCAPED_NEW_UPSTREAM=$(printf '%s\n' "$NEW_UPSTREAM" | sed -e 's/[\/&]/\\&/g')
-          
-          # Use a different delimiter for sed to avoid conflicts with slashes in the replacement string
-          sed -i "s|upstream app_servers {.*}|${ESCAPED_NEW_UPSTREAM}|" nginx/conf.d/app.conf
+
+          # Update the nginx configuration
+          awk -v new_upstream="$NEW_UPSTREAM" '
+            /upstream app_servers {/,/}/ {
+              if ($0 ~ /server/) {
+                if (!printed) {
+                  print "    " new_upstream
+                  printed = 1
+                }
+                next
+              }
+            }
+            {print}
+          ' nginx/app.conf > nginx/app.conf.tmp && mv nginx/app.conf.tmp nginx/app.conf
+
+          # Reload nginx configuration
           docker-compose -f docker-compose.yml -p news-bot-prod exec -T nginx nginx -s reload
         }
         
