@@ -16,7 +16,7 @@ check_create_and_apply_migrations() {
             echo "Error initializing Flask-Migrate. Exiting."
             exit 1
         fi
-    fi
+    fi 
 
     # Get the current revision and the head revision
     current_rev=$(flask db current 2>/dev/null)
