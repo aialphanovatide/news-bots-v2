@@ -63,9 +63,9 @@ jobs:
         echo "Current active deployment: $ACTIVE_DEPLOYMENT"
         echo "New deployment: $NEW_DEPLOYMENT"
         
-        # Function to start all services and new deployment
+        # Function to start new deployment
         start_new_deployment() {
-          echo "----------------------------------------Starting all services and new deployment----------------------------------------"
+          echo "Starting new deployment: $NEW_DEPLOYMENT"
           docker-compose -f docker-compose.yml -p news-bot-prod up -d --build $NEW_DEPLOYMENT
           return $?
         }
@@ -99,6 +99,7 @@ jobs:
         
         # Function to switch traffic
         switch_traffic() {
+          echo "Switching traffic to $NEW_DEPLOYMENT"
           CONTAINER_IDS=$(docker-compose -f docker-compose.yml -p news-bot-prod ps -q $NEW_DEPLOYMENT)
           NEW_UPSTREAM=""
           for CONTAINER_ID in $CONTAINER_IDS; do
@@ -136,40 +137,55 @@ jobs:
           # If the test passes, then reload
           if [ $? -eq 0 ]; then
             docker-compose -f docker-compose.yml -p news-bot-prod exec -T nginx nginx -s reload
+            echo "Traffic successfully switched to $NEW_DEPLOYMENT"
+            return 0
           else
-            echo "Nginx configuration test failed. Not reloading."
-            exit 1
+            echo "Nginx configuration test failed. Not switching traffic."
+            return 1
           fi
+        }
+        
+        # Function to cleanup old deployment
+        cleanup_old_deployment() {
+          echo "Cleaning up old deployment: $OLD_DEPLOYMENT"
+          docker-compose -f docker-compose.yml -p news-bot-prod stop $OLD_DEPLOYMENT
+          docker-compose -f docker-compose.yml -p news-bot-prod rm -f $OLD_DEPLOYMENT
         }
         
         # Function to rollback
         rollback() {
           echo "Rolling back to previous deployment..."
-          sed -i "s/server $NEW_DEPLOYMENT:5000;/server $OLD_DEPLOYMENT:5000;/" nginx/conf.d/app.conf
-          sed -i "s/server $OLD_DEPLOYMENT:5000 backup;/server $NEW_DEPLOYMENT:5000 backup;/" nginx/conf.d/app.conf
-          docker-compose -f docker-compose.yml -p news-bot-prod exec -T nginx nginx -s reload
           docker-compose -f docker-compose.yml -p news-bot-prod stop $NEW_DEPLOYMENT
+          docker-compose -f docker-compose.yml -p news-bot-prod rm -f $NEW_DEPLOYMENT
+          # Restore the old nginx configuration
+          git checkout -- nginx/app.conf
+          docker-compose -f docker-compose.yml -p news-bot-prod exec -T nginx nginx -s reload
           echo "Rollback completed."
         }
         
         # Main deployment logic
         echo "Starting new deployment..."
         if start_new_deployment; then 
-         
           echo "Waiting for services to start..."
           sleep 80
           echo "Performing health check..."
           if health_check; then
             echo "New deployment is healthy. Switching traffic..."
-            switch_traffic
-            echo "Waiting for traffic switch to stabilize..."
-            sleep 50
-            echo "Stopping old deployment..."
-            docker-compose -f docker-compose.yml -p news-bot-prod stop $OLD_DEPLOYMENT
-            echo "Deployment successful."
+            if switch_traffic; then
+              echo "Waiting for traffic switch to stabilize..."
+              sleep 50
+              echo "Cleaning up old deployment..."
+              cleanup_old_deployment
+              echo "Deployment successful."
+            else
+              echo "Failed to switch traffic. Rolling back..."
+              rollback
+              echo "Deployment failed. Old deployment still active."
+              exit 1
+            fi
           else
             echo "Health check failed. Rolling back..."
-            docker-compose -f docker-compose.yml -p news-bot-prod stop $NEW_DEPLOYMENT
+            rollback
             echo "Deployment failed. Old deployment still active."
             exit 1
           fi
