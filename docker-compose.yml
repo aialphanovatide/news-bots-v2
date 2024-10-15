@@ -103,8 +103,6 @@ services:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
     ports:
       - "4041:4040"
-    depends_on:
-      - app-prod
     networks:
       - app-network-prod
 
