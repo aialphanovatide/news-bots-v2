@@ -115,7 +115,7 @@ def create_bot():
         category_id (int): The ID of the category the bot belongs to (required)
         dalle_prompt (str): The DALL-E prompt for the bot (optional)
         background_color (str): The background color for the bot (optional)
-        run_frequency (int): The frequency to run the bot in minutes (required for scheduling)
+        run_frequency (int): The frequency to run the bot in minutes (required for scheduling, minimum 20 minutes)
         url (str): The URL for the bot's site (required for scheduling)
         whitelist (str): Comma-separated list of keywords (optional)
         blacklist (str): Comma-separated list of blacklisted words (optional)
@@ -128,7 +128,7 @@ def create_bot():
             - message (str): Additional information about the operation
         HTTP Status Code:
             - 201: Created successfully
-            - 400: Bad request (missing required fields or bot name already exists)
+            - 400: Bad request (missing required fields, bot name already exists, or invalid run frequency)
             - 404: Category not found
             - 500: Internal server error
     """
@@ -138,10 +138,15 @@ def create_bot():
             current_time = datetime.now()
 
             # Validate required fields
-            required_fields = ['name', 'alias', 'category_id']
+            required_fields = ['name', 'alias', 'category_id', 'run_frequency']
             for field in required_fields:
                 if field not in data:
                     return jsonify(create_response(error=f'Missing field in request data: {field}')), 400
+
+            # Validate run_frequency
+            run_frequency = data.get('run_frequency')
+            if not isinstance(run_frequency, int) or run_frequency < 20:
+                return jsonify(create_response(error='Run frequency must be an integer of at least 20 minutes')), 400
 
             # Check if bot with the same name already exists
             existing_bot = session.query(Bot).filter_by(name=data['name']).first()
@@ -165,7 +170,7 @@ def create_bot():
                 prompt=data.get('prompt', ''),
                 icon=f'https://aialphaicons.s3.us-east-2.amazonaws.com/{icon_normalized}.svg',
                 background_color=data.get('background_color', ''),
-                run_frequency=data.get('run_frequency'),
+                run_frequency=run_frequency,
                 is_active=False,
                 created_at=current_time,
                 updated_at=current_time

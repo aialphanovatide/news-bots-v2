@@ -1460,87 +1460,53 @@
           "Bots"
         ],
         "summary": "Create a new bot",
-        "description": "\n    this endpoint handles the creation of a new bot with associated site, keywords, and blacklist.\n    \n    the bot will be created with is_active set to false by default. to activate the bot, use the toggle activation endpoint.\n    \n    the icon for the bot is automatically generated based on the provided alias.\n    \n    if a url is provided, a new site entry will be created and associated with the bot.\n    \n    keywords (whitelist) and blacklist entries can be provided as comma-separated strings. these will be processed, cleaned, and added to the respective tables.\n    ",
+        "description": "\n    this endpoint allows you to create a new bot with specified parameters.\n    \n    key points:\n    - the 'name', 'alias', and 'category_id' fields are required.\n    - the 'prompt' field is required and should contain the bot's initial conversation prompt.\n    - the 'run_frequency' is optional and specifies how often the bot should run (in minutes).\n    - the 'dalle_prompt' is optional and can be used to generate a custom icon for the bot.\n    - the 'background_color' is optional and can be used to set a custom background color for the bot's icon.\n    - the 'created_at' and 'updated_at' timestamps are automatically set.\n\n    after creation, the bot will be associated with the specified category and can be managed through other bot-related endpoints.\n    ",
         "parameters": [
           {
-            "name": "name",
+            "name": "body",
             "in": "body",
-            "description": "The name of the bot",
+            "description": "Bot details",
             "required": true,
             "type": "string",
-            "schema": {}
-          },
-          {
-            "name": "alias",
-            "in": "body",
-            "description": "An alias for the bot. This will be used to generate the icon URL.",
-            "required": true,
-            "type": "string",
-            "schema": {}
-          },
-          {
-            "name": "category_id",
-            "in": "body",
-            "description": "The ID of the category the bot belongs to",
-            "required": true,
-            "type": "integer",
-            "schema": {}
-          },
-          {
-            "name": "dalle_prompt",
-            "in": "body",
-            "description": "The DALL-E prompt for the bot",
-            "required": false,
-            "type": "string",
-            "schema": {}
-          },
-          {
-            "name": "prompt",
-            "in": "body",
-            "description": "The general prompt for the bot",
-            "required": false,
-            "type": "string",
-            "schema": {}
-          },
-          {
-            "name": "background_color",
-            "in": "body",
-            "description": "The background color for the bot (e.g., \"#FFFFFF\")",
-            "required": false,
-            "type": "string",
-            "schema": {}
-          },
-          {
-            "name": "run_frequency",
-            "in": "body",
-            "description": "The frequency to run the bot in minutes",
-            "required": false,
-            "type": "integer",
-            "schema": {}
-          },
-          {
-            "name": "url",
-            "in": "body",
-            "description": "The URL for the bot's site. If provided, a new Site entry will be created.",
-            "required": false,
-            "type": "string",
-            "schema": {}
-          },
-          {
-            "name": "whitelist",
-            "in": "body",
-            "description": "Comma-separated list of keywords",
-            "required": false,
-            "type": "string",
-            "schema": {}
-          },
-          {
-            "name": "blacklist",
-            "in": "body",
-            "description": "Comma-separated list of blacklisted words",
-            "required": false,
-            "type": "string",
-            "schema": {}
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name of the bot (required)"
+                },
+                "alias": {
+                  "type": "string",
+                  "description": "Unique identifier for the bot (required)"
+                },
+                "category_id": {
+                  "type": "integer",
+                  "description": "ID of the category the bot belongs to (required)"
+                },
+                "prompt": {
+                  "type": "string",
+                  "description": "Initial conversation prompt for the bot (required)"
+                },
+                "run_frequency": {
+                  "type": "integer",
+                  "description": "How often the bot should run, in minutes (optional)"
+                },
+                "dalle_prompt": {
+                  "type": "string",
+                  "description": "Prompt for generating a custom icon using DALL-E (optional)"
+                },
+                "background_color": {
+                  "type": "string",
+                  "description": "Background color for the bot's icon (optional)"
+                }
+              },
+              "required": [
+                "name",
+                "alias",
+                "category_id",
+                "prompt"
+              ]
+            }
           }
         ],
         "responses": {
@@ -1552,71 +1518,65 @@
                 "success": {
                   "type": "boolean"
                 },
-                "bot": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "alias": {
-                      "type": "string"
-                    },
-                    "category_id": {
-                      "type": "integer"
-                    },
-                    "dalle_prompt": {
-                      "type": "string"
-                    },
-                    "prompt": {
-                      "type": "string"
-                    },
-                    "icon": {
-                      "type": "string"
-                    },
-                    "background_color": {
-                      "type": "string"
-                    },
-                    "run_frequency": {
-                      "type": "integer"
-                    },
-                    "is_active": {
-                      "type": "boolean"
-                    },
-                    "created_at": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updated_at": {
-                      "type": "string",
-                      "format": "date-time"
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "description": "Unique identifier for the bot"
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "Name of the bot"
+                      },
+                      "alias": {
+                        "type": "string",
+                        "description": "Unique alias of the bot"
+                      },
+                      "category_id": {
+                        "type": "integer",
+                        "description": "ID of the category the bot belongs to"
+                      },
+                      "prompt": {
+                        "type": "string",
+                        "description": "Initial conversation prompt for the bot"
+                      },
+                      "run_frequency": {
+                        "type": "integer",
+                        "description": "How often the bot runs, in minutes"
+                      },
+                      "dalle_prompt": {
+                        "type": "string",
+                        "description": "Prompt used for generating the bot's icon"
+                      },
+                      "icon": {
+                        "type": "string",
+                        "description": "URL of the bot's icon"
+                      },
+                      "background_color": {
+                        "type": "string",
+                        "description": "Background color of the bot's icon"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Timestamp of when the bot was created"
+                      },
+                      "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Timestamp of when the bot was last updated"
+                      }
                     }
                   }
-                },
-                "message": {
-                  "type": "string"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "error": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Category not found",
+            "description": "Invalid input - This could occur if required fields are missing or if the alias is not unique",
             "schema": {
               "type": "object",
               "properties": {
@@ -1630,7 +1590,7 @@
             }
           },
           "500": {
-            "description": "Internal server error",
+            "description": "Internal server error - This could occur due to database issues or other server-side problems",
             "schema": {
               "type": "object",
               "properties": {
