@@ -116,10 +116,10 @@ services:
       - app-network-prod
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 150s
+      interval: 100s
       timeout: 50s
       retries: 3
-      start_period: 180s
+      start_period: 150s
     deploy:
       replicas: 2
       update_config:
@@ -170,6 +170,9 @@ services:
       - "4041:4040"
     networks:
       - app-network-prod
+    depends_on:
+      nginx:
+        condition: service_healthy
 
 volumes:
   postgres_data_prod:
