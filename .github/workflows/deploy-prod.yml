@@ -73,7 +73,7 @@ jobs:
         # Function to wait for essential services
         wait_for_services() {
           echo "Waiting for essential services to be ready..."
-          docker-compose -f docker-compose.yml -p news-bot-prod up -d postgres-prod nginx
+          docker-compose -f docker-compose.yml -p news-bot-prod up -d postgres-prod nginx playwright ngrok pgadmin
           while ! docker-compose -f docker-compose.yml -p news-bot-prod exec -T postgres-prod pg_isready -U ${DB_USER} -d ${DB_NAME}; do
             echo "Waiting for postgres-prod to be ready..."
             sleep 5
