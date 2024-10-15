@@ -165,7 +165,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "5001:5000"
+      - "5003:5000"
     depends_on:
       postgres-prod:
         condition: service_healthy
