@@ -109,15 +109,21 @@ jobs:
           # Update the nginx configuration
           awk -v new_upstream="$NEW_UPSTREAM" '
             /upstream app_servers {/,/}/ {
-              if ($0 ~ /server/) {
-                if (!printed) {
-                  print "   server " new_upstream
-                  printed = 1
-                }
+              if ($0 ~ /upstream app_servers {/) {
+                print $0
+                print "    " new_upstream
+                in_upstream = 1
                 next
               }
+              if (in_upstream && $0 ~ /}/) {
+                in_upstream = 0
+                print $0
+                next
+              }
+              if (!in_upstream) {
+                print $0
+              }
             }
-            {print}
           ' nginx/app.conf > nginx/app.conf.tmp && mv nginx/app.conf.tmp nginx/app.conf
 
           # Print the updated nginx configuration for debugging
