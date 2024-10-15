@@ -55,6 +55,13 @@ services:
       - REDIS_PORT=6379
       - REDIS_DB=1
       - FLASK_ENV=production
+      - NEWS_BOT_OPENAI_API_KEY=${NEWS_BOT_OPENAI_API_KEY}
+      - AWS_ACCESS=${AWS_ACCESS}
+      - AWS_SECRET_KEY=${AWS_SECRET_KEY}
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
+      - COINMARKET_API_KEY=${COINMARKET_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
       - .:/app
     command: 

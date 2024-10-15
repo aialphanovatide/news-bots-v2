@@ -4,10 +4,28 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: self-hosted
+    env:
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      PGADMIN_DEFAULT_EMAIL: ${{ secrets.PGADMIN_DEFAULT_EMAIL }}
+      PGADMIN_DEFAULT_PASSWORD: ${{ secrets.PGADMIN_DEFAULT_PASSWORD }}
+      NGROK_AUTHTOKEN: ${{ secrets.NGROK_AUTHTOKEN }}
+      NGROK_DOMAIN: ${{ vars.NGROK_DOMAIN }}
+      NEWS_BOT_OPENAI_API_KEY: ${{ secrets.NEWS_BOT_OPENAI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      AWS_ACCESS: ${{ secrets.AWS_ACCESS }}
+      AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
+      COINMARKET_API_KEY: ${{ secrets.COINMARKET_API_KEY }}
+      FLASK_ENV: production
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -20,23 +38,20 @@ jobs:
         # Ensure we're in the correct directory
         cd $GITHUB_WORKSPACE || exit 1
         
-        # Fetch latest changes
+        echo "Fetching the latest changes..."
         git fetch origin
         
-        # Store current commit hash
-        PREVIOUS_COMMIT=$(git rev-parse HEAD)
+        echo "Checking out the main branch..."
+        git checkout main
         
-        # Pull latest changes from main branch
+        echo "Pulling the latest changes from the main branch..."
+        PREVIOUS_COMMIT=$(git rev-parse HEAD)
         git pull origin main
         
         # Function to start containers
         start_containers() {
           docker-compose -f docker-compose.yml -p news-bot-prod up -d --build
-          if [ $? -ne 0 ]; then
-            echo "Failed to start containers"
-            return 1
-          fi
-          return 0
+          return $?
         }
         
         # Function to stop containers
@@ -50,8 +65,8 @@ jobs:
             if curl -f http://localhost:5001/health; then
               return 0
             fi
-            echo "Health check attempt $i failed. Retrying in 10 seconds..."
-            sleep 10
+            echo "Health check attempt $i failed. Retrying in 30 seconds..."
+            sleep 30
           done
           return 1
         }
@@ -71,10 +86,13 @@ jobs:
         }
         
         # Main deployment logic
+        echo "Stopping containers..."
         stop_containers
+        echo "Starting containers..."
         if start_containers; then
           echo "Waiting for services to start..."
-          sleep 400
+          sleep 300
+          echo "Performing health check..."
           if health_check; then
             echo "Deployment successful. Health check passed."
           else
