@@ -89,7 +89,7 @@ jobs:
         echo "Stopping containers..."
         stop_containers
         echo "Starting containers..."
-        if start_containers; then
+        if start_containers; then 
           echo "Waiting for services to start..."
           sleep 300
           echo "Performing health check..."
