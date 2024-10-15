@@ -65,6 +65,8 @@ jobs:
         
         # Function to start new deployment
         start_new_deployment() {
+          echo "Starting new deployment..."
+          docker-compose -f docker-compose.yml -p news-bot-prod ip -d playwright ngrok nginx pgadmin postgres-prod
           docker-compose -f docker-compose.yml -p news-bot-prod up -d --no-deps --build --remove-orphans $NEW_DEPLOYMENT
           return $?
         }
