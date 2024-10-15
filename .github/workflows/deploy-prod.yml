@@ -111,7 +111,9 @@ jobs:
             /upstream app_servers {/,/}/ {
               if ($0 ~ /server/) {
                 if (!printed) {
-                  print "    " new_upstream
+                  print "    upstream app_servers {"
+                  print "        " new_upstream
+                  print "    }"
                   printed = 1
                 }
                 next
@@ -120,8 +122,16 @@ jobs:
             {print}
           ' nginx/app.conf > nginx/app.conf.tmp && mv nginx/app.conf.tmp nginx/app.conf
 
-          # Reload nginx configuration
-          docker-compose -f docker-compose.yml -p news-bot-prod exec -T nginx nginx -s reload
+          # Test nginx configuration before reloading
+          docker-compose -f docker-compose.yml -p news-bot-prod exec -T nginx nginx -t
+
+          # If the test passes, then reload
+          if [ $? -eq 0 ]; then
+            docker-compose -f docker-compose.yml -p news-bot-prod exec -T nginx nginx -s reload
+          else
+            echo "Nginx configuration test failed. Not reloading."
+            exit 1
+          fi
         }
         
         # Function to rollback
