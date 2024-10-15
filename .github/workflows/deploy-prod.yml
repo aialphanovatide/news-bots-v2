@@ -1,133 +1,3 @@
-# name: Deploy to Production
-
-# on:
-#   push:
-#     branches:
-#       - main
-#   workflow_dispatch:
-
-# jobs:
-#   deploy:
-#     runs-on: self-hosted
-#     env:
-#       DB_USER: ${{ secrets.DB_USER }}
-#       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-#       DB_NAME: ${{ secrets.DB_NAME }}
-#       PGADMIN_DEFAULT_EMAIL: ${{ secrets.PGADMIN_DEFAULT_EMAIL }}
-#       PGADMIN_DEFAULT_PASSWORD: ${{ secrets.PGADMIN_DEFAULT_PASSWORD }}
-#       NGROK_AUTHTOKEN: ${{ secrets.NGROK_AUTHTOKEN }}
-#       NGROK_DOMAIN: ${{ vars.NGROK_DOMAIN }}
-#       NEWS_BOT_OPENAI_API_KEY: ${{ secrets.NEWS_BOT_OPENAI_API_KEY }}
-#       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-#       AWS_ACCESS: ${{ secrets.AWS_ACCESS }}
-#       AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
-#       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-#       PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
-#       COINMARKET_API_KEY: ${{ secrets.COINMARKET_API_KEY }}
-#       FLASK_ENV: production
-
-#     steps:
-#     - name: Checkout code
-#       uses: actions/checkout@v4
-#       with:
-#         fetch-depth: 0
-
-#     - name: Deploy to Production
-#       run: |
-#         echo "Starting deployment to Production environment..."
-#         # Ensure we're in the correct directory
-#         cd $GITHUB_WORKSPACE || exit 1
-        
-#         echo "Fetching the latest changes..."
-#         git fetch origin
-        
-#         echo "Checking out the main branch..."
-#         git checkout main
-        
-#         echo "Pulling the latest changes from the main branch..."
-#         PREVIOUS_COMMIT=$(git rev-parse HEAD)
-#         git pull origin main
-        
-#         # Function to start containers
-#         start_containers() {
-#           docker-compose -f docker-compose.yml -p news-bot-prod up -d --build
-#           return $?
-#         }
-        
-#         # Function to stop containers
-#         stop_containers() {
-#           docker-compose -f docker-compose.yml -p news-bot-prod down
-#         }
-        
-#         # Function to perform health check
-#         health_check() {
-#           for i in {1..5}; do
-#             if curl -f http://localhost:5001/health; then
-#               return 0
-#             fi
-#             echo "Health check attempt $i failed. Retrying in 30 seconds..."
-#             sleep 30
-#           done
-#           return 1
-#         }
-        
-#         # Function to rollback
-#         rollback() {
-#           echo "Rolling back to previous commit..."
-#           git reset --hard $PREVIOUS_COMMIT
-#           stop_containers
-#           start_containers
-#           if health_check; then
-#             echo "Rollback successful"
-#           else
-#             echo "Rollback failed. Manual intervention required."
-#             exit 1
-#           fi
-#         }
-        
-#         # Main deployment logic
-#         echo "Stopping containers..."
-#         stop_containers
-#         echo "Starting containers..."
-#         if start_containers; then 
-#           echo "Waiting for services to start..."
-#           sleep 300
-#           echo "Performing health check..."
-#           if health_check; then
-#             echo "Deployment successful. Health check passed."
-#           else
-#             echo "Health check failed. Rolling back..."
-#             rollback
-#           fi
-#         else
-#           echo "Failed to start containers. Rolling back..."
-#           rollback
-#         fi
-
-#     - name: Deployment Status
-#       if: always()
-#       run: |
-#         if [ ${{ job.status }} == 'success' ]; then
-#           echo "Deployment to Production completed successfully!"
-#         else
-#           echo "Deployment to Production failed. Please check the logs for details."
-#         fi
-
-#     - name: Debug Information
-#       if: failure()
-#       run: |
-#         echo "Current directory: $(pwd)"
-#         echo "Contents of directory:"
-#         ls -la
-#         echo "Git status:"
-#         git status
-#         echo "Docker version:"
-#         docker --version
-#         echo "Docker Compose version:"
-#         docker-compose --version
-
-
-
 name: Deploy to Production
 
 on:
@@ -161,6 +31,9 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
+
+    - name: Ensure nginx config directory exists
+      run: mkdir -p nginx
 
     - name: Deploy to Production
       run: |
@@ -198,8 +71,9 @@ jobs:
         
         # Function to perform health check
         health_check() {
+          NEW_PORT=$(docker-compose -f docker-compose.yml -p news-bot-prod port $NEW_DEPLOYMENT 5000 | cut -d: -f2)
           for i in {1..5}; do
-            if curl -f http://localhost:$(docker-compose -f docker-compose.yml -p news-bot-prod port $NEW_DEPLOYMENT 5000 | cut -d: -f2)/health; then
+            if curl -f http://localhost:$NEW_PORT/health; then
               return 0
             fi
             echo "Health check attempt $i failed. Retrying in 30 seconds..."
@@ -210,15 +84,17 @@ jobs:
         
         # Function to switch traffic
         switch_traffic() {
-          sed -i "s/server $OLD_DEPLOYMENT:5000;/server $NEW_DEPLOYMENT:5000;/" nginx.conf
-          docker-compose -f docker-compose.yml -p news-bot-prod up -d --no-deps nginx
+          sed -i "s/server $OLD_DEPLOYMENT:5000;/server $NEW_DEPLOYMENT:5000;/" nginx/conf.d/app.conf
+          sed -i "s/server $NEW_DEPLOYMENT:5000 backup;/server $OLD_DEPLOYMENT:5000 backup;/" nginx/conf.d/app.conf
+          docker-compose -f docker-compose.yml -p news-bot-prod exec -T nginx nginx -s reload
         }
         
         # Function to rollback
         rollback() {
           echo "Rolling back to previous deployment..."
-          sed -i "s/server $NEW_DEPLOYMENT:5000;/server $OLD_DEPLOYMENT:5000;/" nginx.conf
-          docker-compose -f docker-compose.yml -p news-bot-prod up -d --no-deps nginx
+          sed -i "s/server $NEW_DEPLOYMENT:5000;/server $OLD_DEPLOYMENT:5000;/" nginx/conf.d/app.conf
+          sed -i "s/server $OLD_DEPLOYMENT:5000 backup;/server $NEW_DEPLOYMENT:5000 backup;/" nginx/conf.d/app.conf
+          docker-compose -f docker-compose.yml -p news-bot-prod exec -T nginx nginx -s reload
           docker-compose -f docker-compose.yml -p news-bot-prod stop $NEW_DEPLOYMENT
           echo "Rollback completed."
         }

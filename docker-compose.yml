@@ -249,7 +249,7 @@ services:
   nginx:
     image: nginx:latest
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx:/etc/nginx:ro
     ports:
       - "80:80"
     depends_on:
