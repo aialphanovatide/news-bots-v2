@@ -126,6 +126,7 @@ jobs:
       NGROK_AUTHTOKEN_DEV: ${{ secrets.NGROK_AUTHTOKEN_DEV }}
       NGROK_DOMAIN_DEV: ${{ vars.NGROK_DOMAIN_DEV }}
       NEWS_BOT_OPENAI_API_KEY: ${{ secrets.NEWS_BOT_OPENAI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       AWS_ACCESS: ${{ secrets.AWS_ACCESS }}
       AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
