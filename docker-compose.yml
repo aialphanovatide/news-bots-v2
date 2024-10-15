@@ -73,10 +73,10 @@ services:
       - app-network-prod
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 30s
-      timeout: 10s
+      interval: 150s
+      timeout: 50s
       retries: 3
-      start_period: 40s
+      start_period: 180s
     deploy:
       replicas: 2
       update_config:
@@ -116,10 +116,10 @@ services:
       - app-network-prod
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 30s
-      timeout: 10s
+      interval: 150s
+      timeout: 50s
       retries: 3
-      start_period: 40s
+      start_period: 180s
     deploy:
       replicas: 2
       update_config:
