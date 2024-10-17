@@ -7,9 +7,12 @@ from app.routes.bots.utils import validate_url
 from flask import current_app
 from scheduler_config import scheduler
 from app.routes.routes_utils import create_response
-from config import Blacklist, Bot, Keyword, Session, Site, db, Category
+from config import Blacklist, Bot, Keyword, Metrics, Session, Site, db, Category
 from app.routes.bots.utils import schedule_bot, validate_bot_for_activation
 from redis_client.redis_client import cache_with_redis, update_cache_with_redis
+import csv
+import json
+from flask import Response
 
 bots_bp = Blueprint(
     'bots_bp', __name__,
@@ -494,4 +497,106 @@ def toggle_activation_bot(bot_id):
 
 
 
+
+@bots_bp.route('/bot/metrics/download/<int:bot_id>', methods=['GET'])
+def download_metrics(bot_id):
+    """
+    Download metrics for a specific bot in CSV or JSON format.
+
+    Args:
+        bot_id (int): The ID of the bot to retrieve metrics for.
+
+    Returns:
+        Response: A downloadable file containing the metrics data.
+        HTTP Status Code:
+            - 200: Metrics downloaded successfully
+            - 404: Metrics not found for the specified bot
+            - 500: Internal server error
+    """
+    try:
+        metrics = Metrics.query.filter_by(bot_id=bot_id).all()
+        if not metrics:
+            return jsonify(create_response(error="Metrics not found for this bot")), 404
+
+        # Determine the desired format from query parameters
+        format_type = request.args.get('format', 'json').lower()
+
+        if format_type == 'csv':
+            # Convert metrics to CSV format
+            output = Response(content_type='text/csv')
+            output.headers["Content-Disposition"] = f"attachment; filename=metrics_bot_{bot_id}.csv"
+            writer = csv.writer(output)
+            writer.writerow(['Total Articles Processed', 'Articles Saved', 'Articles Discarded', 'Save Rate', 'Average Processing Time', 'Created At'])
+
+            for metric in metrics:
+                writer.writerow([
+                    metric.total_articles_processed,
+                    metric.articles_saved,
+                    metric.articles_discarded,
+                    metric.save_rate,
+                    metric.average_processing_time,
+                    metric.created_at
+                ])
+            return output
+
+        elif format_type == 'json':
+            # Convert metrics to JSON format
+            metrics_data = [
+                {
+                    "total_articles_processed": metric.total_articles_processed,
+                    "articles_saved": metric.articles_saved,
+                    "articles_discarded": metric.articles_discarded,
+                    "save_rate": metric.save_rate,
+                    "average_processing_time": metric.average_processing_time,
+                    "created_at": metric.created_at.isoformat()  # Convert datetime to string
+                }
+                for metric in metrics
+            ]
+            return jsonify(create_response(success=True, data=metrics_data)), 200
+
+        else:
+            return jsonify(create_response(error="Invalid format specified. Use 'csv' or 'json'.")), 400
+
+    except Exception as e:
+        return jsonify(create_response(error=f"An error occurred: {str(e)}")), 500
+    
+
+@bots_bp.route('/bot/metrics/<int:bot_id>', methods=['GET'])
+def get_metrics(bot_id):
+    """
+    Get metrics for the ETL process for a specific bot.
+
+    Args:
+        bot_id (int): The ID of the bot to retrieve metrics for.
+
+    Returns:
+        JSON: A response containing the metrics data.
+        HTTP Status Code:
+            - 200: Metrics retrieved successfully
+            - 404: Bot not found
+            - 500: Internal server error
+    """
+    try:
+        metrics = Metrics.query.filter_by(bot_id=bot_id).first()
+        if not metrics:
+            return jsonify(create_response(error="Metrics not found for this bot")), 404
+        
+        # Extract date range parameters from the request
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        # Query metrics based on the date range
+        query = Metrics.query.filter_by(bot_id=bot_id)
+        if start_date:
+            query = query.filter(Metrics.created_at >= start_date)
+        if end_date:
+            query = query.filter(Metrics.created_at <= end_date)
+        
+        metrics = query.first()
+        if not metrics:
+            return jsonify(create_response(error="Metrics not found for this bot")), 404
+        
+        return jsonify(create_response(success=True, data=metrics.as_dict())), 200
+    except Exception as e:
+        return jsonify(create_response(error=f"Failed to retrieve metrics: {str(e)}")), 500
 

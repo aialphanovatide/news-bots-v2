@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Dict, Optional
-from config import db, Session
+from config import Metrics, db, Session
 from config import Article, UnwantedArticle, UsedKeywords
 
 
@@ -174,4 +174,52 @@ class DataManager:
                 return used_keywords.id
             except Exception as e:
                 session.rollback()
+                raise e
+            
+    def save_metrics(self, metrics_data: Dict[str, any]) -> int:
+        """
+        Save metrics associated with a bot to the database.
+
+        Args:
+            metrics_data (Dict[str, any]): A dictionary containing metrics information.
+                Required keys:
+                - 'bot_id': int
+                - 'total_articles_processed': int
+                - 'articles_saved': int
+                - 'articles_discarded': int
+                - 'save_rate': float
+                - 'average_processing_time': float
+                - 'keyword_match_rates': dict
+                - 'blacklist_hits': dict
+
+        Returns:
+            int: The ID of the newly created Metrics instance.
+
+        Raises:
+            Exception: If there's an error during the database operation.
+
+        Details:
+            This function creates a new Metrics instance with the provided data
+            and saves it to the database. It uses the current time for the 'created_at' field.
+        """
+        with Session() as session:
+            try:
+                new_metrics = Metrics(
+                    bot_id=metrics_data['bot_id'],
+                    total_articles_processed=metrics_data['total_articles_processed'],
+                    articles_saved=metrics_data['articles_saved'],
+                    articles_discarded=metrics_data['articles_discarded'],
+                    save_rate=metrics_data['save_rate'],
+                    average_processing_time=metrics_data['average_processing_time'],
+                    keyword_match_rates=metrics_data.get('keyword_match_rates', {}),
+                    blacklist_hits=metrics_data.get('blacklist_hits', {}),
+                    created_at=datetime.now()
+                )
+                
+                session.add(new_metrics)
+                session.commit()
+                return new_metrics.id
+            except Exception as e:
+                session.rollback()
+                print(f"[ERROR] Error saving metrics: {str(e)}")  
                 raise e
