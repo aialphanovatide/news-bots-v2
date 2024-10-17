@@ -7,9 +7,13 @@ from app.routes.bots.utils import validate_url
 from flask import current_app
 from scheduler_config import scheduler
 from app.routes.routes_utils import create_response
-from config import Blacklist, Bot, Keyword, Session, Site, db, Category
+from config import Blacklist, Bot, Keyword, Metrics, Session, Site, db, Category
 from app.routes.bots.utils import schedule_bot, validate_bot_for_activation
 from redis_client.redis_client import cache_with_redis, update_cache_with_redis
+import csv
+import json
+from flask import Response
+from sqlalchemy import func
 
 bots_bp = Blueprint(
     'bots_bp', __name__,
@@ -495,3 +499,286 @@ def toggle_activation_bot(bot_id):
 
 
 
+@bots_bp.route('/bot/metrics/download/<int:bot_id>', methods=['GET'])
+def download_metrics(bot_id):
+    """
+    Download metrics for a specific bot in CSV or JSON format.
+
+    Args:
+        bot_id (int): The ID of the bot to retrieve metrics for.
+
+    Returns:
+        Response: A downloadable file containing the metrics data.
+        HTTP Status Code:
+            - 200: Metrics downloaded successfully
+            - 404: Metrics not found for the specified bot
+            - 500: Internal server error
+    """
+    try:
+        metrics = Metrics.query.filter_by(bot_id=bot_id).all()
+        if not metrics:
+            return jsonify(create_response(error="Metrics not found for this bot")), 404
+
+        # Determine the desired format from query parameters
+        format_type = request.args.get('format', 'json').lower()
+
+        if format_type == 'csv':
+            # Convert metrics to CSV format
+            output = Response(content_type='text/csv')
+            output.headers["Content-Disposition"] = f"attachment; filename=metrics_bot_{bot_id}.csv"
+            writer = csv.writer(output)
+            writer.writerow(['Total Articles Processed', 'Articles Saved', 'Articles Discarded', 'Save Rate', 'Average Processing Time', 'Created At'])
+
+            for metric in metrics:
+                writer.writerow([
+                    metric.total_articles_processed,
+                    metric.articles_saved,
+                    metric.articles_discarded,
+                    metric.save_rate,
+                    metric.average_processing_time,
+                    metric.created_at
+                ])
+            return output
+
+        elif format_type == 'json':
+            # Convert metrics to JSON format
+            metrics_data = [
+                {
+                    "total_articles_processed": metric.total_articles_processed,
+                    "articles_saved": metric.articles_saved,
+                    "articles_discarded": metric.articles_discarded,
+                    "save_rate": metric.save_rate,
+                    "average_processing_time": metric.average_processing_time,
+                    "created_at": metric.created_at.isoformat()  # Convert datetime to string
+                }
+                for metric in metrics
+            ]
+            return jsonify(create_response(success=True, data=metrics_data)), 200
+
+        else:
+            return jsonify(create_response(error="Invalid format specified. Use 'csv' or 'json'.")), 400
+
+    except Exception as e:
+        return jsonify(create_response(error=f"An error occurred: {str(e)}")), 500
+    
+
+@bots_bp.route('/bot/metrics/<int:bot_id>', methods=['GET'])
+def get_metrics(bot_id):
+    """
+    Get metrics for the ETL process for a specific bot.
+
+    Args:
+        bot_id (int): The ID of the bot to retrieve metrics for.
+
+    Returns:
+        JSON: A response containing the metrics data.
+        HTTP Status Code:
+            - 200: Metrics retrieved successfully
+            - 404: Bot not found
+            - 500: Internal server error
+    """
+    try:
+        metrics = Metrics.query.filter_by(bot_id=bot_id).first()
+        if not metrics:
+            return jsonify(create_response(error="Metrics not found for this bot")), 404
+        
+        # Extract date range parameters from the request
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        # Query metrics based on the date range
+        query = Metrics.query.filter_by(bot_id=bot_id)
+        if start_date:
+            query = query.filter(Metrics.created_at >= start_date)
+        if end_date:
+            query = query.filter(Metrics.created_at <= end_date)
+        
+        metrics = query.first()
+        if not metrics:
+            return jsonify(create_response(error="Metrics not found for this bot")), 404
+        
+        return jsonify(create_response(success=True, data=metrics.as_dict())), 200
+    except Exception as e:
+        return jsonify(create_response(error=f"Failed to retrieve metrics: {str(e)}")), 500
+
+
+@bots_bp.route('/api/global-metrics', methods=['GET'])
+def get_global_metrics():
+    """
+    Get aggregated metrics across all bots with optional date range filtering.
+
+    Returns:
+        JSON: A response containing global metrics data.
+        HTTP Status Code:
+            - 200: Metrics retrieved successfully
+            - 500: Internal server error
+    """
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    try:
+        # Initialize metrics
+        total_active_bots = Bot.query.filter_by(is_active=True).count()
+
+        # Query metrics with date range filtering
+        metrics_query = Metrics.query
+        if start_date:
+            metrics_query = metrics_query.filter(Metrics.created_at >= start_date)
+        if end_date:
+            metrics_query = metrics_query.filter(Metrics.created_at <= end_date)
+
+        total_articles_processed = metrics_query.with_entities(func.sum(Metrics.total_articles_processed)).scalar() or 0
+        total_articles_saved = metrics_query.with_entities(func.sum(Metrics.articles_saved)).scalar() or 0
+        total_articles_discarded = metrics_query.with_entities(func.sum(Metrics.articles_discarded)).scalar() or 0
+
+        # Calculate overall save rate
+        overall_save_rate = (total_articles_saved / total_articles_processed * 100) if total_articles_processed > 0 else 0
+
+        # Get keyword match rates
+        keyword_match_rates = metrics_query.with_entities(Metrics.keyword_match_rates).all()
+        aggregated_keyword_rates = {}
+        for rate in keyword_match_rates:
+            for keyword, value in rate.items():
+                if keyword in aggregated_keyword_rates:
+                    aggregated_keyword_rates[keyword] += value
+                else:
+                    aggregated_keyword_rates[keyword] = value
+
+        # Get top-performing bots based on articles processed
+        top_bots = db.session.query(Bot, func.sum(Metrics.total_articles_processed).label('total_processed')) \
+            .join(Metrics) \
+            .filter(Metrics.created_at >= start_date if start_date else True) \
+            .filter(Metrics.created_at <= end_date if end_date else True) \
+            .group_by(Bot.id) \
+            .order_by(func.sum(Metrics.total_articles_processed).desc()) \
+            .limit(5) \
+            .all()
+
+        top_performing_bots = [{ 'bot_id': bot.id, 'bot_name': bot.name, 'total_processed': total_processed } for bot, total_processed in top_bots]
+
+        # Prepare response data
+        response_data = {
+            "total_active_bots": total_active_bots,
+            "total_articles_processed": total_articles_processed,
+            "total_articles_saved": total_articles_saved,
+            "total_articles_discarded": total_articles_discarded,
+            "overall_save_rate": overall_save_rate,
+            "keyword_match_rates": aggregated_keyword_rates,
+            "top_performing_bots": top_performing_bots
+        }
+
+        return jsonify(create_response(success=True, data=response_data)), 200
+
+    except Exception as e:
+        return jsonify(create_response(error=f"An error occurred: {str(e)}")), 500
+
+
+@bots_bp.route('/api/global-metrics/download', methods=['GET'])
+def download_global_metrics():
+    """
+    Download aggregated metrics across all bots in CSV or JSON format.
+
+    Returns:
+        Response: A downloadable file containing the global metrics data.
+        HTTP Status Code:
+            - 200: Metrics downloaded successfully
+            - 500: Internal server error
+    """
+
+    
+    # Assume we have the response_data prepared as in get_global_metrics
+    response_data = get_global_metrics_data()  # This function should return the aggregated metrics data
+
+    format_type = request.args.get('format', 'json').lower()
+
+    if format_type == 'csv':
+        output = Response(content_type='text/csv')
+        output.headers["Content-Disposition"] = "attachment; filename=global_metrics.csv"
+        writer = csv.writer(output)
+        writer.writerow(['Total Active Bots', 'Total Articles Processed', 'Total Articles Saved', 'Total Articles Discarded', 'Overall Save Rate', 'Keyword Match Rates', 'Top Performing Bots'])
+
+        # Write the aggregated metrics data
+        writer.writerow([
+            response_data['total_active_bots'],
+            response_data['total_articles_processed'],
+            response_data['total_articles_saved'],
+            response_data['total_articles_discarded'],
+            response_data['overall_save_rate'],
+            json.dumps(response_data['keyword_match_rates']),  # Convert dict to JSON string
+            json.dumps(response_data['top_performing_bots'])  # Convert list to JSON string
+        ])
+        return output
+
+    elif format_type == 'json':
+        return jsonify(create_response(success=True, data=response_data)), 200
+
+    else:
+        return jsonify(create_response(error="Invalid format specified. Use 'csv' or 'json'.")), 400
+
+
+def get_global_metrics_data(start_date=None, end_date=None):
+    """
+    Obtener métricas agregadas a través de todos los bots con filtrado opcional por rango de fechas.
+
+    Args:
+        start_date (str): Fecha de inicio para filtrar métricas (opcional).
+        end_date (str): Fecha de fin para filtrar métricas (opcional).
+
+    Returns:
+        dict: Un diccionario con los datos de métricas globales.
+    """
+    try:
+        # Inicializar métricas
+        total_active_bots = Bot.query.filter_by(is_active=True).count()
+
+        # Consultar métricas con filtrado por rango de fechas
+        metrics_query = Metrics.query
+        if start_date:
+            metrics_query = metrics_query.filter(Metrics.created_at >= start_date)
+        if end_date:
+            metrics_query = metrics_query.filter(Metrics.created_at <= end_date)
+
+        total_articles_processed = metrics_query.with_entities(func.sum(Metrics.total_articles_processed)).scalar() or 0
+        total_articles_saved = metrics_query.with_entities(func.sum(Metrics.articles_saved)).scalar() or 0
+        total_articles_discarded = metrics_query.with_entities(func.sum(Metrics.articles_discarded)).scalar() or 0
+
+        # Calcular la tasa de guardado general
+        overall_save_rate = (total_articles_saved / total_articles_processed * 100) if total_articles_processed > 0 else 0
+
+        # Obtener tasas de coincidencia de palabras clave
+        keyword_match_rates = metrics_query.with_entities(Metrics.keyword_match_rates).all()
+        aggregated_keyword_rates = {}
+        for rate in keyword_match_rates:
+            for keyword, value in rate.items():
+                if keyword in aggregated_keyword_rates:
+                    aggregated_keyword_rates[keyword] += value
+                else:
+                    aggregated_keyword_rates[keyword] = value
+
+        # Obtener los mejores bots en función de los artículos procesados
+        top_bots = db.session.query(Bot, func.sum(Metrics.total_articles_processed).label('total_processed')) \
+            .join(Metrics) \
+            .filter(Metrics.created_at >= start_date if start_date else True) \
+            .filter(Metrics.created_at <= end_date if end_date else True) \
+            .group_by(Bot.id) \
+            .order_by(func.sum(Metrics.total_articles_processed).desc()) \
+            .limit(5) \
+            .all()
+
+        top_performing_bots = [{'bot_id': bot.id, 'bot_name': bot.name, 'total_processed': total_processed} for bot, total_processed in top_bots]
+
+        # Preparar los datos de respuesta
+        response_data = {
+            "total_active_bots": total_active_bots,
+            "total_articles_processed": total_articles_processed,
+            "total_articles_saved": total_articles_saved,
+            "total_articles_discarded": total_articles_discarded,
+            "overall_save_rate": overall_save_rate,
+            "keyword_match_rates": aggregated_keyword_rates,
+            "top_performing_bots": top_performing_bots
+        }
+
+        return response_data
+
+    except Exception as e:
+        raise Exception(f"An error occurred while retrieving global metrics: {str(e)}")

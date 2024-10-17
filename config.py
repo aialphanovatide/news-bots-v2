@@ -175,6 +175,36 @@ class Blacklist(db.Model):
     def as_dict(self):
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
+class Metrics(db.Model):
+    """Represents metrics for the ETL process associated with a bot.
+
+    Attributes:
+        id (int): The unique identifier for the metrics entry.
+        bot_id (int): Foreign key referencing the bot associated with the metrics.
+        total_articles_processed (int): Total number of articles processed.
+        articles_saved (int): Number of articles saved.
+        articles_discarded (int): Number of articles discarded.
+        save_rate (float): Save rate percentage.
+        average_processing_time (float): Average processing time per article.
+        keyword_match_rates (dict): Frequency of each keyword.
+        blacklist_hits (dict): Frequency of blacklisted terms.
+        created_at (datetime): Timestamp when the metrics were recorded.
+    """
+    __tablename__ = 'metrics'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'), nullable=False)
+    total_articles_processed = db.Column(db.Integer, default=0)
+    articles_saved = db.Column(db.Integer, default=0)
+    articles_discarded = db.Column(db.Integer, default=0)
+    save_rate = db.Column(db.Float, default=0.0)
+    average_processing_time = db.Column(db.Float, default=0.0)
+    keyword_match_rates = db.Column(db.JSON, default={})
+    blacklist_hits = db.Column(db.JSON, default={})
+    created_at = db.Column(db.TIMESTAMP, default=datetime.now)
+
+    bot = db.relationship("Bot", backref="metrics")
+
 
 class Article(db.Model):
     """Represents an article in the database.
