@@ -119,7 +119,6 @@ def process_item(self, item):
         if not metrics:
             metrics = Metrics(bot_id=self.bot_id)
 
-        # Increment total articles processed
         metrics.total_articles_processed += 1
 
         try:
