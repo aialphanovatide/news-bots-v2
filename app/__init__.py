@@ -47,8 +47,9 @@ def create_app():
         }
     }
 
-    # Initialize and start scheduler
-    scheduler.init_app(app)
+    if not scheduler.running:  # Check if the scheduler is already running
+        scheduler.init_app(app)
+    
     with app.app_context():
         db.create_all()  # Create tables if they don't exist
         check_server_timezone()
