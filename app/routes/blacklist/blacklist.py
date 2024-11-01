@@ -4,11 +4,13 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.routes.routes_utils import create_response, handle_db_session
 from config import db, Blacklist, Bot
 from datetime import datetime
+from redis_client.redis_client import update_cache_with_redis
 
 blacklist_bp = Blueprint('blacklist_bp', __name__)
 
 @blacklist_bp.route('/blacklist', methods=['POST'])
 @handle_db_session
+@update_cache_with_redis(related_get_endpoints=['get_bot', 'search_blacklist', 'get_all_bots'])
 def add_to_blacklist():
     """
     Add entries to the blacklist for multiple bots.
@@ -75,6 +77,7 @@ def add_to_blacklist():
 
 @blacklist_bp.route('/blacklist', methods=['DELETE'])
 @handle_db_session
+@update_cache_with_redis(related_get_endpoints=['get_bot', 'search_blacklist', 'get_all_bots'])
 def delete_from_blacklist():
     """
     Delete entries from the blacklist for multiple bots.

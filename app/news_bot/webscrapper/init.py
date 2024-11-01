@@ -149,7 +149,7 @@ class NewsScraper:
                     return {'success': True, 'articles_saved': 0, 'unwanted_articles_saved': 1}
 
                 # Perplexity summary
-                perplexity_result = article_perplexity_remaker(content=article_text, category_id=self.category_id)
+                 perplexity_result = article_perplexity_remaker(content=article_text, category_id=self.category_id)
                 if not perplexity_result['success']:
                     self.log(f"Perplexity error: {perplexity_result['error']}", 'error')
                     return {'success': False, 'error': f'There is no summary, perplexity error {perplexity_result["error"]}'}

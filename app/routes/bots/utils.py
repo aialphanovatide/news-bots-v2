@@ -61,6 +61,7 @@ def bot_job_function(bot, category):
             
             db.session.commit()
 
+
 def threaded_job_function(bot, category):
     thread = threading.Thread(target=bot_job_function, args=(bot, category))
     thread.start()
@@ -140,7 +141,6 @@ def schedule_bot(bot, category, fire_now=True):
     except Exception as e:
         current_app.logger.error(f"Error scheduling bot {bot_name}: {str(e)}")
         raise  # Re-raise the exception so the calling function can handle it 
-
 
 
 def validate_bot_for_activation(bot, category):
