@@ -1,11 +1,12 @@
 import os
 import requests
 from dotenv import load_dotenv 
+from typing import Dict, Any
 
 load_dotenv()
 PERPLEXITY_API = os.getenv("PERPLEXITY_API")
 
-def perplexity_api_request(content, prompt):
+def perplexity_api_request(content: str, prompt: str) -> Dict[str, Any]:
     url = "https://api.perplexity.ai/chat/completions"
 
     if not content or not prompt:

@@ -87,7 +87,6 @@ class NewsScraper:
         logger.debug(f"Logger initialized for bot {self.bot_id}")
         return logger
 
-
     def log(self, message, level='info'):
         if self.verbose:
             if level == 'info':
@@ -96,7 +95,6 @@ class NewsScraper:
                 self.logger.error(message)
             elif level == 'debug':
                 self.logger.debug(message)
-     
         
     def process_url(self, link):
         
@@ -118,40 +116,133 @@ class NewsScraper:
 
         return True
     
-    def run(self):
+    # def run(self):
         
-        self.log("\nStarting News Scraping process", 'info')
-        self.log(f"Bot ID: {self.bot_id}, Category ID: {self.category_id}", 'debug')
-        news_items = self.scraper.scrape_rss()
-        self.log(f"\nNumber of news items scraped: {len(news_items)}", 'debug')
-        articles_saved = 0
-        unwanted_articles_saved = 0
+    #     self.log("Starting News Scraping process", 'info')
+    #     self.log(f"Bot ID: {self.bot_id}, Category ID: {self.category_id}", 'debug')
+    #     news_items = self.scraper.scrape_rss()
+    #     self.log(f"Number of news items scraped: {len(news_items)}", 'debug')
+    #     articles_saved = 0
+    #     unwanted_articles_saved = 0
 
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            self.log(f"\nStarting ThreadPoolExecutor with max_workers={executor._max_workers}", 'debug')
-            future_to_item = {executor.submit(self.process_item, item): item for item in news_items}
-            self.log(f"\nSubmitted {len(future_to_item)} items for processing", 'debug')
+    #     with ThreadPoolExecutor(max_workers=15) as executor:
+    #         self.log(f"Starting ThreadPoolExecutor with max_workers={executor._max_workers}", 'debug')
+    #         future_to_item = {executor.submit(self.process_item, item): item for item in news_items}
             
-            for future in as_completed(future_to_item):
-                self.log("Processing completed future", 'debug')
-                result = future.result()
-                if result.get('success', False):
-                    articles_saved += result['articles_saved']
-                    unwanted_articles_saved += result['unwanted_articles_saved']
-                    self.log(f"Processed item successfully. Articles saved: {result['articles_saved']}, Unwanted articles: {result['unwanted_articles_saved']}", 'debug')
-                else:
-                    self.log(f"Error processing item: {result.get('error')}", 'error')
-                self.log(f"Current totals - Articles saved: {articles_saved}, Unwanted articles: {unwanted_articles_saved}", 'debug')
+    #         for future in as_completed(future_to_item):
+    #             self.log("Processing completed future", 'debug')
+    #             result = future.result()
+    #             if result.get('success', False):
+    #                 articles_saved += result['articles_saved']
+    #                 unwanted_articles_saved += result['unwanted_articles_saved']
+    #                 self.log(f"Processed item successfully. Articles saved: {result['articles_saved']}, Unwanted articles: {result['unwanted_articles_saved']}", 'debug')
+    #             else:
+    #                 self.log(f"Error processing item: {result.get('error')}", 'error')
+    #             self.log(f"Current totals - Articles saved: {articles_saved}, Unwanted articles: {unwanted_articles_saved}", 'debug')
 
-        self.log(f"Completed News Scraping process. Articles saved: {articles_saved}, Unwanted articles: {unwanted_articles_saved}", 'info')
-        return {
-            'success': True,
-            'message': f'{articles_saved} articles validated and saved',
-            'articles_saved': articles_saved,
-            'unwanted_articles_saved': unwanted_articles_saved
-        }
+    #     self.log(f"Completed News Scraping process. Articles saved: {articles_saved}, Unwanted articles: {unwanted_articles_saved}", 'info')
+    #     return {
+    #         'success': True,
+    #         'message': f'{articles_saved} articles validated and saved',
+    #         'articles_saved': articles_saved,
+    #         'unwanted_articles_saved': unwanted_articles_saved
+    #     }
 
+    def run(self):
+        """Execute the news scraping process with parallel article processing.
         
+        This method:
+        1. Scrapes RSS feed for news items
+        2. Processes items in parallel using ThreadPoolExecutor
+        3. Tracks successful and unwanted articles
+        4. Handles errors and logging throughout the process
+        
+        Process Flow:
+        - Fetch RSS items
+        - Create thread pool for parallel processing
+        - Process each item (analyze, filter, save)
+        - Track results and handle errors
+        - Summarize final results
+        
+        Returns:
+            dict: Process results containing:
+                - success (bool): Overall success status
+                - message (str): Summary message
+                - articles_saved (int): Count of saved articles
+                - unwanted_articles_saved (int): Count of filtered articles
+        
+        Note:
+            Uses ThreadPoolExecutor for parallel processing with a maximum
+            of 15 concurrent workers to balance performance and resource usage.
+        """
+        self.log("Starting News Scraping process", 'info')
+        self.log(f"Bot ID: {self.bot_id}, Category ID: {self.category_id}", 'debug')
+        
+        try:
+            # Fetch RSS items
+            news_items = self.scraper.scrape_rss()
+            self.log(f"Retrieved {len(news_items)} news items from RSS feed", 'info')
+            
+            articles_saved = 0
+            unwanted_articles_saved = 0
+
+            # Process items in parallel
+            with ThreadPoolExecutor(max_workers=15) as executor:
+                self.log(f"Initializing parallel processing with {executor._max_workers} workers", 'debug')
+                future_to_item = {
+                    executor.submit(self.process_item, item): item 
+                    for item in news_items
+                }
+                
+                # Process completed futures
+                for future in as_completed(future_to_item):
+                    try:
+                        result = future.result()
+                        
+                        if result.get('success', False):
+                            articles_saved += result['articles_saved']
+                            unwanted_articles_saved += result['unwanted_articles_saved']
+                            self.log(
+                                f"Item processed - Saved: {result['articles_saved']}, "
+                                f"Filtered: {result['unwanted_articles_saved']}", 
+                                'debug'
+                            )
+                        else:
+                            self.log(f"Processing error: {result.get('error')}", 'error')
+                            
+                    except Exception as e:
+                        self.log(f"Future processing error: {str(e)}", 'error')
+                        
+                    # Log progress
+                    self.log(
+                        f"Progress - Saved: {articles_saved}, Filtered: {unwanted_articles_saved}", 
+                        'debug'
+                    )
+
+            # Log final results
+            self.log(
+                f"Completed processing - Total saved: {articles_saved}, "
+                f"Total filtered: {unwanted_articles_saved}", 
+                'info'
+            )
+            
+            return {
+                'success': True,
+                'message': f'{articles_saved} articles validated and saved',
+                'articles_saved': articles_saved,
+                'unwanted_articles_saved': unwanted_articles_saved
+            }
+            
+        except Exception as e:
+            error_msg = f"News scraping process failed: {str(e)}"
+            self.log(error_msg, 'error')
+            return {
+                'success': False,
+                'message': error_msg,
+                'articles_saved': 0,
+                'unwanted_articles_saved': 0
+            }
+
     def process_item(self, item):
         with self.app.app_context():
             link = item['link']

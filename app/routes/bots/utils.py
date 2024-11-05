@@ -61,9 +61,11 @@ def bot_job_function(bot, category):
             
             db.session.commit()
 
+
 def threaded_job_function(bot, category):
     thread = threading.Thread(target=bot_job_function, args=(bot, category))
     thread.start()
+
 
 def schedule_bot(bot, category, fire_now=True):
     """Schedule a bot to run periodically and optionally immediately.
@@ -84,7 +86,7 @@ def schedule_bot(bot, category, fire_now=True):
         bot_name = str(bot.name)
         run_frequency = int(bot.run_frequency)
 
-        current_app.logger.info(f"Scheduling bot '{bot_name}' to run every {run_frequency} minutes")
+        current_app.logger.info(f"\nScheduling bot '{bot_name}' to run every {run_frequency} minutes")
         
         # Calculate start time with optional random delay
         initial_delay = 0 if fire_now else random.randint(0, min(run_frequency, 5))
@@ -136,44 +138,6 @@ def schedule_bot(bot, category, fire_now=True):
     except Exception as e:
         current_app.logger.exception(f"Failed to schedule bot '{bot_name}'")
         raise
-
-# def validate_bot_for_activation(bot, category):
-#     current_app.logger.debug(f"Starting validation for bot: {bot.name}")
-#     validation_errors = []
-
-#     # Check bot fields
-#     required_bot_fields = ['dalle_prompt', 'run_frequency']
-#     for field in required_bot_fields:
-#         if not getattr(bot, field):
-#             current_app.logger.debug(f"Bot is missing {field}")
-#             validation_errors.append(f"Bot is missing {field}")
-
-#     # Check associated data
-#     if not bot.sites:
-#         current_app.logger.debug("Bot does not have an associated site")
-#         validation_errors.append("Bot does not have an associated site")
-#     elif not bot.sites[0].url:
-#         current_app.logger.debug("Bot's site is missing URL")
-#         validation_errors.append("Bot's site is missing URL")
-
-#     if not bot.keywords:
-#         current_app.logger.debug("Bot does not have any keywords")
-#         validation_errors.append("Bot does not have any keywords")
-
-#     if not bot.blacklist:
-#         current_app.logger.debug("Bot does not have a blacklist")
-#         validation_errors.append("Bot does not have a blacklist")
-    
-#     if category:
-#         current_app.logger.debug(f"Checking category: {category.name}")
-#         required_category_fields = ['slack_channel']
-#         for field in required_category_fields:
-#             if not getattr(category, field):
-#                 current_app.logger.debug(f"Bot's category is missing {field}")
-#                 validation_errors.append(f"Bot's category is missing {field}")
-
-#     current_app.logger.debug(f"Validation complete. Errors found: {len(validation_errors)}")
-#     return validation_errors
 
 
 def validate_bot_for_activation(bot, category):
