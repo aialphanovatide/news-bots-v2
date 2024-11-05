@@ -1,32 +1,34 @@
 import re
+import os
 import logging
-from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from app.news_bot.webscrapper.utils import clean_text, resolve_redirects_playwright, transform_string
-from app.news_bot.webscrapper.webscrapper import WebScraper
-from app.services.perplexity.article_convert import article_perplexity_remaker
-from app.services.slack.actions import send_NEWS_message_to_slack_channel
+from config import db
 from config import Category
+from datetime import datetime
 from flask import current_app
-from .filters import filter_link, keywords_filter, last_10_article_checker, url_checker, datetime_checker
+from .data_manager import DataManager
 from .analyzer import analyze_content
 from .image_generator import ImageGenerator
-from .data_manager import DataManager
-from config import db
+from logging.handlers import RotatingFileHandler
+from app.news_bot.webscrapper.webscrapper import WebScraper
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from app.services.slack.actions import send_NEWS_message_to_slack_channel
+from app.services.perplexity.article_convert import article_perplexity_remaker
+from app.news_bot.webscrapper.utils import clean_text, resolve_redirects_playwright, transform_string
+from app.news_bot.webscrapper.filters import filter_link, keywords_filter, last_10_article_checker, is_url_analyzed, datetime_checker
 
 
 class NewsScraper:
     def __init__(self, url: str, category_id: int, bot_id: int, verbose: bool = True, debug: bool = False, app=None):
         self.url = url
-        self.category_id = category_id
+        self.debug = debug
         self.bot_id = bot_id
         self.verbose = verbose
-        self.app = app or current_app._get_current_object()
-        self.debug = debug
+        self.category_id = category_id
         self.scraper = WebScraper(url)
         self.data_manager = DataManager()
         self.image_generator = ImageGenerator()
         self.logs_slack_channel_id = 'C06FTS38JRX'
+        self.app = app or current_app._get_current_object()
 
         # Setup logger
         self.logger = self.setup_logger()
@@ -34,18 +36,55 @@ class NewsScraper:
 
 
     def setup_logger(self):
+        """Configure logger with both file and console handlers.
+        
+        Creates a logger that:
+        - Writes to a bot-specific log file in a logs directory
+        - Outputs to console with different levels based on debug mode
+        - Uses rotation to manage log file size
+        - Includes timestamp, logger name, level, and message
+        
+        Returns:
+            logging.Logger: Configured logger instance
+        """
+        # Create logs directory if it doesn't exist
+        log_dir = os.path.join(current_app.root_path, 'logs')
+        os.makedirs(log_dir, exist_ok=True)
+        
+        # Configure logger
         logger = logging.getLogger(f"NewsScraper-{self.bot_id}")
         logger.setLevel(logging.DEBUG if self.debug else logging.INFO)
-
-        # Clear any existing handlers to avoid duplicate logs
+        
+        # Clear existing handlers
         logger.handlers.clear()
-
-        # Create a stream handler
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-
+        
+        # Common formatter for both handlers
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+        
+        # Console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.DEBUG if self.debug else logging.INFO)
+        console_handler.setFormatter(formatter)
+        
+        # File handler with rotation
+        log_file = os.path.join(log_dir, f'bot_{self.bot_id}.log')
+        file_handler = RotatingFileHandler(
+            filename=log_file,
+            maxBytes=5*1024*1024,  # 5MB
+            backupCount=3,
+            encoding='utf-8'
+        )
+        file_handler.setLevel(logging.DEBUG)  # Always log debug to file
+        file_handler.setFormatter(formatter)
+        
+        # Add both handlers
+        logger.addHandler(console_handler)
+        logger.addHandler(file_handler)
+        
+        logger.debug(f"Logger initialized for bot {self.bot_id}")
         return logger
 
 
@@ -60,38 +99,39 @@ class NewsScraper:
      
         
     def process_url(self, link):
+        
         # Check if the URL has been processed before
-        url_check_result = url_checker(url=link, bot_id=self.bot_id)
-        if url_check_result is not None:
-            self.log(f"[INFO] URL already processed: {link}")
-            self.log(f"[INFO] Error: {url_check_result.get('error')}")
+        if is_url_analyzed(url=link, bot_id=self.bot_id):
+            self.log(f"URL already processed: {link}")
             return False
 
         # Filter the link
         url_filter_result = filter_link(url=link)
         if 'error' in url_filter_result:
-            self.log(f"[INFO] Error filtering URL: {link}")
-            self.log(f"[INFO] Error: {url_filter_result['error']}")
+            self.log(f"Error filtering URL: {link}")
+            self.log(f"Error: {url_filter_result['error']}")
             return False
 
         if url_filter_result['response'] is None:
-            self.log(f"[INFO] URL filtered out: {link}")
+            self.log(f"URL filtered out: {link}")
             return False
 
         return True
     
     def run(self):
-        self.log("Starting news scraping process", 'info')
+        
+        self.log("\nStarting News Scraping process", 'info')
         self.log(f"Bot ID: {self.bot_id}, Category ID: {self.category_id}", 'debug')
         news_items = self.scraper.scrape_rss()
-        self.log(f"Number of news items scraped: {len(news_items)}", 'debug')
+        self.log(f"\nNumber of news items scraped: {len(news_items)}", 'debug')
         articles_saved = 0
         unwanted_articles_saved = 0
 
         with ThreadPoolExecutor(max_workers=10) as executor:
-            self.log(f"Starting ThreadPoolExecutor with max_workers=10", 'debug')
+            self.log(f"\nStarting ThreadPoolExecutor with max_workers={executor._max_workers}", 'debug')
             future_to_item = {executor.submit(self.process_item, item): item for item in news_items}
-            self.log(f"Submitted {len(future_to_item)} items for processing", 'debug')
+            self.log(f"\nSubmitted {len(future_to_item)} items for processing", 'debug')
+            
             for future in as_completed(future_to_item):
                 self.log("Processing completed future", 'debug')
                 result = future.result()
@@ -103,7 +143,7 @@ class NewsScraper:
                     self.log(f"Error processing item: {result.get('error')}", 'error')
                 self.log(f"Current totals - Articles saved: {articles_saved}, Unwanted articles: {unwanted_articles_saved}", 'debug')
 
-        self.log(f"Completed news scraping process. Articles saved: {articles_saved}, Unwanted articles: {unwanted_articles_saved}", 'info')
+        self.log(f"Completed News Scraping process. Articles saved: {articles_saved}, Unwanted articles: {unwanted_articles_saved}", 'info')
         return {
             'success': True,
             'message': f'{articles_saved} articles validated and saved',
@@ -149,7 +189,7 @@ class NewsScraper:
                     return {'success': True, 'articles_saved': 0, 'unwanted_articles_saved': 1}
 
                 # Perplexity summary
-                perplexity_result = article_perplexity_remaker(content=article_text, category_id=self.category_id)
+                perplexity_result = article_perplexity_remaker(content=article_text, bot_id=self.bot_id)
                 if not perplexity_result['success']:
                     self.log(f"Perplexity error: {perplexity_result['error']}", 'error')
                     return {'success': False, 'error': f'There is no summary, perplexity error {perplexity_result["error"]}'}

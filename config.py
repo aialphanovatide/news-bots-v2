@@ -64,6 +64,7 @@ class Bot(db.Model):
         name (str): The name of the bot.
         alias (str): An alias for the bot.
         dalle_prompt (str): The prompt for DALL-E associated with the bot.
+        prompt (str): The prompt for the bot.
         icon (str): The icon representing the bot.
         background_color (str): The background color for the bot.
         run_frequency (str): The frequency at which the bot runs.
@@ -71,6 +72,11 @@ class Bot(db.Model):
         category_id (int): Foreign key referencing the category the bot belongs to.
         created_at (datetime): The timestamp when the bot was created.
         updated_at (datetime): The timestamp when the bot was last updated.
+        next_run_time (datetime): The scheduled time for the bot's next run.
+        status (str): The current status of the bot, can be 'IDLE', 'RUNNING', or 'ERROR'.
+        last_run_time (datetime): The timestamp of the bot's last run.
+        last_run_status (str): The status of the bot's last run, can be 'SUCCESS' or 'FAILURE'.
+        run_count (int): The total number of times the bot has run.
     """
     __tablename__ = 'bot'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

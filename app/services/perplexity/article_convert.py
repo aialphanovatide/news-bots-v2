@@ -1,26 +1,26 @@
-from config import Category
+from config import Bot
 from .perplexity import perplexity_api_request
 
 
-def article_perplexity_remaker(content, category_id):
+def article_perplexity_remaker(content, bot_id):
     try:
-        if not content or not category_id:
-            return {'error': 'content and category ID are required', 'success': False}
+        if not content or not bot_id:
+            return {'error': 'content and bot ID are required', 'success': False}
         
         final_content = f'In less than 4000 characters, please write an informative article referring to this content: {content}'
         
-        category = Category.query.filter(Category.id == category_id).first()
+        bot = Bot.query.filter(Bot.id == bot_id).first()
 
-        if not category:
-            return {'error': 'category not found', 'success': False}
+        if not bot:
+            return {'error': 'bot not found', 'success': False}
         
-        bot_prompt = category.prompt
+        bot_prompt = bot.prompt
         if not bot_prompt:
             return {'error': "Bot Prompt not found", 'success': False}
         
         bot_prompt_final = (
             bot_prompt +
-            " Please ensure the following: 1) NEVER - don't include phrases like 'Here is a rewritten headline and summary of the article:', or Here is the rewritten headline and summary of the article:, or Here is the rewritten headline and summary of the article  "
+            " Please ensure the following: 1) NEVER - don't include phrases like 'Here is a rewritten headline and summary of the article:', or Here is the rewritten headline and summary of the article:, or Here is the rewritten headline and summary of the article"
             "or similar at the start of the article. 2) The article should directly start with the content without any prefatory "
             "statements. 3) Maintain a professional tone appropriate for a knowledgeable audience."
         )

@@ -47,8 +47,7 @@ if __name__ == "__main__":
     try:
         print("Starting the server...")
         port = int(os.environ.get('PORT', 5000))
-        app.run(debug=False, use_reloader=False, port=port, threaded=True, host='0.0.0.0')
-        print("Server has started successfully...")
+        app.run(debug=True, use_reloader=False, port=port, threaded=True, host='0.0.0.0')
     except Exception as e:
         print(f"An error occurred: {e}")
     finally:

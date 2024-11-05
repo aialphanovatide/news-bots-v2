@@ -46,11 +46,10 @@ def get_bot():
             joinedload(Bot.blacklist),
             joinedload(Bot.sites)
         )
-        
         if bot_id:
             bot = query.get(bot_id)
         else:
-            bot = query.filter_by(name=bot_name).first()
+            bot = query.filter_by(name=bot_name.lower()).first()
 
         if not bot:
             return jsonify(create_response(error="Bot not found")), 404
@@ -436,6 +435,7 @@ def delete_bot(bot_id):
 def toggle_activation_bot(bot_id):
     with Session() as session:
         try:
+            current_app.logger.debug(f"Toggling activation for bot with ID: {bot_id}")
             bot = session.query(Bot).get(bot_id)
             if not bot:
                 return jsonify(create_response(error=f"No bot found with ID: {bot_id}")), 404

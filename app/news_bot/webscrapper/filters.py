@@ -43,67 +43,6 @@ def datetime_checker(date_string: str) -> bool:
     return False
 
 
-# def last_10_article_checker(bot_id: int, article_content: str, title: str, url: str) -> Dict[str, Any]:
-#     """
-#     Check if the given article content is similar to any of the last 10 articles for a specific bot.
-
-#     Args:
-#         bot_id (int): The ID of the bot.
-#         article_content (str): The content of the article to check.
-
-#     Returns:
-#         Dict[str, Any]: A dictionary containing the result of the check:
-#             - 'error' (str or None): Description of the error if the article is too similar.
-#             - 'articles_saved' (Article or None): The saved article if it's not similar.
-#             - 'unwanted_articles_saved' (int): The total number of unwanted articles saved.
-
-#     Raises:
-#         Exception: If an error occurs during the similarity check.
-#     """
-#     data_manager=DataManager()
-#     # Ensure article_content is a single string
-#     if isinstance(article_content, list):
-#         article_content = " ".join(article_content)
-
-#     # Retrieve the last 10 articles
-#     last_10_articles: List[Article] = Article.query.filter_by(bot_id=bot_id).order_by(Article.date.desc()).limit(10).all()
-#     last_10_contents: List[str] = [article.content for article in last_10_articles]
-
-#     unwanted_articles_saved = 0
-#     is_similar = False
-
-#     # Check for high similarity using OpenAI cosine similarity function
-#     for content in last_10_contents:
-#         try:
-#             similarity_score = cosine_similarity_with_openai_classification(content, article_content)
-            
-#             if similarity_score is None:
-#                 return {'error': 'Similarity score could not be calculated'}
-        
-#             if similarity_score >= 0.9:
-#                 data_manager.save_unwanted_article(title=title, content=content, reason="Article is too similar to a recent article", url=url, date=datetime.now(),bot_id=bot_id,created_at=datetime.now(),updated_at=datetime.now()),
-#                 unwanted_articles_saved += 1
-#                 is_similar = True
-#                 break  
-#         except Exception as e:
-#             print(f"[ERROR] Exception occurred during similarity check: {str(e)}")
-#             raise
-
-#     # Prepare the return dictionary
-#     result = {
-#         'unwanted_articles_saved': unwanted_articles_saved
-#     }
-
-#     if is_similar:
-#         result['error'] = f"Article is too similar to a recent article (similarity score: {similarity_score})"
-#         result['articles_saved'] = None
-#     else:
-#         result['error'] = None
-#         result['articles_saved'] = None  # You might want to save the article here if it's not similar
-
-#     return result
-
-
 def last_10_article_checker(bot_id: int, article_content: str, title: str, url: str) -> Dict[str, Any]:
     data_manager = DataManager()
     
@@ -153,7 +92,7 @@ def last_10_article_checker(bot_id: int, article_content: str, title: str, url: 
     }
 
 
-def url_checker(url: str, bot_id: int) -> dict:
+def is_url_analyzed(url: str, bot_id: int) -> dict:
     """
     Check if a URL has been previously analyzed and stored in the database.
 
@@ -184,14 +123,8 @@ def url_checker(url: str, bot_id: int) -> dict:
     existing_article = Article.query.filter_by(bot_id=bot_id, url=url).first()
     
     if existing_unwanted_article or existing_article:
-        print(f"[INFO] Article already analyzed: {url}")
-        return {
-            'error': 'article already analyzed',
-            'articles_saved': 0,
-            'unwanted_articles_saved': 0
-        }
-    
-    return None  # URL hasn't been analyzed before
+        return True
+    return False
 
 
 def filter_link(url: str, exclude_terms: List[str] = ['privacy-policy', 'glossary', 'careers', 'about', 'newsletter', '/events/',

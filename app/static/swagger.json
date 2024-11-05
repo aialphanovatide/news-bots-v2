@@ -1460,7 +1460,7 @@
           "Bots"
         ],
         "summary": "Create a new bot",
-        "description": "\n    this endpoint allows you to create a new bot with specified parameters.\n    \n    key points:\n    - the 'name', 'alias', and 'category_id' fields are required.\n    - the 'prompt' field is required and should contain the bot's initial conversation prompt.\n    - the 'run_frequency' is optional and specifies how often the bot should run (in minutes).\n    - the 'dalle_prompt' is optional and can be used to generate a custom icon for the bot.\n    - the 'background_color' is optional and can be used to set a custom background color for the bot's icon.\n    - the 'created_at' and 'updated_at' timestamps are automatically set.\n\n    after creation, the bot will be associated with the specified category and can be managed through other bot-related endpoints.\n    ",
+        "description": "\n    this endpoint allows you to create a new bot with specified parameters.\n    \n    key points:\n    - the 'name', 'alias', and 'category_id' fields are required.\n    - the 'prompt' field is required and should contain the bot's initial conversation prompt.\n    - the 'run_frequency' is optional and specifies how often the bot should run (in minutes).\n    - the 'dalle_prompt' is optional and can be used to generate a custom icon for the bot.\n    - the 'background_color' is optional and can be used to set a custom background color for the bot's icon.\n    - the 'whitelist' and 'blacklist' fields are optional and can be used to add new keywords or words to the existing whitelist and blacklist.\n    - the 'created_at' and 'updated_at' timestamps are automatically set.\n\n    after creation, the bot will be associated with the specified category and can be managed through other bot-related endpoints.\n    ",
         "parameters": [
           {
             "name": "body",
@@ -1498,6 +1498,14 @@
                 "background_color": {
                   "type": "string",
                   "description": "Background color for the bot's icon (optional)"
+                },
+                "whitelist": {
+                  "type": "string",
+                  "description": "Comma-separated list of keywords to add to the existing whitelist"
+                },
+                "blacklist": {
+                  "type": "string",
+                  "description": "Comma-separated list of words to add to the existing blacklist"
                 }
               },
               "required": [

@@ -1,7 +1,6 @@
-from typing import Dict, Any
 from bs4 import BeautifulSoup
+from typing import Dict, Any
 import requests
-from datetime import datetime, timedelta
 
 def analyze_content(news_link: str) -> Dict[str, Any]:
     """
@@ -48,7 +47,6 @@ def analyze_content(news_link: str) -> Dict[str, Any]:
         content_type = response.headers.get('Content-Type', '').lower()
         
         if 'text/html' not in content_type:
-            print(f"[ERROR] Content is not HTML for URL: {news_link}")
             return {
                 'success': False,
                 'url': news_link,
@@ -70,7 +68,6 @@ def analyze_content(news_link: str) -> Dict[str, Any]:
             article_title = title_element.get('content') if title_element else None
 
         if not article_title:
-            print("[WARNING] Could not extract article title")
             article_title = "Unknown Title"        
         
         # Extract paragraphs from the article
@@ -86,16 +83,14 @@ def analyze_content(news_link: str) -> Dict[str, Any]:
         }
             
     except requests.RequestException as e:
-        print(f"[ERROR] Request error for {news_link}: {e}")
         return {
             'success': False,
             'url': news_link,
             'title': None,
             'paragraphs': [],
-            'error': f"Request error: {e}"
+            'error': f"Request error while getting article content: {e}"
         }
     except Exception as e:
-        print(f"[ERROR] Unexpected error while processing {news_link}: {e}")
         return {
             'success': False,
             'url': news_link,
