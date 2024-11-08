@@ -1,4 +1,5 @@
 import re
+from sqlalchemy import func
 from datetime import datetime
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
@@ -49,7 +50,7 @@ def get_bot():
         if bot_id:
             bot = query.get(bot_id)
         else:
-            bot = query.filter_by(name=bot_name.lower()).first()
+            bot = query.filter(func.lower(Bot.name) == bot_name.lower()).first()
 
         if not bot:
             return jsonify(create_response(error="Bot not found")), 404
@@ -101,7 +102,7 @@ def get_all_bots():
 
 
 @bots_bp.route('/bot', methods=['POST'])
-@update_cache_with_redis(related_get_endpoints=['get_all_bots'])
+@update_cache_with_redis(related_get_endpoints=['get_all_bots', 'get_bot', 'get_categories'])
 def create_bot():
     """
     Create a new bot.
@@ -238,7 +239,7 @@ def create_bot():
 
 
 @bots_bp.route('/bot/<int:bot_id>', methods=['PUT'])
-@update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot'])
+@update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot', 'get_categories'])
 def update_bot(bot_id):
     """
     Update an existing bot in the news bot server and reschedule if necessary.
@@ -367,7 +368,7 @@ def update_bot(bot_id):
 
 
 @bots_bp.route('/bot/<int:bot_id>', methods=['DELETE'])
-@update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot'])
+@update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot', 'get_categories'])
 def delete_bot(bot_id):
     """
     Delete a bot and all its associated data from the news bot server.
@@ -431,7 +432,7 @@ def delete_bot(bot_id):
 
 
 @bots_bp.route('/bot/<int:bot_id>/toggle-activation', methods=['POST'])
-@update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot'])
+@update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot', 'get_categories'])
 def toggle_activation_bot(bot_id):
     with Session() as session:
         try:

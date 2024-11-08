@@ -115,38 +115,6 @@ class NewsScraper:
             return False
 
         return True
-    
-    # def run(self):
-        
-    #     self.log("Starting News Scraping process", 'info')
-    #     self.log(f"Bot ID: {self.bot_id}, Category ID: {self.category_id}", 'debug')
-    #     news_items = self.scraper.scrape_rss()
-    #     self.log(f"Number of news items scraped: {len(news_items)}", 'debug')
-    #     articles_saved = 0
-    #     unwanted_articles_saved = 0
-
-    #     with ThreadPoolExecutor(max_workers=15) as executor:
-    #         self.log(f"Starting ThreadPoolExecutor with max_workers={executor._max_workers}", 'debug')
-    #         future_to_item = {executor.submit(self.process_item, item): item for item in news_items}
-            
-    #         for future in as_completed(future_to_item):
-    #             self.log("Processing completed future", 'debug')
-    #             result = future.result()
-    #             if result.get('success', False):
-    #                 articles_saved += result['articles_saved']
-    #                 unwanted_articles_saved += result['unwanted_articles_saved']
-    #                 self.log(f"Processed item successfully. Articles saved: {result['articles_saved']}, Unwanted articles: {result['unwanted_articles_saved']}", 'debug')
-    #             else:
-    #                 self.log(f"Error processing item: {result.get('error')}", 'error')
-    #             self.log(f"Current totals - Articles saved: {articles_saved}, Unwanted articles: {unwanted_articles_saved}", 'debug')
-
-    #     self.log(f"Completed News Scraping process. Articles saved: {articles_saved}, Unwanted articles: {unwanted_articles_saved}", 'info')
-    #     return {
-    #         'success': True,
-    #         'message': f'{articles_saved} articles validated and saved',
-    #         'articles_saved': articles_saved,
-    #         'unwanted_articles_saved': unwanted_articles_saved
-    #     }
 
     def run(self):
         """Execute the news scraping process with parallel article processing.
