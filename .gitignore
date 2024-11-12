@@ -33,6 +33,9 @@ app/utils/userDataDir/
 .DS_Store
 Thumbs.db
 
+# all temp files
+tmp/
+
 ./userDataDir
 app/utils/tmp/playwright
 node_modules/

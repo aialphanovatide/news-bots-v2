@@ -9,8 +9,11 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from playwright.sync_api import sync_playwright
 
-# Takes a string, changes it to lowercase, and joins words with underscores
 def transform_string(input_string):
+    """
+    Transforms the input string by changing it to lowercase and joining words with underscores.
+    If the input is not a string, it returns None.
+    """
     if not isinstance(input_string, str):
         return None
     lower_string = input_string.lower()
@@ -18,8 +21,22 @@ def transform_string(input_string):
     doubled_words = '_'.join(word + '_' + word for word in words)
     return doubled_words
 
-# Resolves redirects using Playwright and simulates copy to clipboard
+
 def resolve_redirects_playwright(url: str) -> str:
+    """
+    Resolves redirects for a given URL using Playwright.
+
+    This function launches a Playwright browser instance, navigates to the provided URL, waits for any redirects to complete, and returns the final URL.
+
+    Args:
+        url (str): The URL to resolve redirects for.
+
+    Returns:
+        str: The final URL after resolving redirects.
+
+    Raises:
+        Exception: If an error occurs while using Playwright.
+    """
     root_dir = os.path.abspath(os.path.dirname(__file__))
     user_data_dir = os.path.join(root_dir, 'tmp/playwright')
 
@@ -40,8 +57,7 @@ def resolve_redirects_playwright(url: str) -> str:
             return final_url
 
     except Exception as e:
-        print(f"Error using Playwright: {e}")
-        return None
+        raise Exception(f"Error using Playwright: {e}")
 
    
 # Saves a dictionary to a JSON file
@@ -85,6 +101,23 @@ def measure_execution_time(func):
 
 
 def clean_text(text):
+    """
+    Cleans the input text by removing specific patterns and keywords.
+
+    This function removes the following patterns from the input text:
+    - 'Headline:\n'
+    - 'Summary:\n'
+    - 'Summary:'
+    - '**' (bold text markers)
+    - '***' (italic text markers)
+    - '###' (header markers)
+
+    Args:
+        text (str): The input text to be cleaned.
+
+    Returns:
+        str: The cleaned text.
+    """
     text = re.sub(r'Headline:\n', '', text)
     text = re.sub(r'Summary:\n', '', text)
     text = re.sub(r'Summary:', '', text)

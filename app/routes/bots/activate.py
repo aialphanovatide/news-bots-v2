@@ -3,7 +3,7 @@
 
 
 from flask import Blueprint, jsonify, request
-from app.news_bot.webscrapper.init import NewsScraper
+from app.news_bot.news_bot_v2 import NewsProcessingPipeline as NewsScraper
 from config import Blacklist, Category, Bot, Site, db
 from datetime import datetime, timedelta
 from scheduler_config import scheduler

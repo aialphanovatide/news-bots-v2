@@ -29,3 +29,5 @@ feedparser
 pytz
 psutil
 openpyxl
+elementpath
+snscrape

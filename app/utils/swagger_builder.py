@@ -126,68 +126,123 @@ swagger = Swagger()
 
 # ____Add or update an endpoint____
 
-# success, message = swagger.add_or_update_endpoint(
-#     endpoint_route='/bot',
-#     method='post',
+# swagger.add_or_update_endpoint(
+#     endpoint_route='/bot/{bot_id}/metrics',
+#     method='get',
 #     tag='Bots',
-#     description='Create a new bot',
+#     description='Get bot metrics with pagination and filtering',
 #     detail_description='''
-#     This endpoint allows you to create a new bot with specified parameters.
+#     Retrieves metrics for a specific bot with pagination and date filtering options.
     
-#     Key points:
-#     - The 'name', 'alias', and 'category_id' fields are required.
-#     - The 'prompt' field is required and should contain the bot's initial conversation prompt.
-#     - The 'run_frequency' is optional and specifies how often the bot should run (in minutes).
-#     - The 'dalle_prompt' is optional and can be used to generate a custom icon for the bot.
-#     - The 'background_color' is optional and can be used to set a custom background color for the bot's icon.
-#     - The 'created_at' and 'updated_at' timestamps are automatically set.
-
-#     After creation, the bot will be associated with the specified category and can be managed through other bot-related endpoints.
+#     The endpoint returns:
+#     - List of individual metric records
+#     - Aggregated statistics across the returned metrics
+#     - Pagination metadata
+    
+#     Metrics include:
+#     - Runtime statistics
+#     - Resource usage (CPU, memory)
+#     - Article processing counts
+#     - Error and filtering statistics
 #     ''',
 #     params=[
 #         {
-#             'name': 'body',
-#             'in': 'body',
-#             'description': 'Bot details',
+#             'name': 'bot_id',
+#             'in': 'path',
+#             'description': 'ID of the bot',
 #             'required': True,
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'name': {'type': 'string', 'description': 'Name of the bot (required)'},
-#                     'alias': {'type': 'string', 'description': 'Unique identifier for the bot (required)'},
-#                     'category_id': {'type': 'integer', 'description': 'ID of the category the bot belongs to (required)'},
-#                     'prompt': {'type': 'string', 'description': 'Initial conversation prompt for the bot (required)'},
-#                     'run_frequency': {'type': 'integer', 'description': 'How often the bot should run, in minutes (optional)'},
-#                     'dalle_prompt': {'type': 'string', 'description': 'Prompt for generating a custom icon using DALL-E (optional)'},
-#                     'background_color': {'type': 'string', 'description': 'Background color for the bot\'s icon (optional)'},
-#                 },
-#                 'required': ['name', 'alias', 'category_id', 'prompt']
-#             }
+#             'type': 'integer'
+#         },
+#         {
+#             'name': 'page',
+#             'in': 'query',
+#             'description': 'Page number (starts at 1)',
+#             'required': False,
+#             'type': 'integer',
+#             'default': 1,
+#             'minimum': 1
+#         },
+#         {
+#             'name': 'per_page',
+#             'in': 'query',
+#             'description': 'Number of items per page',
+#             'required': False,
+#             'type': 'integer',
+#             'default': 10,
+#             'minimum': 1
+#         },
+#         {
+#             'name': 'start_date',
+#             'in': 'query',
+#             'description': 'Filter metrics after this date (ISO format: YYYY-MM-DDTHH:MM:SS)',
+#             'required': False,
+#             'type': 'string',
+#             'format': 'date-time'
+#         },
+#         {
+#             'name': 'end_date',
+#             'in': 'query',
+#             'description': 'Filter metrics before this date (ISO format: YYYY-MM-DDTHH:MM:SS)',
+#             'required': False,
+#             'type': 'string',
+#             'format': 'date-time'
 #         }
 #     ],
 #     responses={
-#         '201': {
-#             'description': 'Bot created successfully',
+#         '200': {
+#             'description': 'Metrics retrieved successfully',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
 #                     'success': {'type': 'boolean'},
 #                     'data': {
-#                         'type': 'array',
-#                         'items': {
-#                             'type': 'object',
-#                             'properties': {
-#                                 'id': {'type': 'integer', 'description': 'Unique identifier for the bot'},
-#                                 'name': {'type': 'string', 'description': 'Name of the bot'},
-#                                 'alias': {'type': 'string', 'description': 'Unique alias of the bot'},
-#                                 'category_id': {'type': 'integer', 'description': 'ID of the category the bot belongs to'},
-#                                 'prompt': {'type': 'string', 'description': 'Initial conversation prompt for the bot'},
-#                                 'run_frequency': {'type': 'integer', 'description': 'How often the bot runs, in minutes'},
-#                                 'dalle_prompt': {'type': 'string', 'description': 'Prompt used for generating the bot\'s icon'},
-#                                 'icon': {'type': 'string', 'description': 'URL of the bot\'s icon'},
-#                                 'background_color': {'type': 'string', 'description': 'Background color of the bot\'s icon'},
-#                                 'created_at': {'type': 'string', 'format': 'date-time', 'description': 'Timestamp of when the bot was created'},
-#                                 'updated_at': {'type': 'string', 'format': 'date-time', 'description': 'Timestamp of when the bot was last updated'}
+#                         'type': 'object',
+#                         'properties': {
+#                             'metrics': {
+#                                 'type': 'array',
+#                                 'items': {
+#                                     'type': 'object',
+#                                     'properties': {
+#                                         'id': {'type': 'integer'},
+#                                         'bot_id': {'type': 'integer'},
+#                                         'start_time': {'type': 'string', 'format': 'date-time'},
+#                                         'end_time': {'type': 'string', 'format': 'date-time'},
+#                                         'total_runtime': {'type': 'number'},
+#                                         'total_articles_found': {'type': 'integer'},
+#                                         'articles_processed': {'type': 'integer'},
+#                                         'articles_saved': {'type': 'integer'},
+#                                         'cpu_percent': {'type': 'number'},
+#                                         'memory_percent': {'type': 'number'},
+#                                         'total_errors': {'type': 'integer'},
+#                                         'error_reasons': {'type': 'object'},
+#                                         'total_filtered': {'type': 'integer'},
+#                                         'filter_reasons': {'type': 'object'}
+#                                     }
+#                                 }
+#                             },
+#                             'aggregated_stats': {
+#                                 'type': 'object',
+#                                 'properties': {
+#                                     'total_runtime': {'type': 'number'},
+#                                     'avg_cpu_percent': {'type': 'number'},
+#                                     'avg_memory_percent': {'type': 'number'},
+#                                     'total_articles_found': {'type': 'integer'},
+#                                     'total_articles_processed': {'type': 'integer'},
+#                                     'total_articles_saved': {'type': 'integer'},
+#                                     'total_errors': {'type': 'integer'},
+#                                     'total_filtered': {'type': 'integer'}
+#                                 }
+#                             },
+#                             'pagination': {
+#                                 'type': 'object',
+#                                 'properties': {
+#                                     'total_items': {'type': 'integer'},
+#                                     'total_pages': {'type': 'integer'},
+#                                     'current_page': {'type': 'integer'},
+#                                     'per_page': {'type': 'integer'},
+#                                     'has_next': {'type': 'boolean'},
+#                                     'has_prev': {'type': 'boolean'}
+#                                 }
 #                             }
 #                         }
 #                     }
@@ -195,33 +250,48 @@ swagger = Swagger()
 #             }
 #         },
 #         '400': {
-#             'description': 'Invalid input - This could occur if required fields are missing or if the alias is not unique',
+#             'description': 'Invalid parameters provided',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
 #                     'success': {'type': 'boolean'},
-#                     'error': {'type': 'string'}
+#                     'error': {
+#                         'type': 'string',
+#                         'description': 'Error message describing the invalid parameters'
+#                     }
+#                 }
+#             }
+#         },
+#         '404': {
+#             'description': 'Bot not found',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'error': {
+#                         'type': 'string',
+#                         'description': 'Error message indicating bot was not found'
+#                     }
 #                 }
 #             }
 #         },
 #         '500': {
-#             'description': 'Internal server error - This could occur due to database issues or other server-side problems',
+#             'description': 'Internal server error',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
 #                     'success': {'type': 'boolean'},
-#                     'error': {'type': 'string'}
+#                     'error': {
+#                         'type': 'string',
+#                         'description': 'Error message describing what went wrong'
+#                     }
 #                 }
 #             }
 #         }
 #     }
 # )
 
-# print(message)
-
-
 # ____Delete an endpoint____
-
 # success, message = swagger.delete_endpoint(endpoint_route='/delete_bot/{bot_id}')
 # print(message)
 

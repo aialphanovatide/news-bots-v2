@@ -18,6 +18,7 @@ engine = create_engine(
     max_overflow=20,
     connect_args={"options": "-c timezone=America/Argentina/Buenos_Aires"}
 )
+print(f"Connected to {DB_URI}")
 Session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 class Category(db.Model):
@@ -104,6 +105,7 @@ class Bot(db.Model):
     blacklist = db.relationship("Blacklist", backref="bot", cascade="all, delete-orphan")
     articles = db.relationship("Article", backref="bot", cascade="all, delete-orphan")
     unwanted_articles = db.relationship("UnwantedArticle", backref="bot", cascade="all, delete-orphan")
+    metrics = db.relationship("Metrics", back_populates="bot", cascade="all, delete-orphan")
 
     def as_dict(self):
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
@@ -276,6 +278,31 @@ class UsedKeywords(db.Model):
     article_id = db.Column(db.Integer, db.ForeignKey('article.id'))
     bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'))
     created_at = db.Column(db.TIMESTAMP, default=datetime.now)
+
+    def as_dict(self):
+        return {column.name: getattr(self, column.name) for column in self.__table__.columns}
+
+
+class Metrics(db.Model):
+    __tablename__ = 'metrics'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    bot_id = db.Column(db.Integer, db.ForeignKey('bot.id', ondelete='CASCADE'), nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False)
+    end_time = db.Column(db.DateTime)
+    total_runtime = db.Column(db.Float)
+    total_articles_found = db.Column(db.Integer, default=0)
+    articles_processed = db.Column(db.Integer, default=0)
+    articles_saved = db.Column(db.Integer, default=0)
+    cpu_percent = db.Column(db.Float)
+    memory_percent = db.Column(db.Float)
+    total_errors = db.Column(db.Integer, default=0)
+    error_reasons = db.Column(db.JSON)
+    total_filtered = db.Column(db.Integer, default=0)
+    filter_reasons = db.Column(db.JSON)
+
+    # Define the relationship with the Bot model
+    bot = db.relationship('Bot', back_populates='metrics')
 
     def as_dict(self):
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}

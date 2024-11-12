@@ -3412,6 +3412,282 @@
           }
         }
       }
+    },
+    "/bot/{bot_id}/logs": {
+      "get": {
+        "tags": [
+          "Bots"
+        ],
+        "summary": "Get bot logs",
+        "description": "\n    this endpoint streams the log file for a specific bot.\n    \n    key points:\n    - returns the raw log file content as plain text\n    - logs include pipeline processing details, errors, and metrics\n    - the log file is read directly from the filesystem\n    - returns 404 if bot or log file not found\n    - returns 500 for server errors\n    ",
+        "parameters": [
+          {
+            "name": "bot_id",
+            "in": "path",
+            "description": "ID of the bot to get logs for",
+            "required": true,
+            "type": "integer",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Log file content retrieved successfully",
+            "schema": {
+              "type": "string",
+              "description": "Raw log file content"
+            }
+          },
+          "404": {
+            "description": "Bot or log file not found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string",
+                  "description": "Error message indicating whether bot or log file was not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error occurred while retrieving logs",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string",
+                  "description": "Error message describing what went wrong"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bot/{bot_id}/metrics": {
+      "get": {
+        "tags": [
+          "Bots"
+        ],
+        "summary": "Get bot metrics with pagination and filtering",
+        "description": "\n    retrieves metrics for a specific bot with pagination and date filtering options.\n    \n    the endpoint returns:\n    - list of individual metric records\n    - aggregated statistics across the returned metrics\n    - pagination metadata\n    \n    metrics include:\n    - runtime statistics\n    - resource usage (cpu, memory)\n    - article processing counts\n    - error and filtering statistics\n    ",
+        "parameters": [
+          {
+            "name": "bot_id",
+            "in": "path",
+            "description": "ID of the bot",
+            "required": true,
+            "type": "integer",
+            "schema": {}
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (starts at 1)",
+            "required": false,
+            "type": "integer",
+            "schema": {}
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "Number of items per page",
+            "required": false,
+            "type": "integer",
+            "schema": {}
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "description": "Filter metrics after this date (ISO format: YYYY-MM-DDTHH:MM:SS)",
+            "required": false,
+            "type": "string",
+            "schema": {}
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "description": "Filter metrics before this date (ISO format: YYYY-MM-DDTHH:MM:SS)",
+            "required": false,
+            "type": "string",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Metrics retrieved successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "metrics": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "bot_id": {
+                            "type": "integer"
+                          },
+                          "start_time": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "end_time": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "total_runtime": {
+                            "type": "number"
+                          },
+                          "total_articles_found": {
+                            "type": "integer"
+                          },
+                          "articles_processed": {
+                            "type": "integer"
+                          },
+                          "articles_saved": {
+                            "type": "integer"
+                          },
+                          "cpu_percent": {
+                            "type": "number"
+                          },
+                          "memory_percent": {
+                            "type": "number"
+                          },
+                          "total_errors": {
+                            "type": "integer"
+                          },
+                          "error_reasons": {
+                            "type": "object"
+                          },
+                          "total_filtered": {
+                            "type": "integer"
+                          },
+                          "filter_reasons": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    },
+                    "aggregated_stats": {
+                      "type": "object",
+                      "properties": {
+                        "total_runtime": {
+                          "type": "number"
+                        },
+                        "avg_cpu_percent": {
+                          "type": "number"
+                        },
+                        "avg_memory_percent": {
+                          "type": "number"
+                        },
+                        "total_articles_found": {
+                          "type": "integer"
+                        },
+                        "total_articles_processed": {
+                          "type": "integer"
+                        },
+                        "total_articles_saved": {
+                          "type": "integer"
+                        },
+                        "total_errors": {
+                          "type": "integer"
+                        },
+                        "total_filtered": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "total_items": {
+                          "type": "integer"
+                        },
+                        "total_pages": {
+                          "type": "integer"
+                        },
+                        "current_page": {
+                          "type": "integer"
+                        },
+                        "per_page": {
+                          "type": "integer"
+                        },
+                        "has_next": {
+                          "type": "boolean"
+                        },
+                        "has_prev": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameters provided",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string",
+                  "description": "Error message describing the invalid parameters"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bot not found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string",
+                  "description": "Error message indicating bot was not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string",
+                  "description": "Error message describing what went wrong"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
