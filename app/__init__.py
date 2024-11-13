@@ -5,6 +5,9 @@ from dotenv import load_dotenv
 from pytz import timezone
 from config import db
 from scheduler_config import scheduler
+from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.date import DateTrigger
+from app.routes.bots.bot_scheduler import cleanup_news_bot_logs
 from app.utils.timezones import check_server_timezone, check_database_timezone, check_scheduler_timezone
 
 load_dotenv()
@@ -49,15 +52,31 @@ def create_app():
 
     # Initialize and start scheduler
     scheduler.init_app(app)
+    if scheduler.state != 1:
+        print('Scheduler started')
+        scheduler.start()
+
+    with app.app_context():
+        # Add job to cleanup news bot logs
+        scheduler.add_job(
+            func=cleanup_news_bot_logs,
+            trigger=CronTrigger(
+                day_of_week='sun',
+                hour=0,
+                minute=0
+            ),
+            # Uncomment this line if you want to use execute the job immediately
+            # trigger=DateTrigger(),
+            id='weekly_log_cleanup',
+            name='Weekly News Bot Log Cleanup',
+            replace_existing=True
+        )
+    
     with app.app_context():
         db.create_all()  # Create tables if they don't exist
         check_server_timezone()
         check_database_timezone()
         check_scheduler_timezone()
-
-        if scheduler.state != 1:
-            print('Scheduler started')
-            scheduler.start()
           
 
     # Register blueprints

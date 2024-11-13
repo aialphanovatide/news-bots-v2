@@ -284,6 +284,28 @@ class UsedKeywords(db.Model):
 
 
 class Metrics(db.Model):
+    """
+    Represents metrics for a bot's performance and activity.
+
+    Attributes:
+        id (int): The unique identifier for the metrics entry.
+        bot_id (int): Foreign key referencing the bot associated with these metrics.
+        start_time (datetime): Timestamp when the bot's activity started.
+        end_time (datetime): Timestamp when the bot's activity ended.
+        total_runtime (float): Total time in seconds the bot was active.
+        total_articles_found (int): Total number of articles found by the bot.
+        articles_processed (int): Total number of articles processed by the bot.
+        articles_saved (int): Total number of articles saved by the bot.
+        cpu_percent (float): CPU usage percentage during the bot's activity.
+        memory_percent (float): Memory usage percentage during the bot's activity.
+        total_errors (int): Total number of errors encountered during the bot's activity.
+        error_reasons (JSON): JSON object containing reasons for errors encountered.
+        total_filtered (int): Total number of articles filtered out during processing.
+        filter_reasons (JSON): JSON object containing reasons for articles being filtered out.
+
+    Methods:
+        as_dict(): Converts the metrics object into a dictionary for easy serialization.
+    """
     __tablename__ = 'metrics'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -305,4 +327,10 @@ class Metrics(db.Model):
     bot = db.relationship('Bot', back_populates='metrics')
 
     def as_dict(self):
+        """
+        Converts the metrics object into a dictionary for easy serialization.
+
+        Returns:
+            dict: A dictionary representation of the metrics object.
+        """
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}

@@ -626,26 +626,11 @@ def get_bot_metrics(bot_id):
                       .limit(per_page)\
                       .all()
 
-        # Calculate aggregated stats if there are metrics
-        if metrics:
-            aggregated_stats = {
-                'total_runtime': round(sum(m.total_runtime or 0 for m in metrics), 2),
-                'avg_cpu_percent': round(sum(m.cpu_percent or 0 for m in metrics) / len(metrics), 2),
-                'avg_memory_percent': round(sum(m.memory_percent or 0 for m in metrics) / len(metrics), 2),
-                'total_articles_found': sum(m.total_articles_found or 0 for m in metrics),
-                'total_articles_processed': sum(m.articles_processed or 0 for m in metrics),
-                'total_articles_saved': sum(m.articles_saved or 0 for m in metrics),
-                'total_errors': sum(m.total_errors or 0 for m in metrics),
-                'total_filtered': sum(m.total_filtered or 0 for m in metrics)
-            }
-        else:
-            aggregated_stats = None
 
         return create_response(
             success=True,
             data={
                 'metrics': [metric.as_dict() for metric in metrics],
-                'aggregated_stats': aggregated_stats,
                 'pagination': {
                     'total_items': total_count,
                     'total_pages': total_pages,

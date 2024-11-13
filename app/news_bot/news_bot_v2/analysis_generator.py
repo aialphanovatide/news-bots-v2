@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional, List, Tuple, Literal
+from typing import Dict, Any, Optional, Tuple, Literal
 from dataclasses import dataclass
 from openai import OpenAI
 from config import Bot
@@ -69,7 +69,7 @@ class AnalysisGenerator:
     """
     
     DEFAULT_SYSTEM_PROMPT = (
-        "You are a financial analyst that creates analysis that adopt a tone that is conversational, engaging, and accessible, while still retaining the depth of the financial insights. The tone should reflect the style of Matt Levine, known for making complex financial topics understandable and entertaining. Please respect the brevity of the original analysis. You should also edit the titles of the analysis, which should be short and appealing to X's audience."
+        "You are a financial analyst that creates analysis that adopt a tone that is conversational, engaging, and accessible, while still retaining the depth of the financial insights. The tone should reflect the style of Matt Levine, famous columnist, known for making complex financial topics understandable and entertaining. Please respect the brevity of the original analysis. You should also edit the titles of the analysis, which should be short and appealing to X's audience."
     )
 
     PROMPT_SUFFIX = (
@@ -130,6 +130,9 @@ class AnalysisGenerator:
                 raise ValueError("Content and bot_id are required")
 
             system_prompt = await self._get_bot_prompt(bot_id)
+            if not system_prompt:
+                system_prompt = f"{self.DEFAULT_SYSTEM_PROMPT}{self.PROMPT_SUFFIX}"
+
             new_title, new_content = await self._process_with_openai(
                 content, title, system_prompt
             )
@@ -149,7 +152,7 @@ class AnalysisGenerator:
             bot = Bot.query.get(bot_id)
             if bot and bot.prompt:
                 return f"{bot.prompt}{self.PROMPT_SUFFIX}"
-            return f"{self.DEFAULT_SYSTEM_PROMPT}{self.PROMPT_SUFFIX}"
+            return None
             
         except Exception as e:
             raise Exception(f"Failed to get bot prompt: {str(e)}")
@@ -231,6 +234,8 @@ class AnalysisGenerator:
                 success: bool indicating if generation was successful
                 file_path: str path to the generated audio file
                 duration: float duration of the audio in seconds
+                metadata: Dict containing audio metadata
+                data: bytes of the audio file
                 error: str error message if any
         
         Example:
@@ -333,7 +338,7 @@ class AnalysisGenerator:
 
 #     # Generate analysis
 #     analysis = asyncio.run(analysis_generator.generate_analysis(content, title, bot_id))
-#     print(analysis)
+#     print(analysis['new_content'])
 
     # Generate audio
     # audio = asyncio.run(analysis_generator.generate_audio(title, content))

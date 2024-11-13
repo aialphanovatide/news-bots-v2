@@ -1,5 +1,5 @@
 
-from typing import Dict, Any, Optional, Union, Literal
+from typing import Dict, Any, Optional
 from logging.handlers import RotatingFileHandler
 from dataclasses import dataclass
 from datetime import datetime
@@ -21,6 +21,7 @@ from .filters import (check_article_keywords,
 from .image_generator import ImageGenerator
 from .data_manager import DataManager
 from .grok import GrokProcessor
+from config import Metrics, db
 
 @dataclass
 class PipelineConfig:
@@ -174,6 +175,17 @@ class NewsProcessingPipeline:
         Returns:
             Dict[str, Any]: Initial metrics configuration
         """
+        metrics = Metrics(
+            bot_id=self.bot_id,
+            start_time=datetime.now(),
+            cpu_percent=psutil.cpu_percent(),
+            memory_percent=psutil.Process().memory_percent(),
+        )
+
+        with db.session() as session:
+            session.add(metrics)
+            session.commit()
+
         return {
             'start_time': None,
             'end_time': None,
@@ -193,6 +205,24 @@ class NewsProcessingPipeline:
                 'filter_reasons': {}
             }
         }
+    
+    def _update_metrics(self):
+        """Update metrics in database."""
+        with db.session() as session:
+            metrics = session.query(Metrics).filter_by(bot_id=self.bot_id).first()
+            metrics.end_time = datetime.now()
+            metrics.total_runtime = (metrics.end_time - metrics.start_time).total_seconds()
+            metrics.total_articles_found = self.metrics['total_articles_found']
+            metrics.articles_processed = self.metrics['articles_processed']
+            metrics.articles_saved = self.metrics['articles_saved']
+            metrics.cpu_percent = self.metrics['resource_usage']['cpu_percent']
+            metrics.memory_percent = self.metrics['resource_usage']['memory_percent']
+            metrics.total_errors = self.metrics['errors']['total']
+            metrics.error_reasons = self.metrics['errors']['reasons']
+            metrics.total_filtered = self.metrics['filter_stats']['total_filtered']
+            metrics.filter_reasons = self.metrics['filter_stats']['filter_reasons']
+            
+            session.commit()
 
     async def run(self) -> Dict[str, Any]:
         """Main pipeline execution."""
@@ -204,6 +234,7 @@ class NewsProcessingPipeline:
             self.logger.info(f"Scraping RSS feed...")
             news_items = self.web_scraper.scrape_rss(url=self.url)
             if not news_items:
+                self._update_metrics()
                 return self._build_response(success=False, results={}, message="No news items found")
             
             self.logger.info(f"Found {len(news_items)} news URLs")
@@ -219,6 +250,8 @@ class NewsProcessingPipeline:
 
             self.metrics['end_time'] = datetime.now()
             self.metrics['total_runtime'] = (self.metrics['end_time'] - self.metrics['start_time']).total_seconds()
+
+            self._update_metrics()
 
             return self._build_response(
                 success=True,
@@ -238,8 +271,10 @@ class NewsProcessingPipeline:
         References processing logic from __init__.py (lines 213-331)
         """
         try:
+            self.logger.info(f"Processing New Item...")
+
             # 1. URL Resolution
-            self.logger.info(f"\n\nResolving URL: {item['link']}")
+            self.logger.debug(f"Resolving URL: {item['link']}")
             link_result = self._process_url(item['link'])
             if not link_result['success']:
                 self.logger.warning(f"URL processing failed: {link_result['error']}")
@@ -269,7 +304,7 @@ class NewsProcessingPipeline:
             article_content['date'] = item['published']
 
             self.logger.info(f"Raw title: {article_content['title']}")
-            self.logger.info(f"Raw content: {article_content['content'][:100]}")
+            self.logger.info(f"Raw content: {article_content['content'][:100]}...")
             
             # 4. Content Processing
             self.logger.info(f"Processing content...")
@@ -280,8 +315,13 @@ class NewsProcessingPipeline:
                 self.logger.warning(f"Content processing failed: {processed_content['error']}")
                 return {'success': False, 'error': processed_content['error']}
             
-            self.logger.info(f"New title: {processed_content['title'][:50]}")
-            self.logger.info(f"New content: {processed_content['content'][:50]}")
+            self.logger.info(f"New title: {processed_content['title']}")
+            self.logger.info(f"New content: {processed_content['content']}")
+
+            # Types
+            self.logger.info(f"Audio type: {type(processed_content.get('audio', None))}")
+            self.logger.info(f"Title type: {type(processed_content.get('title', None))}")
+            self.logger.info(f"Content type: {type(processed_content.get('content', None))}")
 
             # 5. Image Generation
             try:
@@ -296,6 +336,20 @@ class NewsProcessingPipeline:
                 self.metrics['errors']['reasons'].setdefault('image_generation', 0)
                 self.metrics['errors']['reasons']['image_generation'] += 1
                 return {'success': False, 'error': f'Image generation failed: {str(e)}'}
+            
+            # 5.1 Upload images to S3
+            try:
+                self.logger.info(f"Uploading image to S3...")
+                image_url = self.image_generator.upload_image(
+                    image_url=image_url,
+                    title=processed_content['title']
+                )
+                self.logger.info(f"Image uploaded to S3: {image_url}")
+            except Exception as e:
+                self.metrics['errors']['total'] += 1
+                self.metrics['errors']['reasons'].setdefault('image_upload', 0)
+                self.metrics['errors']['reasons']['image_upload'] += 1
+                return {'success': False, 'error': f'Image upload failed: {str(e)}'}
 
             # 6. Save to Database
             self.logger.info(f"Saving article to database...")
@@ -331,7 +385,7 @@ class NewsProcessingPipeline:
                 content=processed_content['content'],
                 used_keywords=processed_content.get('keywords', []),
                 image=image_url,
-                audio=processed_content.get('audio', None)
+                audio_file=processed_content.get('audio', None)
             )
 
             return {
@@ -407,10 +461,8 @@ class NewsProcessingPipeline:
             self.metrics['errors']['reasons']['url_processing'] += 1
             return {'success': False, 'error': f"URL duplicate check failed: {str(e)}"}
         
-        self.metrics['total_articles_found'] += 1
         return {'success': True, 'url': filtered_url}
 
-    
     async def _process_content(self, article_content: Dict[str, Any]) -> Dict[str, Any]:
         """Process article content with filters and analysis."""
         try:
@@ -494,6 +546,8 @@ class NewsProcessingPipeline:
                     bot_id=self.bot_id
                 )
 
+                self.logger.info(f"Analysis result: {analysis_result}")
+
                 if not analysis_result['success']:
                     self.metrics['errors']['total'] += 1
                     self.metrics['errors']['reasons'].setdefault('analysis_generation_failed', 0)
@@ -502,6 +556,14 @@ class NewsProcessingPipeline:
                         'success': False, 
                         'error': f"Analysis generation failed: {analysis_result.get('error', 'Unknown error')}"
                     }
+                
+                new_content = analysis_result['new_content']
+                if isinstance(new_content, list):
+                    new_content = ' '.join(new_content)
+                    
+
+                self.logger.info(f"New title: {analysis_result['new_title']}")
+                self.logger.info(f"New content: {analysis_result['new_content'][:100]}...")
                 
                 # Generate audio for the new content
                 self.logger.info(f"Generating audio...")
@@ -515,9 +577,9 @@ class NewsProcessingPipeline:
                 self.metrics['articles_processed'] += 1
                 return {
                     'success': True,
-                    'content': analysis_result['new_content'],
+                    'content': new_content,
                     'title': analysis_result['new_title'],
-                    'audio': audio_result,
+                    'audio': audio_result['data'],
                     'keywords': matching_keywords,
                 }
 
@@ -532,7 +594,7 @@ class NewsProcessingPipeline:
             self.metrics['errors']['reasons']['unexpected'] += 1
             return {'success': False, 'error': f"Unexpected error in content processing: {str(e)}"}
 
-    def _build_response(self, success: bool, results: Dict[str, Any], message: str) -> Dict[str, Any]:
+    def _build_response(self, success: bool, results: Dict[str, Any], message: str) -> Dict[str, Any]: 
         """Build standardized success response with metrics."""
         return {
             'success': success,

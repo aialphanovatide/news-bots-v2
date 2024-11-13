@@ -2,7 +2,6 @@ import requests
 from bs4 import BeautifulSoup
 from typing import Dict, Any, Optional
 from requests.exceptions import RequestException
-from werkzeug.exceptions import HTTPException
 
 
 class ArticleExtractor:
@@ -72,7 +71,7 @@ class ArticleExtractor:
 
             return {
                 'title': title,
-                'content': content[0],
+                'content': content,
                 'url': url
             }
 
@@ -200,10 +199,11 @@ class ArticleExtractor:
             else:
                 article_content.append(text)
 
-        return article_content
+        formatted_content = "\n".join(article_content)
+        return formatted_content
 
 
 # Example of usage:
 # if __name__ == "__main__":
-#     content = ArticleExtractor.extract_article_content("https://www.entrepreneur.com/en-in/news-and-trends/algorand-foundation-partners-with-t-hub-to-empower/482683")
+#     content = ArticleExtractor.extract_article_content("https://www.binance.com/en-ZA/square/post/11-12-2024-dormant-bitcoin-address-activated-after-13-years-valued-at-over-36-million-16147157809618")
 #     print(content)

@@ -1,13 +1,7 @@
-import os
-import json
-import requests
 import random
 import feedparser
-from bs4 import BeautifulSoup
 from datetime import datetime
-from typing import List, Dict, Any
-from typing import Optional, Tuple
-from urllib.parse import urljoin, urlparse
+from typing import List, Dict
 
 
 class WebScraper:

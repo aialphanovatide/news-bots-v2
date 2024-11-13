@@ -35,7 +35,7 @@ class ImageGenerator:
 
     # Default style preferences for all generated images
     DEFAULT_IMAGE_PROMPT = (
-        "Generate realistic, photograph-style images, using natural lighting and a professional color palette to convey credibility and authority, avoid letters, numbers or words."
+        "Generate realistic, photograph-style images, using natural lighting and a professional color palette to convey credibility and authority."
     )
 
     def __init__(
@@ -84,8 +84,11 @@ class ImageGenerator:
             dalle_prompt = self._get_bot_prompt(bot_id)
             
             # If we got a stored DALL-E prompt, use it directly
-            if dalle_prompt:
-                prompt = dalle_prompt
+            if dalle_prompt and dalle_prompt != "" and dalle_prompt != 'test':
+                if '@article' in dalle_prompt:
+                    prompt = dalle_prompt.replace('@article', article_text.strip().lower())
+                else:
+                    prompt = dalle_prompt
             else:
                 # Generate a new prompt using GPT
                 initial_prompt = self.DEFAULT_IMAGE_GENERATION_PROMPT.format(
@@ -265,7 +268,16 @@ class ImageGenerator:
 # Example of usage:
 # if __name__ == "__main__":
 #     article_text = """
-#     Algorand Foundation and T-Hub have teamed up to supercharge Web3 startups, rolling out their first batch of investments through the Start-up Lab program. This collaboration is all about turbocharging innovation in blockchain applications across industries like supply chain, trade, and finance.\n\nAnil Kakani from Algorand Foundation is excited about these trailblazers making waves with solutions for everything from supply chain traceability to film finance. The program's secret sauce? A blend of mentorship, technical prowess, and a network that opens doors to funding and partnerships.\n\nMeet the five startups shaking things up:\n\n- **LW3**: Revolutionizing supply chains by tokenizing products with tamper-proof QR codes for real-time tracking. Think sustainability meets anti-counterfeiting.\n- **FilmFinance**: Bridging filmmakers with investors via blockchain-based fractional tokenization of film assets. It's transparency meets efficiency in movie financing.\n- **Automaxis/FDP Connect**: Modernizing global trade with digitized documentation using blockchain—streamlining freight payments and paperwork like never before.\n- **Astrix**: Elevating fan experiences at live events with secure ticketing and digital collectibles while tackling fraud head-on.\n- **ARVO**: Combining AI, IoT, and blockchain for advanced traceability solutions in automotive and pharma sectors—fighting counterfeits one product at a time.\n\nSujit Jagirdar from T-Hub highlights how this partnership accelerates startup success by refining their tech for real-world markets. Algorand’s commitment doesn’t stop here; they’re also helping these innovators scale up by securing more institutional capital.
+#     SushiSwap, a leading decentralized exchange (DEX), is broadening its ecosystem with new features and integrations aimed at enhancing its utility beyond token trading. The platform is introducing tools focused on yield farming and liquidity provision to bolster its position in the DeFi space.
+# Key developments include the launch of Sushi Labs, an autonomous company that merges the DAO with a council structure, similar to Synthetix. This new model aims to improve operational efficiency and accelerate protocol development.
+# SushiSwap has also partnered with Layer N to develop Susa, a next-generation perpetuals exchange that offers high scalability and capital efficiency. Susa will leverage Layer N’s Nord Engine to process over 100,000 transactions per second with sub-1 millisecond latency.
+# Additionally, SushiSwap has integrated with Blast, an Ethereum Layer 2 with native yield, allowing users to benefit from low gas fees and automatic yield compounding.
+# These enhancements are part of SushiSwap’s strategy to diversify its offerings and improve liquidity management, following financial challenges in 2022. The platform aims to provide a more comprehensive DeFi experience, going beyond just token swaps.
+# Key Points:
+# - Sushi Labs: A new autonomous company that merges the DAO with a council structure to improve operational efficiency.
+# - Susa: A next-generation perpetuals exchange developed in partnership with Layer N, offering high scalability and capital efficiency.
+# - Blast Integration: SushiSwap integrates with Blast, an Ethereum Layer 2 with native yield, to enhance user benefits.
+# - Enhanced Utility: New features and integrations aim to solidify SushiSwap’s position in the DeFi space by offering more than just token swaps.
 #     """
 #     bot_id = 1
 

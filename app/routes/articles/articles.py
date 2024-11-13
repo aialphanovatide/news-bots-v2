@@ -3,7 +3,7 @@ from math import ceil
 from sqlalchemy import desc
 from sqlalchemy.exc import SQLAlchemyError
 from flask import Blueprint, jsonify, request
-from config import Article, Bot, db, UnwantedArticle
+from config import Article, Bot, db, UnwantedArticle, UsedKeywords
 from app.routes.routes_utils import create_response, handle_db_session
 from redis_client.redis_client import cache_with_redis, update_cache_with_redis
 
@@ -186,13 +186,19 @@ def delete_article(article_id):
         return jsonify(create_response(error='Article ID is required')), 400
 
     try:
+        # First delete related used keywords
+        UsedKeywords.query.filter_by(article_id=article_id).delete()
+        
+        # Then delete the article
         article = Article.query.get(article_id)
         if not article:
             return jsonify(create_response(error='Article not found')), 404
 
         db.session.delete(article)
         db.session.commit()
+        
         return jsonify(create_response(success=True, message='Article deleted successfully')), 200
+        
     except SQLAlchemyError as e:
         db.session.rollback()
         return jsonify(create_response(error=f'Database error: {str(e)}')), 500

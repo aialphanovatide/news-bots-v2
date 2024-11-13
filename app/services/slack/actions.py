@@ -126,16 +126,15 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
                 audio_upload = client.files_upload_v2(
                     channels=channel_id,
                     file=audio_file,
-                    title=f"Audio for: {title}",
-                    initial_comment="Here's the audio file for this news item:"
+                    title=f"{title}",
                 )
-                print(f"Audio file uploaded: {audio_upload['file']['id']}")
+                current_app.logger.debug(f"Audio file uploaded: {audio_upload['file']['id']}")
             except SlackApiError as e:
-                print(f"Error uploading audio file: {e}")
+                current_app.logger.error(f"Error uploading audio file: {e}")
 
         response = result['ok']
         ts = result['ts']
-        current_app.logger.debug(f'Slack message timestamp:', ts)
+        current_app.logger.debug(f'Slack message timestamp: {ts}')
 
         if response:
             return {'response': f'Message sent successfully to Slack channel {channel_id}', 'success': True}
@@ -147,137 +146,6 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
     except Exception as e:
         current_app.logger.error(f'---General Error Details---: {str(e)}')
         return {'error': f'Error while sending message to slack: {str(e)}', 'success': False}
-    
-
-# def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
-#                                        article_url: str, content: str,
-#                                        used_keywords: List[str], image: str):
-   
-
-#     formatted_keywords = ', '.join(used_keywords)
-    
-#     blocks = [
-#         {
-#             "type": "header",
-#             "text": {
-#                 "type": "plain_text",
-#                 "text": f"{title}",
-#                 "emoji": True
-#             }
-#         },
-#         {
-# 			"type": "image",
-# 			"image_url": f"{image}",
-# 			"alt_text": f"{title}"
-# 		},
-#         {
-#             "type": "section",
-#             "fields": [
-#                 {
-#                     "type": "mrkdwn",
-#                     "text": f"{article_url}"
-#                 }
-#             ]
-#         },
-#         {
-#             "type": "section",
-#             "fields": [
-#                 {
-#                     "type": "mrkdwn",
-#                     "text": f"{content}"
-#                 }
-#             ]
-#         },
-#         {
-#             "type": "section",
-#             "fields": [
-#                 {
-#                     "type": "mrkdwn",
-#                     "text": f"*Used Keywords:* {formatted_keywords}"
-#                 }
-#             ]
-#         },
-#         {
-# 			"type": "section",
-# 			"text": {
-# 				"type": "mrkdwn",
-# 				"text": f"*Send to AI Alpha App*"
-# 			},
-# 			"accessory": {
-# 				"type": "button",
-# 				"text": {
-# 					"type": "plain_text",
-# 					"text": "ADD AS TOP STORY",
-# 					"emoji": True
-# 				},
-# 				"value": f"link_to_article: {article_url}",
-# 				"action_id": "add_to_top_story"
-# 			}
-# 		},
-#         {
-#             "dispatch_action": True,
-# 			"type": "input",
-# 			"element": {
-# 				"type": "plain_text_input",
-# 				"action_id": "green"
-# 			},
-# 			"label": {
-# 				"type": "plain_text",
-# 				"text": "GREEN",
-# 				"emoji": True
-# 			}
-# 		},
-#         {
-#             "dispatch_action": True,
-# 			"type": "input",
-# 			"element": {
-# 				"type": "plain_text_input",
-# 				"action_id": "red"
-# 			},
-# 			"label": {
-# 				"type": "plain_text",
-# 				"text": "RED",
-# 				"emoji": True
-# 			}
-# 		},
-#         {
-#             "dispatch_action": True,
-# 			"type": "input",
-# 			"element": {
-# 				"type": "plain_text_input",
-# 				"action_id": "yellow"
-# 			},
-# 			"label": {
-# 				"type": "plain_text",
-# 				"text": "YELLOW",
-# 				"emoji": True
-# 			}
-# 		},
-#         {
-#             "type": "divider"
-#         }
-#     ]
-
-#     try:
-#         result = client.chat_postMessage(
-#             channel=channel_id,
-#             text=title,
-#             blocks=blocks
-#         )
-#         response = result['ok']
-#         ts = result['ts']
-#         print(f'Slack message timestamp:', ts)
-
-#         if response:
-#             return {'response': f'Message sent successfully to Slack channel {channel_id}', 'success': True}
-#         return {'error': 'Response error from slack API', 'success': False}
-
-#     except SlackApiError as e:
-#         print(f'---Slack API Error Details---: {e.response}\n{e.response.data}\n{e.response.headers}')
-#         return {'error': f'Slack API Error: {str(e)}', 'success': False}
-#     except Exception as e:
-#         print(f'---General Error Details---: {str(e)}')
-#         return {'error': f'Error while sending message to slack: {str(e)}', 'success': False}
 
 
 

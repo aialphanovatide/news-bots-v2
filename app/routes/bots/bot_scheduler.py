@@ -8,6 +8,39 @@ from config import db
 import random
 import pytz
 import asyncio
+import os
+from pathlib import Path
+
+
+def cleanup_news_bot_logs():
+    """Clean up old log files from the news_bot_v2 logs directory."""
+    try:
+        # Get the logs directory path
+        logs_dir = Path("app/news_bot/news_bot_v2/logs")
+        
+        if not logs_dir.exists():
+            print(f"Logs directory not found: {logs_dir}")
+            return
+            
+        # Get current timestamp for logging
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Counter for deleted files
+        deleted_count = 0
+        
+        # Iterate through all files in the logs directory
+        for log_file in logs_dir.glob("*.log"):
+            try:
+                # Delete the file
+                os.remove(log_file)
+                deleted_count += 1
+            except Exception as e:
+                print(f"Failed to delete log file {log_file}: {str(e)}")
+                
+        print(f"[{timestamp}] Log cleanup completed. Deleted {deleted_count} log files.")
+        
+    except Exception as e:
+        print(f"Log cleanup failed: {str(e)}")
 
 def bot_job_function(bot, category):
     with scheduler.app.app_context():
@@ -111,7 +144,7 @@ def schedule_bot(bot, category, fire_now):
                 args=[bot, category],
                 replace_existing=True
             )
-            current_app.logger.debug(f"Scheduled immediate run for Bot: {bot_name}")  
+            current_app.logger.debug(f"Scheduled immediate run for Bot: {bot_name} - start time: {datetime.now(scheduler_tz) + timedelta(seconds=5)}")  
         
         # Update bot's next run time - Store as datetime
         if interval_job.next_run_time:
