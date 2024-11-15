@@ -1,6 +1,7 @@
 # routes.py
 import os
 import boto3
+from sqlalchemy import func
 from dotenv import load_dotenv
 from datetime import datetime
 from sqlalchemy.orm import joinedload
@@ -195,7 +196,7 @@ def get_category():
             if category_id:
                 query = query.filter(Category.id == category_id)
             elif category_name:
-                query = query.filter(Category.name == category_name)
+                query = query.filter(func.lower(Category.name) == category_name.lower())
 
             category = query.first()
 
