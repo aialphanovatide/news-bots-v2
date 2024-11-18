@@ -5,6 +5,8 @@ services:
       - postgres_data_dev:/var/lib/postgresql/data
       - ./backups:/backups
       - ./restore_db.sh:/docker-entrypoint-initdb.d/restore_db.sh
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf
     environment:
       POSTGRES_DB: ${DB_NAME_DEV}
       POSTGRES_USER: ${DB_USER}

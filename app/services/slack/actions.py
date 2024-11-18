@@ -1,43 +1,30 @@
 from app.services.slack.index import client
 from slack_sdk.errors import SlackApiError
+from flask import current_app 
 from typing import List
 
-# Send news to the specified Slack Channel
+
+
 def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
                                        article_url: str, content: str,
-                                       used_keywords: List[str], image: str):
-   
-    trimmed_title = title[:1800]
-    last_period_index = content.rfind('.', 0, 1970)
-    if (last_period_index == -1):
-        last_period_index = content.find('.', 1970)
-        if (last_period_index == -1):
-            last_period_index = 1970
-    trimmed_content = content[:last_period_index + 1]
-    trimmed_content = trimmed_content.replace('**', '*')
-    
+                                       used_keywords: List[str], image: str,
+                                       audio_file: str = None):
     formatted_keywords = ', '.join(used_keywords)
- 
-    # print('trimmed_content: ', trimmed_content)
-    # print('trimmed_title: ', trimmed_title)
-    # print('used_keywords: ', used_keywords)
-    # print('image: ', image)
-    # print('article_url: ', article_url)
     
     blocks = [
         {
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": f"{trimmed_title}",
+                "text": f"{title}",
                 "emoji": True
             }
         },
         {
-			"type": "image",
-			"image_url": f"{image}",
-			"alt_text": f"{title}"
-		},
+            "type": "image",
+            "image_url": f"{image}",
+            "alt_text": f"{title}"
+        },
         {
             "type": "section",
             "fields": [
@@ -52,7 +39,7 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
             "fields": [
                 {
                     "type": "mrkdwn",
-                    "text": f"{trimmed_content}"
+                    "text": f"{content}"
                 }
             ]
         },
@@ -66,61 +53,61 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
             ]
         },
         {
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": f"*Send to AI Alpha App*"
-			},
-			"accessory": {
-				"type": "button",
-				"text": {
-					"type": "plain_text",
-					"text": "ADD AS TOP STORY",
-					"emoji": True
-				},
-				"value": f"link_to_article: {article_url}",
-				"action_id": "add_to_top_story"
-			}
-		},
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*Send to AI Alpha App*"
+            },
+            "accessory": {
+                "type": "button",
+                "text": {
+                    "type": "plain_text",
+                    "text": "ADD AS TOP STORY",
+                    "emoji": True
+                },
+                "value": f"link_to_article: {article_url}",
+                "action_id": "add_to_top_story"
+            }
+        },
         {
             "dispatch_action": True,
-			"type": "input",
-			"element": {
-				"type": "plain_text_input",
-				"action_id": "green"
-			},
-			"label": {
-				"type": "plain_text",
-				"text": "GREEN",
-				"emoji": True
-			}
-		},
+            "type": "input",
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "green"
+            },
+            "label": {
+                "type": "plain_text",
+                "text": "GREEN",
+                "emoji": True
+            }
+        },
         {
             "dispatch_action": True,
-			"type": "input",
-			"element": {
-				"type": "plain_text_input",
-				"action_id": "red"
-			},
-			"label": {
-				"type": "plain_text",
-				"text": "RED",
-				"emoji": True
-			}
-		},
+            "type": "input",
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "red"
+            },
+            "label": {
+                "type": "plain_text",
+                "text": "RED",
+                "emoji": True
+            }
+        },
         {
             "dispatch_action": True,
-			"type": "input",
-			"element": {
-				"type": "plain_text_input",
-				"action_id": "yellow"
-			},
-			"label": {
-				"type": "plain_text",
-				"text": "YELLOW",
-				"emoji": True
-			}
-		},
+            "type": "input",
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "yellow"
+            },
+            "label": {
+                "type": "plain_text",
+                "text": "YELLOW",
+                "emoji": True
+            }
+        },
         {
             "type": "divider"
         }
@@ -132,19 +119,32 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
             text=title,
             blocks=blocks
         )
+        
+        if audio_file:
+            try:
+                # Upload the audio file
+                audio_upload = client.files_upload_v2(
+                    channels=channel_id,
+                    file=audio_file,
+                    title=f"{title}",
+                )
+                current_app.logger.debug(f"Audio file uploaded: {audio_upload['file']['id']}")
+            except SlackApiError as e:
+                current_app.logger.error(f"Error uploading audio file: {e}")
+
         response = result['ok']
         ts = result['ts']
-        print(f'Slack message timestamp:', ts)
+        current_app.logger.debug(f'Slack message timestamp: {ts}')
 
         if response:
             return {'response': f'Message sent successfully to Slack channel {channel_id}', 'success': True}
         return {'error': 'Response error from slack API', 'success': False}
 
     except SlackApiError as e:
-        print(f'---Slack API Error Details---: {e.response}\n{e.response.data}\n{e.response.headers}')
+        current_app.logger.error(f'---Slack API Error Details---: {e.response}\n{e.response.data}\n{e.response.headers}')
         return {'error': f'Slack API Error: {str(e)}', 'success': False}
     except Exception as e:
-        print(f'---General Error Details---: {str(e)}')
+        current_app.logger.error(f'---General Error Details---: {str(e)}')
         return {'error': f'Error while sending message to slack: {str(e)}', 'success': False}
 
 

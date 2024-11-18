@@ -85,6 +85,7 @@ def create_keywords():
 
 @keyword_bp.route('/keywords', methods=['DELETE'])
 @handle_db_session
+@update_cache_with_redis(related_get_endpoints=['get_bot', 'dynamic_search', 'get_all_bots'])
 def delete_keywords():
     """
     Delete keywords from multiple bots in bulk.

@@ -18,6 +18,7 @@ engine = create_engine(
     max_overflow=20,
     connect_args={"options": "-c timezone=America/Argentina/Buenos_Aires"}
 )
+print(f"Connected to {DB_URI}")
 Session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 class Category(db.Model):
@@ -64,6 +65,7 @@ class Bot(db.Model):
         name (str): The name of the bot.
         alias (str): An alias for the bot.
         dalle_prompt (str): The prompt for DALL-E associated with the bot.
+        prompt (str): The prompt for the bot.
         icon (str): The icon representing the bot.
         background_color (str): The background color for the bot.
         run_frequency (str): The frequency at which the bot runs.
@@ -71,6 +73,11 @@ class Bot(db.Model):
         category_id (int): Foreign key referencing the category the bot belongs to.
         created_at (datetime): The timestamp when the bot was created.
         updated_at (datetime): The timestamp when the bot was last updated.
+        next_run_time (datetime): The scheduled time for the bot's next run.
+        status (str): The current status of the bot, can be 'IDLE', 'RUNNING', or 'ERROR'.
+        last_run_time (datetime): The timestamp of the bot's last run.
+        last_run_status (str): The status of the bot's last run, can be 'SUCCESS' or 'FAILURE'.
+        run_count (int): The total number of times the bot has run.
     """
     __tablename__ = 'bot'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -98,6 +105,7 @@ class Bot(db.Model):
     blacklist = db.relationship("Blacklist", backref="bot", cascade="all, delete-orphan")
     articles = db.relationship("Article", backref="bot", cascade="all, delete-orphan")
     unwanted_articles = db.relationship("UnwantedArticle", backref="bot", cascade="all, delete-orphan")
+    metrics = db.relationship("Metrics", back_populates="bot", cascade="all, delete-orphan")
 
     def as_dict(self):
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
@@ -272,4 +280,57 @@ class UsedKeywords(db.Model):
     created_at = db.Column(db.TIMESTAMP, default=datetime.now)
 
     def as_dict(self):
+        return {column.name: getattr(self, column.name) for column in self.__table__.columns}
+
+
+class Metrics(db.Model):
+    """
+    Represents metrics for a bot's performance and activity.
+
+    Attributes:
+        id (int): The unique identifier for the metrics entry.
+        bot_id (int): Foreign key referencing the bot associated with these metrics.
+        start_time (datetime): Timestamp when the bot's activity started.
+        end_time (datetime): Timestamp when the bot's activity ended.
+        total_runtime (float): Total time in seconds the bot was active.
+        total_articles_found (int): Total number of articles found by the bot.
+        articles_processed (int): Total number of articles processed by the bot.
+        articles_saved (int): Total number of articles saved by the bot.
+        cpu_percent (float): CPU usage percentage during the bot's activity.
+        memory_percent (float): Memory usage percentage during the bot's activity.
+        total_errors (int): Total number of errors encountered during the bot's activity.
+        error_reasons (JSON): JSON object containing reasons for errors encountered.
+        total_filtered (int): Total number of articles filtered out during processing.
+        filter_reasons (JSON): JSON object containing reasons for articles being filtered out.
+
+    Methods:
+        as_dict(): Converts the metrics object into a dictionary for easy serialization.
+    """
+    __tablename__ = 'metrics'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    bot_id = db.Column(db.Integer, db.ForeignKey('bot.id', ondelete='CASCADE'), nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False)
+    end_time = db.Column(db.DateTime)
+    total_runtime = db.Column(db.Float)
+    total_articles_found = db.Column(db.Integer, default=0)
+    articles_processed = db.Column(db.Integer, default=0)
+    articles_saved = db.Column(db.Integer, default=0)
+    cpu_percent = db.Column(db.Float)
+    memory_percent = db.Column(db.Float)
+    total_errors = db.Column(db.Integer, default=0)
+    error_reasons = db.Column(db.JSON)
+    total_filtered = db.Column(db.Integer, default=0)
+    filter_reasons = db.Column(db.JSON)
+
+    # Define the relationship with the Bot model
+    bot = db.relationship('Bot', back_populates='metrics')
+
+    def as_dict(self):
+        """
+        Converts the metrics object into a dictionary for easy serialization.
+
+        Returns:
+            dict: A dictionary representation of the metrics object.
+        """
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}

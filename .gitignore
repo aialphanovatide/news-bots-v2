@@ -33,6 +33,13 @@ app/utils/userDataDir/
 .DS_Store
 Thumbs.db
 
+# all temp files
+tmp/
+
+# Audio files
+*.mp3
+*.wav
+
 ./userDataDir
 app/utils/tmp/playwright
 node_modules/

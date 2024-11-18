@@ -1,14 +1,18 @@
 import re
+from pathlib import Path
 from datetime import datetime
+from sqlalchemy import func, desc
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from flask import Blueprint, jsonify, request
-from app.routes.bots.utils import validate_url
+from app.utils.validate_url import validate_url
 from flask import current_app
+from flask import send_file, Response, stream_with_context
 from scheduler_config import scheduler
 from app.routes.routes_utils import create_response
-from config import Blacklist, Bot, Keyword, Session, Site, db, Category
-from app.routes.bots.utils import schedule_bot, validate_bot_for_activation
+from config import Blacklist, Bot, Keyword, Session, Site, db, Category, Metrics
+from app.routes.bots.bot_scheduler import schedule_bot
+from app.utils.validate_bot import validate_bot_for_activation
 from redis_client.redis_client import cache_with_redis, update_cache_with_redis
 
 bots_bp = Blueprint(
@@ -46,11 +50,10 @@ def get_bot():
             joinedload(Bot.blacklist),
             joinedload(Bot.sites)
         )
-        
         if bot_id:
             bot = query.get(bot_id)
         else:
-            bot = query.filter_by(name=bot_name).first()
+            bot = query.filter(func.lower(Bot.name) == bot_name.lower()).first()
 
         if not bot:
             return jsonify(create_response(error="Bot not found")), 404
@@ -102,7 +105,7 @@ def get_all_bots():
 
 
 @bots_bp.route('/bot', methods=['POST'])
-@update_cache_with_redis(related_get_endpoints=['get_all_bots'])
+@update_cache_with_redis(related_get_endpoints=['get_all_bots', 'get_bot', 'get_categories'])
 def create_bot():
     """
     Create a new bot.
@@ -239,7 +242,7 @@ def create_bot():
 
 
 @bots_bp.route('/bot/<int:bot_id>', methods=['PUT'])
-@update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot'])
+@update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot', 'get_categories'])
 def update_bot(bot_id):
     """
     Update an existing bot in the news bot server and reschedule if necessary.
@@ -349,7 +352,7 @@ def update_bot(bot_id):
                     schedule_message += ""
                 else:
                     try:
-                        schedule_bot(bot, bot.category)
+                        schedule_bot(bot, bot.category, False)
                         schedule_message += " Bot rescheduled successfully."
                     except Exception as e:
                         schedule_message += f" Bot rescheduling failed: {str(e)}"
@@ -368,7 +371,7 @@ def update_bot(bot_id):
 
 
 @bots_bp.route('/bot/<int:bot_id>', methods=['DELETE'])
-@update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot'])
+@update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot', 'get_categories'])
 def delete_bot(bot_id):
     """
     Delete a bot and all its associated data from the news bot server.
@@ -432,7 +435,7 @@ def delete_bot(bot_id):
 
 
 @bots_bp.route('/bot/<int:bot_id>/toggle-activation', methods=['POST'])
-@update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot'])
+@update_cache_with_redis(related_get_endpoints=['get_all_bots','get_bot', 'get_categories'])
 def toggle_activation_bot(bot_id):
     with Session() as session:
         try:
@@ -465,7 +468,7 @@ def toggle_activation_bot(bot_id):
                     )), 400
 
                 try:
-                    scheduling_success = schedule_bot(bot, category)
+                    scheduling_success = schedule_bot(bot, category, True)
                 
                     if scheduling_success:
                         bot.is_active = True
@@ -493,5 +496,156 @@ def toggle_activation_bot(bot_id):
             return jsonify(create_response(error=f"An unexpected error occurred: {str(e)}")), 500
 
 
+@bots_bp.route('/bot/<int:bot_id>/logs', methods=['GET'])
+def get_bot_logs(bot_id):
+    """
+    Stream logs from the log file with optional filtering
+    """
+    try:
+        # Get bot name from database
+        bot = db.session.query(Bot).filter(Bot.id == bot_id).first()
+        if not bot:
+            return create_response(
+                success=False,
+                error="Bot not found",
+                status_code=404
+            )
+
+        # Construct log file path
+        base_dir = Path(__file__).parent.parent.parent
+        log_path = base_dir / 'news_bot' / 'news_bot_v2' / 'logs' / f"{bot.name}.log"
+
+        if not log_path.exists():
+            return create_response(
+                success=False,
+                error="Log file not found",
+                status_code=404
+            )
+
+        # Return entire file
+        return send_file(
+            log_path,
+            mimetype='text/plain',
+            as_attachment=False
+        )
+
+    except Exception as e:
+        current_app.logger.error(f"Error serving logs: {str(e)}")
+        return create_response(
+            success=False,
+            error="Failed to retrieve logs",
+            status_code=500
+        )
 
 
+@bots_bp.route('/bot/<int:bot_id>/metrics', methods=['GET'])
+def get_bot_metrics(bot_id):
+    """Get metrics for a specific bot with pagination and filtering"""
+    try:
+        # Validate bot exists
+        bot = db.session.query(Bot).filter(Bot.id == bot_id).first()
+        if not bot:
+            return create_response(
+                success=False,
+                error="Bot not found",
+                status_code=404
+            )
+
+        # Validate pagination parameters
+        try:
+            page = int(request.args.get('page', 1))
+            per_page = int(request.args.get('per_page', 10))
+
+            if page < 1 or per_page < 1 or not isinstance(page, int) or not isinstance(per_page, int):
+                return create_response(
+                    success=False,
+                    error="Invalid pagination parameters",
+                    status_code=400
+                )
+            
+        except ValueError as e:
+            return create_response(
+                success=False,
+                error=str(e),
+                status_code=400
+            )
+
+        # Calculate offset
+        offset = (page - 1) * per_page
+        
+        # Base query
+        query = db.session.query(Metrics).filter(Metrics.bot_id == bot_id)
+        
+        # Filter by start_date if provided
+        try:
+            start_date = request.args.get('start_date')
+            end_date = request.args.get('end_date')
+
+            if (start_date and not isinstance(start_date, str)) or (end_date and not isinstance(end_date, str)):
+                return create_response(
+                    success=False,
+                    error="Invalid date parameters provided",
+                    status_code=400
+                )
+        except:
+            return create_response(
+                success=False,
+                error="Invalid date format. Use ISO format (YYYY-MM-DDTHH:MM:SS)",
+                status_code=400
+            )
+
+        if start_date:
+            try:
+                start_dt = datetime.fromisoformat(start_date)
+                query = query.filter(Metrics.start_time >= start_dt)
+            except ValueError:
+                return create_response(
+                    success=False,
+                    error="Invalid start_date format. Use ISO format (YYYY-MM-DDTHH:MM:SS)",
+                    status_code=400
+                )
+                
+        if end_date:
+            try:
+                end_dt = datetime.fromisoformat(end_date)
+                query = query.filter(Metrics.start_time <= end_dt)
+            except ValueError:
+                return create_response(
+                    success=False,
+                    error="Invalid end_date format. Use ISO format (YYYY-MM-DDTHH:MM:SS)",
+                    status_code=400
+                )
+
+        # Get total count
+        total_count = query.count()
+        total_pages = (total_count + per_page - 1) // per_page
+
+        # Get paginated results
+        metrics = query.order_by(desc(Metrics.start_time))\
+                      .offset(offset)\
+                      .limit(per_page)\
+                      .all()
+
+
+        return create_response(
+            success=True,
+            data={
+                'metrics': [metric.as_dict() for metric in metrics],
+                'pagination': {
+                    'total_items': total_count,
+                    'total_pages': total_pages,
+                    'current_page': page,
+                    'per_page': per_page,
+                    'has_next': page < total_pages,
+                    'has_prev': page > 1
+                }
+            }
+        )
+
+    except Exception as e:
+        current_app.logger.error(f"Error retrieving metrics: {str(e)}")
+        return create_response(
+            success=False,
+            error="Failed to retrieve metrics",
+            status_code=500
+        )
