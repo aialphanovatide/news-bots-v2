@@ -1,4 +1,3 @@
-
 from typing import Dict, Any, Optional
 from logging.handlers import RotatingFileHandler
 from dataclasses import dataclass
@@ -90,10 +89,12 @@ class NewsProcessingPipeline:
 
         self.config = config or PipelineConfig()
         
+        # Initialize logger first
+        self.logger = self._setup_logger()
+        
         # Initialize components
         try:
             self.metrics = self._initialize_metrics()
-            self.logger = self._setup_logger()
             self._initialize_components()
         except Exception as e:
             self.logger.error(f"Pipeline initialization failed: {str(e)}")
