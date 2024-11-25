@@ -468,7 +468,7 @@ def toggle_activation_bot(bot_id):
                     )), 400
 
                 try:
-                    scheduling_success = schedule_bot(bot, category, True)
+                    scheduling_success = schedule_bot(bot, category)
                 
                     if scheduling_success:
                         bot.is_active = True
