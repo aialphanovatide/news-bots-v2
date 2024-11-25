@@ -298,75 +298,6 @@
         }
       }
     },
-    "/articles/create": {
-      "post": {
-        "tags": [
-          "News Creator"
-        ],
-        "summary": "Create a new article",
-        "description": "Create a new article with the provided data.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "title",
-                  "content",
-                  "analysis",
-                  "used_keywords",
-                  "is_article_efficient",
-                  "bot_id",
-                  "category_id",
-                  "image_url"
-                ],
-                "properties": {
-                  "title": {
-                    "type": "string"
-                  },
-                  "content": {
-                    "type": "string"
-                  },
-                  "analysis": {
-                    "type": "string"
-                  },
-                  "used_keywords": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "is_article_efficient": {
-                    "type": "string"
-                  },
-                  "bot_id": {
-                    "type": "integer"
-                  },
-                  "category_id": {
-                    "type": "integer"
-                  },
-                  "image_url": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Article created successfully"
-          },
-          "400": {
-            "description": "Bad request. Missing required fields"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
     "/articles/generate_image": {
       "post": {
         "tags": [
@@ -1287,6 +1218,73 @@
                 }
               }
             }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "News Creator"
+        ],
+        "summary": "Create a new article",
+        "description": "Create a new article with the provided data.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title",
+                  "content",
+                  "analysis",
+                  "used_keywords",
+                  "is_article_efficient",
+                  "bot_id",
+                  "category_id",
+                  "image_url"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  },
+                  "analysis": {
+                    "type": "string"
+                  },
+                  "used_keywords": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "is_article_efficient": {
+                    "type": "string"
+                  },
+                  "bot_id": {
+                    "type": "integer"
+                  },
+                  "category_id": {
+                    "type": "integer"
+                  },
+                  "image_url": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Article created successfully"
+          },
+          "400": {
+            "description": "Bad request. Missing required fields"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       }
