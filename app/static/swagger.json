@@ -1223,10 +1223,10 @@
       },
       "post": {
         "tags": [
-          "News Creator"
+          "Articles"
         ],
         "summary": "Create a new article",
-        "description": "Create a new article with the provided data.",
+        "description": "Create a new article with comprehensive validation and processing",
         "requestBody": {
           "required": true,
           "content": {
@@ -1245,31 +1245,56 @@
                 ],
                 "properties": {
                   "title": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Title of the article",
+                    "minLength": 5,
+                    "example": "Breaking News: Tech Innovation Breakthrough"
                   },
                   "content": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Full content of the article",
+                    "minLength": 20,
+                    "example": "Detailed article content describing the latest technological innovation..."
                   },
                   "analysis": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Analysis or summary of the article",
+                    "example": "An in-depth look at the recent technological advancements"
                   },
                   "used_keywords": {
                     "type": "array",
+                    "description": "Keywords associated with the article",
                     "items": {
                       "type": "string"
-                    }
+                    },
+                    "example": ["technology", "innovation", "breakthrough"]
                   },
                   "is_article_efficient": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Efficiency rating of the article",
+                    "example": "High"
                   },
                   "bot_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Identifier of the bot that created the article",
+                    "example": 123
                   },
                   "category_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Identifier of the article category",
+                    "example": 456
                   },
                   "image_url": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "URL of the article's featured image",
+                    "format": "uri",
+                    "example": "https://example.com/article-image.jpg"
+                  },
+                  "is_top_story": {
+                    "type": "boolean",
+                    "description": "Flag to mark the article as a top story",
+                    "default": false,
+                    "example": true
                   }
                 }
               }
@@ -1277,14 +1302,105 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Article created successfully"
+          "201": {
+            "description": "Article created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "Details of the created article",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "example": 789
+                        },
+                        "title": {
+                          "type": "string",
+                          "example": "Breaking News: Tech Innovation Breakthrough"
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
-            "description": "Bad request. Missing required fields"
+            "description": "Bad request - Validation errors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "'title' is required and cannot be empty",
+                        "Content must be at least 20 characters long"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - Article already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "An article with this title already exists"
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "Unexpected error occurred during article creation"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
