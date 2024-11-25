@@ -1460,7 +1460,7 @@
           "Bots"
         ],
         "summary": "Create a new bot",
-        "description": "\n    this endpoint allows you to create a new bot with specified parameters.\n    \n    key points:\n    - the 'name', 'alias', and 'category_id' fields are required.\n    - the 'prompt' field is required and should contain the bot's initial conversation prompt.\n    - the 'run_frequency' is optional and specifies how often the bot should run (in minutes).\n    - the 'dalle_prompt' is optional and can be used to generate a custom icon for the bot.\n    - the 'background_color' is optional and can be used to set a custom background color for the bot's icon.\n    - the 'whitelist' and 'blacklist' fields are optional and can be used to add new keywords or words to the existing whitelist and blacklist.\n    - the 'created_at' and 'updated_at' timestamps are automatically set.\n\n    after creation, the bot will be associated with the specified category and can be managed through other bot-related endpoints.\n    ",
+        "description": "\n    This endpoint creates a new bot with specified parameters and optionally connects it to an RSS feed source.\n    \n    Required fields:\n    - 'name': Unique identifier for the bot\n    - 'alias': Display name for the bot\n    - 'category_id': ID of the category this bot belongs to\n    - 'run_frequency': How often the bot should run (in minutes, minimum 20)\n    \n    Optional fields:\n    - 'prompt': The bot's initial conversation prompt\n    - 'dalle_prompt': Used to generate a custom icon\n    - 'background_color': Custom background color for the bot's icon\n    - 'whitelist': Comma-separated list of keywords to monitor\n    - 'blacklist': Comma-separated list of words to filter out\n    - 'url': Google News RSS feed URL for data source, (eg. https://rss.news.google.com/rss/search?q=apple+inc+stock+price&hl=en-US&gl=US)\n    \n    Notes:\n    - Bot names must be unique\n    - URLs must be valid Google News RSS feed URLs\n    - Run frequency cannot be less than 20 minutes\n    - The bot will be created in an inactive state\n    - System automatically sets created_at and updated_at timestamps\n    ",
         "parameters": [
           {
             "name": "body",
@@ -1486,6 +1486,10 @@
                 "prompt": {
                   "type": "string",
                   "description": "Initial conversation prompt for the bot (required)"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "Google News RSS feed URL for data source (optional for scheduling)"
                 },
                 "run_frequency": {
                   "type": "integer",
@@ -1533,7 +1537,8 @@
                     "properties": {
                       "id": {
                         "type": "integer",
-                        "description": "Unique identifier for the bot"
+                        "description": "Unique identifier for the bot",
+                        "required": true
                       },
                       "name": {
                         "type": "string",
