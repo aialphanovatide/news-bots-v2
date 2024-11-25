@@ -89,7 +89,7 @@ class NewsProcessingPipeline:
 
         self.config = config or PipelineConfig()
         
-        # Initialize logger first
+        # Initialize logger
         self.logger = self._setup_logger()
         
         # Initialize components
@@ -320,7 +320,6 @@ class NewsProcessingPipeline:
             self.logger.info(f"New content: {processed_content['content']}")
 
             # Types
-            self.logger.info(f"Audio type: {type(processed_content.get('audio', None))}")
             self.logger.info(f"Title type: {type(processed_content.get('title', None))}")
             self.logger.info(f"Content type: {type(processed_content.get('content', None))}")
 
@@ -386,7 +385,7 @@ class NewsProcessingPipeline:
                 content=processed_content['content'],
                 used_keywords=processed_content.get('keywords', []),
                 image=image_url,
-                audio_file=processed_content.get('audio', None)
+                # audio_file=processed_content.get('audio', None)
             )
 
             return {
@@ -567,20 +566,20 @@ class NewsProcessingPipeline:
                 self.logger.info(f"New content: {analysis_result['new_content'][:100]}...")
                 
                 # Generate audio for the new content
-                self.logger.info(f"Generating audio...")
-                audio_result = await self.analysis_generator.generate_audio(
-                    content=analysis_result['new_content'],
-                    title=analysis_result['new_title']
-                )
+                # self.logger.info(f"Generating audio...")
+                # audio_result = await self.analysis_generator.generate_audio(
+                #     content=analysis_result['new_content'],
+                #     title=analysis_result['new_title']
+                # )
 
-                self.logger.info(f"Audio generated: {audio_result['file_path']}, size: {audio_result['metadata']['file_size_mb']} MB")
+                # self.logger.info(f"Audio generated: {audio_result['file_path']}, size: {audio_result['metadata']['file_size_mb']} MB")
 
                 self.metrics['articles_processed'] += 1
                 return {
                     'success': True,
                     'content': new_content,
                     'title': analysis_result['new_title'],
-                    'audio': audio_result['data'],
+                    # 'audio': audio_result['data'],
                     'keywords': matching_keywords,
                 }
 
