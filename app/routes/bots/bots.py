@@ -163,6 +163,22 @@ def create_bot():
             
             # Normalize icon name
             icon_normalized = data["alias"].strip().replace(" ", "_").lower()
+
+            # Create new Site if URL is provided
+            url = data.get('url')
+            if url:
+                if not validate_url(url):
+                    return jsonify(create_response(error='Invalid URL provided')), 400
+                site_name_match = re.search(r"https://www\.([^.]+)\.com", url)
+                site_name = 'Google News' if not site_name_match else site_name_match.group(1)
+                new_site = Site(
+                    name=site_name,
+                    url=url,
+                    bot_id=new_bot.id,
+                    created_at=current_time,
+                    updated_at=current_time
+                )
+                session.add(new_site)
             
             # Create new bot
             new_bot = Bot(
@@ -180,22 +196,6 @@ def create_bot():
             )
             session.add(new_bot)
             session.flush() 
-
-            # Create new Site if URL is provided
-            url = data.get('url')
-            if url:
-                if not validate_url(url):
-                    return jsonify(create_response(error='Invalid URL provided')), 400
-                site_name_match = re.search(r"https://www\.([^.]+)\.com", url)
-                site_name = 'Google News' if not site_name_match else site_name_match.group(1)
-                new_site = Site(
-                    name=site_name,
-                    url=url,
-                    bot_id=new_bot.id,
-                    created_at=current_time,
-                    updated_at=current_time
-                )
-                session.add(new_site)
 
             # Validate and add keywords (whitelist) to the bot
             if 'whitelist' in data:
