@@ -126,127 +126,127 @@ swagger = Swagger()
 
 # ____Add or update an endpoint____
 
-swagger.add_or_update_endpoint(
-    endpoint_route='/article',
-    method='post',
-    tag='Articles',
-    description='Create a new article',
-    detail_description='''
-    Create a new article with comprehensive validation and error handling.
+# swagger.add_or_update_endpoint(
+#     endpoint_route='/article',
+#     method='post',
+#     tag='Articles',
+#     description='Create a new article',
+#     detail_description='''
+#     Create a new article with comprehensive validation and error handling.
     
-    The endpoint performs the following validations:
-    - Checks for required fields
-    - Validates bot_id and category_id existence
-    - Checks for duplicate articles
-    - Processes and stores the article image
-    - Handles database operations with rollback capability
-    ''',
-    params=[
-        {
-            'name': 'body',
-            'in': 'body',
-            'description': 'Article data',
-            'required': True,
-            'schema': {
-                'type': 'object',
-                'required': ['title', 'content', 'bot_id', 'category_id', 'image_url'],
-                'properties': {
-                    'title': {
-                        'type': 'string',
-                        'description': 'Article title'
-                    },
-                    'content': {
-                        'type': 'string',
-                        'description': 'Article content'
-                    },
-                    'bot_id': {
-                        'type': 'integer',
-                        'description': 'Bot identifier'
-                    },
-                    'category_id': {
-                        'type': 'integer',
-                        'description': 'Category identifier'
-                    },
-                    'image_url': {
-                        'type': 'string',
-                        'description': 'URL of the article image'
-                    },
-                    'comment': {
-                        'type': 'string',
-                        'description': 'Comment on the article efficiency',
-                        'required': False
-                    },
-                    'is_top_story': {
-                        'type': 'boolean',
-                        'description': 'Whether this is a top story',
-                        'required': False,
-                        'default': False
-                    }
-                }
-            }
-        }
-    ],
-    responses={
-        '201': {
-            'description': 'Article created successfully',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'data': {
-                        'type': 'object',
-                        'properties': {
-                            'id': {'type': 'integer'},
-                            'title': {'type': 'string'},
-                            'content': {'type': 'string'},
-                            'image': {'type': 'string'},
-                            'url': {'type': 'string'},
-                            'date': {'type': 'string', 'format': 'date-time'},
-                            'is_article_efficent': {'type': 'string'},
-                            'is_top_story': {'type': 'boolean'},
-                            'bot_id': {'type': 'integer'},
-                            'created_at': {'type': 'string', 'format': 'date-time'},
-                            'updated_at': {'type': 'string', 'format': 'date-time'}
-                        }
-                    }
-                }
-            }
-        },
-        '400': {
-            'description': 'Bad request - Missing or invalid fields',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'error': {'type': 'string'}
-                }
-            }
-        },
-        '409': {
-            'description': 'Conflict - Duplicate article',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'error': {'type': 'string'}
-                }
-            }
-        },
-        '500': {
-            'description': 'Internal server error',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'error': {'type': 'string'}
-                }
-            }
-        }
-    }
-)
+#     The endpoint performs the following validations:
+#     - Checks for required fields
+#     - Validates bot_id and category_id existence
+#     - Checks for duplicate articles
+#     - Processes and stores the article image
+#     - Handles database operations with rollback capability
+#     ''',
+#     params=[
+#         {
+#             'name': 'body',
+#             'in': 'body',
+#             'description': 'Article data',
+#             'required': True,
+#             'schema': {
+#                 'type': 'object',
+#                 'required': ['title', 'content', 'bot_id', 'category_id', 'image_url'],
+#                 'properties': {
+#                     'title': {
+#                         'type': 'string',
+#                         'description': 'Article title'
+#                     },
+#                     'content': {
+#                         'type': 'string',
+#                         'description': 'Article content'
+#                     },
+#                     'bot_id': {
+#                         'type': 'integer',
+#                         'description': 'Bot identifier'
+#                     },
+#                     'category_id': {
+#                         'type': 'integer',
+#                         'description': 'Category identifier'
+#                     },
+#                     'image_url': {
+#                         'type': 'string',
+#                         'description': 'URL of the article image'
+#                     },
+#                     'comment': {
+#                         'type': 'string',
+#                         'description': 'Comment on the article efficiency',
+#                         'required': False
+#                     },
+#                     'is_top_story': {
+#                         'type': 'boolean',
+#                         'description': 'Whether this is a top story',
+#                         'required': False,
+#                         'default': False
+#                     }
+#                 }
+#             }
+#         }
+#     ],
+#     responses={
+#         '201': {
+#             'description': 'Article created successfully',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'data': {
+#                         'type': 'object',
+#                         'properties': {
+#                             'id': {'type': 'integer'},
+#                             'title': {'type': 'string'},
+#                             'content': {'type': 'string'},
+#                             'image': {'type': 'string'},
+#                             'url': {'type': 'string'},
+#                             'date': {'type': 'string', 'format': 'date-time'},
+#                             'is_article_efficent': {'type': 'string'},
+#                             'is_top_story': {'type': 'boolean'},
+#                             'bot_id': {'type': 'integer'},
+#                             'created_at': {'type': 'string', 'format': 'date-time'},
+#                             'updated_at': {'type': 'string', 'format': 'date-time'}
+#                         }
+#                     }
+#                 }
+#             }
+#         },
+#         '400': {
+#             'description': 'Bad request - Missing or invalid fields',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         },
+#         '409': {
+#             'description': 'Conflict - Duplicate article',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         },
+#         '500': {
+#             'description': 'Internal server error',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'error': {'type': 'string'}
+#                 }
+#             }
+#         }
+#     }
+# )
 
-# ____Delete an endpoint____
-success, message = swagger.delete_endpoint(endpoint_route='/articles/unwanted')
-print(message)
+# # ____Delete an endpoint____
+# success, message = swagger.delete_endpoint(endpoint_route='/articles/unwanted')
+# print(message)
 
 
