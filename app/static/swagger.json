@@ -1375,6 +1375,193 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Bots"
+        ],
+        "summary": "Create a new bot",
+        "description": "\n    create a new bot with associated site, keywords, and blacklist.\n    \n    the endpoint performs the following operations:\n    - validates all required fields\n    - checks for duplicate bot names\n    - validates category existence\n    - creates bot with normalized icon name\n    - creates associated site if url is provided\n    - adds keywords (whitelist) if provided\n    - adds blacklist entries if provided\n    - handles all database operations with rollback capability\n    \n    note: the run_frequency must be at least 20 minutes, and urls must contain 'news'/'google' and 'rss'.\n    ",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Bot creation data",
+            "required": true,
+            "type": "string",
+            "schema": {
+              "type": "object",
+              "required": [
+                "name",
+                "alias",
+                "category_id",
+                "run_frequency"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Unique name for the bot"
+                },
+                "alias": {
+                  "type": "string",
+                  "description": "Display name for the bot"
+                },
+                "category_id": {
+                  "type": "integer",
+                  "description": "ID of the category the bot belongs to"
+                },
+                "dalle_prompt": {
+                  "type": "string",
+                  "description": "DALL-E prompt for bot image generation",
+                  "required": false
+                },
+                "background_color": {
+                  "type": "string",
+                  "description": "HEX color code for bot background",
+                  "required": false,
+                  "example": "#4287f5"
+                },
+                "run_frequency": {
+                  "type": "integer",
+                  "description": "Bot execution frequency in minutes (minimum 20)",
+                  "minimum": 20
+                },
+                "url": {
+                  "type": "string",
+                  "description": "RSS feed URL (must contain news/google and rss)",
+                  "required": false,
+                  "example": "https://rss.news.google.com/search?q=tech%20news"
+                },
+                "whitelist": {
+                  "type": "string",
+                  "description": "Comma-separated list of keywords to match",
+                  "required": false,
+                  "example": "AI, machine learning, robotics"
+                },
+                "blacklist": {
+                  "type": "string",
+                  "description": "Comma-separated list of words to filter out",
+                  "required": false,
+                  "example": "spam, scam, adult content"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Bot created successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "bot": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "alias": {
+                      "type": "string"
+                    },
+                    "category_id": {
+                      "type": "integer"
+                    },
+                    "dalle_prompt": {
+                      "type": "string"
+                    },
+                    "prompt": {
+                      "type": "string"
+                    },
+                    "icon": {
+                      "type": "string"
+                    },
+                    "background_color": {
+                      "type": "string"
+                    },
+                    "run_frequency": {
+                      "type": "integer"
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string",
+                  "description": "Error message detailing the validation failure",
+                  "examples": [
+                    "Missing field in request data: name",
+                    "Run frequency must be an integer of at least 20 minutes",
+                    "A bot with the name 'Test Bot' already exists",
+                    "Invalid URL provided",
+                    "Whitelist must be a comma-separated string"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Category not found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string",
+                  "description": "Error message from the server",
+                  "examples": [
+                    "Database error: [SQL error details]",
+                    "An unexpected error occurred: [error details]"
+                  ]
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/bot/{bot_id}": {
