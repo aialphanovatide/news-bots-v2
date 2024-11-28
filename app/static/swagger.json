@@ -298,75 +298,6 @@
         }
       }
     },
-    "/articles/create": {
-      "post": {
-        "tags": [
-          "News Creator"
-        ],
-        "summary": "Create a new article",
-        "description": "Create a new article with the provided data.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "title",
-                  "content",
-                  "analysis",
-                  "used_keywords",
-                  "is_article_efficient",
-                  "bot_id",
-                  "category_id",
-                  "image_url"
-                ],
-                "properties": {
-                  "title": {
-                    "type": "string"
-                  },
-                  "content": {
-                    "type": "string"
-                  },
-                  "analysis": {
-                    "type": "string"
-                  },
-                  "used_keywords": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "is_article_efficient": {
-                    "type": "string"
-                  },
-                  "bot_id": {
-                    "type": "integer"
-                  },
-                  "category_id": {
-                    "type": "integer"
-                  },
-                  "image_url": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Article created successfully"
-          },
-          "400": {
-            "description": "Bad request. Missing required fields"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
     "/articles/generate_image": {
       "post": {
         "tags": [
@@ -1124,112 +1055,68 @@
             }
           }
         }
-      }
-    },
-    "/articles/unwanted": {
-      "get": {
+      },
+      "post": {
         "tags": [
           "Articles"
         ],
-        "summary": "Retrieve unwanted articles with optional filtering, pagination, and search functionality",
-        "description": "This endpoint retrieves unwanted articles from the database. it supports optional filtering by bot id, pagination, and search functionality. if no pagination parameters are provided, all matching unwanted articles are returned. articles are sorted by creation date in descending order. the maximum number of items per page is limited to 100.",
+        "summary": "Create a new article",
+        "description": "\n    create a new article with comprehensive validation and error handling.\n    \n    the endpoint performs the following validations:\n    - checks for required fields\n    - validates bot_id and category_id existence\n    - checks for duplicate articles\n    - processes and stores the article image\n    - handles database operations with rollback capability\n    ",
         "parameters": [
           {
-            "name": "bot_id",
-            "in": "query",
-            "description": "Bot ID to filter unwanted articles",
-            "required": false,
-            "type": "integer",
-            "schema": {}
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "description": "The page number for pagination (optional)",
-            "required": false,
-            "type": "integer",
-            "schema": {}
-          },
-          {
-            "name": "per_page",
-            "in": "query",
-            "description": "Number of items per page for pagination (optional, max: 100)",
-            "required": false,
-            "type": "integer",
-            "schema": {}
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "description": "Search term to filter unwanted articles by title or content (optional)",
-            "required": false,
+            "name": "body",
+            "in": "body",
+            "description": "Article data",
+            "required": true,
             "type": "string",
-            "schema": {}
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved unwanted articles",
             "schema": {
               "type": "object",
+              "required": [
+                "title",
+                "content",
+                "bot_id",
+                "category_id",
+                "image_url"
+              ],
               "properties": {
-                "success": {
-                  "type": "boolean"
+                "title": {
+                  "type": "string",
+                  "description": "Article title"
                 },
-                "data": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "integer"
-                      },
-                      "bot_id": {
-                        "type": "integer"
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "content": {
-                        "type": "string"
-                      },
-                      "created_at": {
-                        "type": "string",
-                        "format": "date-time"
-                      },
-                      "updated_at": {
-                        "type": "string",
-                        "format": "date-time"
-                      }
-                    }
-                  }
+                "content": {
+                  "type": "string",
+                  "description": "Article content"
                 },
-                "message": {
-                  "type": "string"
+                "bot_id": {
+                  "type": "integer",
+                  "description": "Bot identifier"
                 },
-                "pagination": {
-                  "type": "object",
-                  "properties": {
-                    "page": {
-                      "type": "integer"
-                    },
-                    "per_page": {
-                      "type": "integer"
-                    },
-                    "total_pages": {
-                      "type": "integer"
-                    },
-                    "total_items": {
-                      "type": "integer"
-                    }
-                  },
-                  "nullable": true
+                "category_id": {
+                  "type": "integer",
+                  "description": "Category identifier"
+                },
+                "image_url": {
+                  "type": "string",
+                  "description": "URL of the article image"
+                },
+                "comment": {
+                  "type": "string",
+                  "description": "Comment on the article efficiency",
+                  "required": false
+                },
+                "is_top_story": {
+                  "type": "boolean",
+                  "description": "Whether this is a top story",
+                  "required": false,
+                  "default": false
                 }
               }
             }
-          },
-          "204": {
-            "description": "No unwanted articles found",
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Article created successfully",
             "schema": {
               "type": "object",
               "properties": {
@@ -1237,17 +1124,51 @@
                   "type": "boolean"
                 },
                 "data": {
-                  "type": "array",
-                  "items": {}
-                },
-                "message": {
-                  "type": "string"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    },
+                    "image": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "is_article_efficent": {
+                      "type": "string"
+                    },
+                    "is_top_story": {
+                      "type": "boolean"
+                    },
+                    "bot_id": {
+                      "type": "integer"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request",
+            "description": "Bad request - Missing or invalid fields",
             "schema": {
               "type": "object",
               "properties": {
@@ -1260,8 +1181,8 @@
               }
             }
           },
-          "404": {
-            "description": "Page not found",
+          "409": {
+            "description": "Conflict - Duplicate article",
             "schema": {
               "type": "object",
               "properties": {
@@ -1441,169 +1362,6 @@
           },
           "500": {
             "description": "Internal server error",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "error": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Bots"
-        ],
-        "summary": "Create a new bot",
-        "description": "\n    This endpoint creates a new bot with specified parameters and optionally connects it to an RSS feed source.\n    \n    Required fields:\n    - 'name': Unique identifier for the bot\n    - 'alias': Display name for the bot\n    - 'category_id': ID of the category this bot belongs to\n    - 'run_frequency': How often the bot should run (in minutes, minimum 20)\n    \n    Optional fields:\n    - 'prompt': The bot's initial conversation prompt\n    - 'dalle_prompt': Used to generate a custom icon\n    - 'background_color': Custom background color for the bot's icon\n    - 'whitelist': Comma-separated list of keywords to monitor\n    - 'blacklist': Comma-separated list of words to filter out\n    - 'url': Google News RSS feed URL for data source, (eg. https://rss.news.google.com/rss/search?q=apple+inc+stock+price&hl=en-US&gl=US)\n    \n    Notes:\n    - Bot names must be unique\n    - URLs must be valid Google News RSS feed URLs\n    - Run frequency cannot be less than 20 minutes\n    - The bot will be created in an inactive state\n    - System automatically sets created_at and updated_at timestamps\n    ",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "description": "Bot details",
-            "required": true,
-            "type": "string",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "description": "Name of the bot (required)"
-                },
-                "alias": {
-                  "type": "string",
-                  "description": "Unique identifier for the bot (required)"
-                },
-                "category_id": {
-                  "type": "integer",
-                  "description": "ID of the category the bot belongs to (required)"
-                },
-                "prompt": {
-                  "type": "string",
-                  "description": "Initial conversation prompt for the bot (required)"
-                },
-                "url": {
-                  "type": "string",
-                  "description": "Google News RSS feed URL for data source (optional for scheduling)"
-                },
-                "run_frequency": {
-                  "type": "integer",
-                  "description": "How often the bot should run, in minutes (optional)"
-                },
-                "dalle_prompt": {
-                  "type": "string",
-                  "description": "Prompt for generating a custom icon using DALL-E (optional)"
-                },
-                "background_color": {
-                  "type": "string",
-                  "description": "Background color for the bot's icon (optional)"
-                },
-                "whitelist": {
-                  "type": "string",
-                  "description": "Comma-separated list of keywords to add to the existing whitelist"
-                },
-                "blacklist": {
-                  "type": "string",
-                  "description": "Comma-separated list of words to add to the existing blacklist"
-                }
-              },
-              "required": [
-                "name",
-                "alias",
-                "category_id",
-                "prompt"
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Bot created successfully",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "data": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "integer",
-                        "description": "Unique identifier for the bot",
-                        "required": true
-                      },
-                      "name": {
-                        "type": "string",
-                        "description": "Name of the bot"
-                      },
-                      "alias": {
-                        "type": "string",
-                        "description": "Unique alias of the bot"
-                      },
-                      "category_id": {
-                        "type": "integer",
-                        "description": "ID of the category the bot belongs to"
-                      },
-                      "prompt": {
-                        "type": "string",
-                        "description": "Initial conversation prompt for the bot"
-                      },
-                      "run_frequency": {
-                        "type": "integer",
-                        "description": "How often the bot runs, in minutes"
-                      },
-                      "dalle_prompt": {
-                        "type": "string",
-                        "description": "Prompt used for generating the bot's icon"
-                      },
-                      "icon": {
-                        "type": "string",
-                        "description": "URL of the bot's icon"
-                      },
-                      "background_color": {
-                        "type": "string",
-                        "description": "Background color of the bot's icon"
-                      },
-                      "created_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "description": "Timestamp of when the bot was created"
-                      },
-                      "updated_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "description": "Timestamp of when the bot was last updated"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input - This could occur if required fields are missing or if the alias is not unique",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "error": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error - This could occur due to database issues or other server-side problems",
             "schema": {
               "type": "object",
               "properties": {

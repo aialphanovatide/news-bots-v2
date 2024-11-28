@@ -127,70 +127,68 @@ swagger = Swagger()
 # ____Add or update an endpoint____
 
 # swagger.add_or_update_endpoint(
-#     endpoint_route='/bot/{bot_id}/metrics',
-#     method='get',
-#     tag='Bots',
-#     description='Get bot metrics with pagination and filtering',
+#     endpoint_route='/article',
+#     method='post',
+#     tag='Articles',
+#     description='Create a new article',
 #     detail_description='''
-#     Retrieves metrics for a specific bot with pagination and date filtering options.
+#     Create a new article with comprehensive validation and error handling.
     
-#     The endpoint returns:
-#     - List of individual metric records
-#     - Aggregated statistics across the returned metrics
-#     - Pagination metadata
-    
-#     Metrics include:
-#     - Runtime statistics
-#     - Resource usage (CPU, memory)
-#     - Article processing counts
-#     - Error and filtering statistics
+#     The endpoint performs the following validations:
+#     - Checks for required fields
+#     - Validates bot_id and category_id existence
+#     - Checks for duplicate articles
+#     - Processes and stores the article image
+#     - Handles database operations with rollback capability
 #     ''',
 #     params=[
 #         {
-#             'name': 'bot_id',
-#             'in': 'path',
-#             'description': 'ID of the bot',
+#             'name': 'body',
+#             'in': 'body',
+#             'description': 'Article data',
 #             'required': True,
-#             'type': 'integer'
-#         },
-#         {
-#             'name': 'page',
-#             'in': 'query',
-#             'description': 'Page number (starts at 1)',
-#             'required': False,
-#             'type': 'integer',
-#             'default': 1,
-#             'minimum': 1
-#         },
-#         {
-#             'name': 'per_page',
-#             'in': 'query',
-#             'description': 'Number of items per page',
-#             'required': False,
-#             'type': 'integer',
-#             'default': 10,
-#             'minimum': 1
-#         },
-#         {
-#             'name': 'start_date',
-#             'in': 'query',
-#             'description': 'Filter metrics after this date (ISO format: YYYY-MM-DDTHH:MM:SS)',
-#             'required': False,
-#             'type': 'string',
-#             'format': 'date-time'
-#         },
-#         {
-#             'name': 'end_date',
-#             'in': 'query',
-#             'description': 'Filter metrics before this date (ISO format: YYYY-MM-DDTHH:MM:SS)',
-#             'required': False,
-#             'type': 'string',
-#             'format': 'date-time'
+#             'schema': {
+#                 'type': 'object',
+#                 'required': ['title', 'content', 'bot_id', 'category_id', 'image_url'],
+#                 'properties': {
+#                     'title': {
+#                         'type': 'string',
+#                         'description': 'Article title'
+#                     },
+#                     'content': {
+#                         'type': 'string',
+#                         'description': 'Article content'
+#                     },
+#                     'bot_id': {
+#                         'type': 'integer',
+#                         'description': 'Bot identifier'
+#                     },
+#                     'category_id': {
+#                         'type': 'integer',
+#                         'description': 'Category identifier'
+#                     },
+#                     'image_url': {
+#                         'type': 'string',
+#                         'description': 'URL of the article image'
+#                     },
+#                     'comment': {
+#                         'type': 'string',
+#                         'description': 'Comment on the article efficiency',
+#                         'required': False
+#                     },
+#                     'is_top_story': {
+#                         'type': 'boolean',
+#                         'description': 'Whether this is a top story',
+#                         'required': False,
+#                         'default': False
+#                     }
+#                 }
+#             }
 #         }
 #     ],
 #     responses={
-#         '200': {
-#             'description': 'Metrics retrieved successfully',
+#         '201': {
+#             'description': 'Article created successfully',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
@@ -198,80 +196,39 @@ swagger = Swagger()
 #                     'data': {
 #                         'type': 'object',
 #                         'properties': {
-#                             'metrics': {
-#                                 'type': 'array',
-#                                 'items': {
-#                                     'type': 'object',
-#                                     'properties': {
-#                                         'id': {'type': 'integer'},
-#                                         'bot_id': {'type': 'integer'},
-#                                         'start_time': {'type': 'string', 'format': 'date-time'},
-#                                         'end_time': {'type': 'string', 'format': 'date-time'},
-#                                         'total_runtime': {'type': 'number'},
-#                                         'total_articles_found': {'type': 'integer'},
-#                                         'articles_processed': {'type': 'integer'},
-#                                         'articles_saved': {'type': 'integer'},
-#                                         'cpu_percent': {'type': 'number'},
-#                                         'memory_percent': {'type': 'number'},
-#                                         'total_errors': {'type': 'integer'},
-#                                         'error_reasons': {'type': 'object'},
-#                                         'total_filtered': {'type': 'integer'},
-#                                         'filter_reasons': {'type': 'object'}
-#                                     }
-#                                 }
-#                             },
-#                             'aggregated_stats': {
-#                                 'type': 'object',
-#                                 'properties': {
-#                                     'total_runtime': {'type': 'number'},
-#                                     'avg_cpu_percent': {'type': 'number'},
-#                                     'avg_memory_percent': {'type': 'number'},
-#                                     'total_articles_found': {'type': 'integer'},
-#                                     'total_articles_processed': {'type': 'integer'},
-#                                     'total_articles_saved': {'type': 'integer'},
-#                                     'total_errors': {'type': 'integer'},
-#                                     'total_filtered': {'type': 'integer'}
-#                                 }
-#                             },
-#                             'pagination': {
-#                                 'type': 'object',
-#                                 'properties': {
-#                                     'total_items': {'type': 'integer'},
-#                                     'total_pages': {'type': 'integer'},
-#                                     'current_page': {'type': 'integer'},
-#                                     'per_page': {'type': 'integer'},
-#                                     'has_next': {'type': 'boolean'},
-#                                     'has_prev': {'type': 'boolean'}
-#                                 }
-#                             }
+#                             'id': {'type': 'integer'},
+#                             'title': {'type': 'string'},
+#                             'content': {'type': 'string'},
+#                             'image': {'type': 'string'},
+#                             'url': {'type': 'string'},
+#                             'date': {'type': 'string', 'format': 'date-time'},
+#                             'is_article_efficent': {'type': 'string'},
+#                             'is_top_story': {'type': 'boolean'},
+#                             'bot_id': {'type': 'integer'},
+#                             'created_at': {'type': 'string', 'format': 'date-time'},
+#                             'updated_at': {'type': 'string', 'format': 'date-time'}
 #                         }
 #                     }
 #                 }
 #             }
 #         },
 #         '400': {
-#             'description': 'Invalid parameters provided',
+#             'description': 'Bad request - Missing or invalid fields',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
 #                     'success': {'type': 'boolean'},
-#                     'error': {
-#                         'type': 'string',
-#                         'description': 'Error message describing the invalid parameters'
-#                     }
+#                     'error': {'type': 'string'}
 #                 }
 #             }
 #         },
-#         '404': {
-#             'description': 'Bot not found',
+#         '409': {
+#             'description': 'Conflict - Duplicate article',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
 #                     'success': {'type': 'boolean'},
-#                     'error': {
-#                         'type': 'string',
-#                         'description': 'Error message indicating bot was not found'
-#                     }
+#                     'error': {'type': 'string'}
 #                 }
 #             }
 #         },
@@ -281,18 +238,15 @@ swagger = Swagger()
 #                 'type': 'object',
 #                 'properties': {
 #                     'success': {'type': 'boolean'},
-#                     'error': {
-#                         'type': 'string',
-#                         'description': 'Error message describing what went wrong'
-#                     }
+#                     'error': {'type': 'string'}
 #                 }
 #             }
 #         }
 #     }
 # )
 
-# ____Delete an endpoint____
-# success, message = swagger.delete_endpoint(endpoint_route='/delete_bot/{bot_id}')
+# # ____Delete an endpoint____
+# success, message = swagger.delete_endpoint(endpoint_route='/articles/unwanted')
 # print(message)
 
 
