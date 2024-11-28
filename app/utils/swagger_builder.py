@@ -125,62 +125,81 @@ class Swagger:
 swagger = Swagger()
 
 # ____Add or update an endpoint____
-
 # swagger.add_or_update_endpoint(
-#     endpoint_route='/article',
+#     endpoint_route='/bot',
 #     method='post',
-#     tag='Articles',
-#     description='Create a new article',
+#     tag='Bots',
+#     description='Create a new bot',
 #     detail_description='''
-#     Create a new article with comprehensive validation and error handling.
+#     Create a new bot with associated site, keywords, and blacklist.
     
-#     The endpoint performs the following validations:
-#     - Checks for required fields
-#     - Validates bot_id and category_id existence
-#     - Checks for duplicate articles
-#     - Processes and stores the article image
-#     - Handles database operations with rollback capability
+#     The endpoint performs the following operations:
+#     - Validates all required fields
+#     - Checks for duplicate bot names
+#     - Validates category existence
+#     - Creates bot with normalized icon name
+#     - Creates associated site if URL is provided
+#     - Adds keywords (whitelist) if provided
+#     - Adds blacklist entries if provided
+#     - Handles all database operations with rollback capability
+    
+#     Note: The run_frequency must be at least 20 minutes, and URLs must contain 'news'/'google' and 'rss'.
 #     ''',
 #     params=[
 #         {
 #             'name': 'body',
 #             'in': 'body',
-#             'description': 'Article data',
+#             'description': 'Bot creation data',
 #             'required': True,
 #             'schema': {
 #                 'type': 'object',
-#                 'required': ['title', 'content', 'bot_id', 'category_id', 'image_url'],
+#                 'required': ['name', 'alias', 'category_id', 'run_frequency'],
 #                 'properties': {
-#                     'title': {
+#                     'name': {
 #                         'type': 'string',
-#                         'description': 'Article title'
+#                         'description': 'Unique name for the bot'
 #                     },
-#                     'content': {
+#                     'alias': {
 #                         'type': 'string',
-#                         'description': 'Article content'
-#                     },
-#                     'bot_id': {
-#                         'type': 'integer',
-#                         'description': 'Bot identifier'
+#                         'description': 'Display name for the bot'
 #                     },
 #                     'category_id': {
 #                         'type': 'integer',
-#                         'description': 'Category identifier'
+#                         'description': 'ID of the category the bot belongs to'
 #                     },
-#                     'image_url': {
+#                     'dalle_prompt': {
 #                         'type': 'string',
-#                         'description': 'URL of the article image'
-#                     },
-#                     'comment': {
-#                         'type': 'string',
-#                         'description': 'Comment on the article efficiency',
+#                         'description': 'DALL-E prompt for bot image generation',
 #                         'required': False
 #                     },
-#                     'is_top_story': {
-#                         'type': 'boolean',
-#                         'description': 'Whether this is a top story',
+#                     'background_color': {
+#                         'type': 'string',
+#                         'description': 'HEX color code for bot background',
 #                         'required': False,
-#                         'default': False
+#                         'example': '#4287f5'
+#                     },
+#                     'run_frequency': {
+#                         'type': 'integer',
+#                         'description': 'Bot execution frequency in minutes (minimum 20)',
+#                         'minimum': 20
+#                     },
+#                     'url': {
+#                         'type': 'string',
+#                         'description': 'RSS feed URL (must contain news/google and rss)',
+#                         'required': False,
+#                         'example': 'https://rss.news.google.com/search?q=tech%20news'
+#                     },
+#                     'whitelist': {
+#                         'type': 'string',
+#                         'description': 'Comma-separated list of keywords to match',
+#                         'required': False,
+#                         'example': 'AI, machine learning, robotics'
+#                     },
+#                     'blacklist': {
+#                         'type': 'string',
+#                         'description': 'Comma-separated list of words to filter out',
+#                         'required': False,
+#                         'example': 'spam, scam, adult content'
 #                     }
 #                 }
 #             }
@@ -188,42 +207,54 @@ swagger = Swagger()
 #     ],
 #     responses={
 #         '201': {
-#             'description': 'Article created successfully',
+#             'description': 'Bot created successfully',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
 #                     'success': {'type': 'boolean'},
-#                     'data': {
+#                     'bot': {
 #                         'type': 'object',
 #                         'properties': {
 #                             'id': {'type': 'integer'},
-#                             'title': {'type': 'string'},
-#                             'content': {'type': 'string'},
-#                             'image': {'type': 'string'},
-#                             'url': {'type': 'string'},
-#                             'date': {'type': 'string', 'format': 'date-time'},
-#                             'is_article_efficent': {'type': 'string'},
-#                             'is_top_story': {'type': 'boolean'},
-#                             'bot_id': {'type': 'integer'},
+#                             'name': {'type': 'string'},
+#                             'alias': {'type': 'string'},
+#                             'category_id': {'type': 'integer'},
+#                             'dalle_prompt': {'type': 'string'},
+#                             'prompt': {'type': 'string'},
+#                             'icon': {'type': 'string'},
+#                             'background_color': {'type': 'string'},
+#                             'run_frequency': {'type': 'integer'},
+#                             'is_active': {'type': 'boolean'},
 #                             'created_at': {'type': 'string', 'format': 'date-time'},
 #                             'updated_at': {'type': 'string', 'format': 'date-time'}
 #                         }
-#                     }
+#                     },
+#                     'message': {'type': 'string'}
 #                 }
 #             }
 #         },
 #         '400': {
-#             'description': 'Bad request - Missing or invalid fields',
+#             'description': 'Bad request',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
 #                     'success': {'type': 'boolean'},
-#                     'error': {'type': 'string'}
+#                     'error': {
+#                         'type': 'string',
+#                         'description': 'Error message detailing the validation failure',
+#                         'examples': [
+#                             'Missing field in request data: name',
+#                             'Run frequency must be an integer of at least 20 minutes',
+#                             'A bot with the name \'Test Bot\' already exists',
+#                             'Invalid URL provided',
+#                             'Whitelist must be a comma-separated string'
+#                         ]
+#                     }
 #                 }
 #             }
 #         },
-#         '409': {
-#             'description': 'Conflict - Duplicate article',
+#         '404': {
+#             'description': 'Category not found',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
@@ -238,7 +269,14 @@ swagger = Swagger()
 #                 'type': 'object',
 #                 'properties': {
 #                     'success': {'type': 'boolean'},
-#                     'error': {'type': 'string'}
+#                     'error': {
+#                         'type': 'string',
+#                         'description': 'Error message from the server',
+#                         'examples': [
+#                             'Database error: [SQL error details]',
+#                             'An unexpected error occurred: [error details]'
+#                         ]
+#                     }
 #                 }
 #             }
 #         }
