@@ -1055,270 +1055,112 @@
             }
           }
         }
-      }
-    },
-    "/articles/unwanted": {
-      "get": {
-        "tags": [
-          "Articles"
-        ],
-        "summary": "Retrieve unwanted articles with optional filtering, pagination, and search functionality",
-        "description": "This endpoint retrieves unwanted articles from the database. it supports optional filtering by bot id, pagination, and search functionality. if no pagination parameters are provided, all matching unwanted articles are returned. articles are sorted by creation date in descending order. the maximum number of items per page is limited to 100.",
-        "parameters": [
-          {
-            "name": "bot_id",
-            "in": "query",
-            "description": "Bot ID to filter unwanted articles",
-            "required": false,
-            "type": "integer",
-            "schema": {}
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "description": "The page number for pagination (optional)",
-            "required": false,
-            "type": "integer",
-            "schema": {}
-          },
-          {
-            "name": "per_page",
-            "in": "query",
-            "description": "Number of items per page for pagination (optional, max: 100)",
-            "required": false,
-            "type": "integer",
-            "schema": {}
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "description": "Search term to filter unwanted articles by title or content (optional)",
-            "required": false,
-            "type": "string",
-            "schema": {}
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved unwanted articles",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "data": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "integer"
-                      },
-                      "bot_id": {
-                        "type": "integer"
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "content": {
-                        "type": "string"
-                      },
-                      "created_at": {
-                        "type": "string",
-                        "format": "date-time"
-                      },
-                      "updated_at": {
-                        "type": "string",
-                        "format": "date-time"
-                      }
-                    }
-                  }
-                },
-                "message": {
-                  "type": "string"
-                },
-                "pagination": {
-                  "type": "object",
-                  "properties": {
-                    "page": {
-                      "type": "integer"
-                    },
-                    "per_page": {
-                      "type": "integer"
-                    },
-                    "total_pages": {
-                      "type": "integer"
-                    },
-                    "total_items": {
-                      "type": "integer"
-                    }
-                  },
-                  "nullable": true
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "No unwanted articles found",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "data": {
-                  "type": "array",
-                  "items": {}
-                },
-                "message": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "error": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Page not found",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "error": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "error": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
       },
       "post": {
         "tags": [
           "Articles"
         ],
         "summary": "Create a new article",
-        "description": "Create a new article with comprehensive validation and processing",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "title",
-                  "content",
-                  "bot_id",
-                  "category_id",
-                  "image_url"
-                ],
-                "properties": {
-                  "title": {
-                    "type": "string",
-                    "description": "Title of the article",
-                    "minLength": 5,
-                    "example": "Breaking News: Tech Innovation Breakthrough"
-                  },
-                  "content": {
-                    "type": "string",
-                    "description": "Full content of the article",
-                    "minLength": 20,
-                    "example": "Detailed article content describing the latest technological innovation..."
-                  },
-                  "analysis": {
-                    "type": "string",
-                    "description": "Analysis or summary of the article",
-                    "example": "An in-depth look at the recent technological advancements"
-                  },
-                  "is_article_efficient": {
-                    "type": "string",
-                    "description": "Efficiency rating of the article",
-                    "example": "Green - High"
-                  },
-                  "bot_id": {
-                    "type": "integer",
-                    "description": "Identifier of the bot that created the article",
-                    "example": 123
-                  },
-                  "category_id": {
-                    "type": "integer",
-                    "description": "Identifier of the article category",
-                    "example": 456
-                  },
-                  "image_url": {
-                    "type": "string",
-                    "description": "URL of the article's featured image",
-                    "format": "uri",
-                    "example": "https://example.com/article-image.jpg"
-                  },
-                  "is_top_story": {
-                    "type": "boolean",
-                    "description": "Flag to mark the article as a top story",
-                    "default": false,
-                    "example": true
-                  }
+        "description": "\n    create a new article with comprehensive validation and error handling.\n    \n    the endpoint performs the following validations:\n    - checks for required fields\n    - validates bot_id and category_id existence\n    - checks for duplicate articles\n    - processes and stores the article image\n    - handles database operations with rollback capability\n    ",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Article data",
+            "required": true,
+            "type": "string",
+            "schema": {
+              "type": "object",
+              "required": [
+                "title",
+                "content",
+                "bot_id",
+                "category_id",
+                "image_url"
+              ],
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "description": "Article title"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Article content"
+                },
+                "bot_id": {
+                  "type": "integer",
+                  "description": "Bot identifier"
+                },
+                "category_id": {
+                  "type": "integer",
+                  "description": "Category identifier"
+                },
+                "image_url": {
+                  "type": "string",
+                  "description": "URL of the article image"
+                },
+                "comment": {
+                  "type": "string",
+                  "description": "Comment on the article efficiency",
+                  "required": false
+                },
+                "is_top_story": {
+                  "type": "boolean",
+                  "description": "Whether this is a top story",
+                  "required": false,
+                  "default": false
                 }
               }
             }
           }
-        },
+        ],
         "responses": {
           "201": {
             "description": "Article created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "data": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
+                    "id": {
+                      "type": "integer"
                     },
-                    "data": {
-                      "type": "object",
-                      "description": "Details of the created article",
-                      "properties": {
-                        "id": {
-                          "type": "integer",
-                          "example": 789
-                        },
-                        "title": {
-                          "type": "string",
-                          "example": "Breaking News: Tech Innovation Breakthrough"
-                        },
-                        "created_at": {
-                          "type": "string",
-                          "format": "date-time"
-                        }
-                      }
+                    "title": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    },
+                    "image": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "is_article_efficent": {
+                      "type": "string"
+                    },
+                    "is_top_story": {
+                      "type": "boolean"
+                    },
+                    "bot_id": {
+                      "type": "integer"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
                     }
                   }
                 }
@@ -1326,67 +1168,43 @@
             }
           },
           "400": {
-            "description": "Bad request - Validation errors",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": false
-                    },
-                    "error": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      },
-                      "example": [
-                        "'title' is required and cannot be empty",
-                        "Content must be at least 20 characters long"
-                      ]
-                    }
-                  }
+            "description": "Bad request - Missing or invalid fields",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
                 }
               }
             }
           },
           "409": {
-            "description": "Conflict - Article already exists",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": false
-                    },
-                    "error": {
-                      "type": "string",
-                      "example": "An article with this title already exists"
-                    }
-                  }
+            "description": "Conflict - Duplicate article",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
                 }
               }
             }
           },
           "500": {
             "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": false
-                    },
-                    "error": {
-                      "type": "string",
-                      "example": "Unexpected error occurred during article creation"
-                    }
-                  }
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string"
                 }
               }
             }

@@ -25,7 +25,7 @@ def validate_article_creation(data):
     errors = []
     
     # Required field validation
-    required_fields = ['title', 'content', 'bot_id', 'category_id', 'image_url']
+    required_fields = ['title', 'content', 'image_url']
     for field in required_fields:
         if field not in data or not data[field]:
             errors.append(f"'{field}' is required and cannot be empty")
@@ -36,6 +36,17 @@ def validate_article_creation(data):
             errors.append("Title must be a string")
         elif len(data['title'].strip()) < 5:
             errors.append("Title must be at least 5 characters long")
+
+
+    # Image URL validation
+    if 'image_url' in data:
+        if not isinstance(data['image_url'], str):
+            errors.append("Image URL must be a string")
+
+    # is_top_story param boolean validation
+    if 'is_top_story' in data:
+        if not isinstance(data['is_top_story'], bool):
+            errors.append("is_top_story must be a true or false value")
     
     # Content validation
     if 'content' in data:
@@ -51,7 +62,7 @@ def validate_article_creation(data):
             errors.append(f"'{field}' must be a list")
     
     # Optional string field checks
-    optional_string_fields = ['analysis', 'is_article_efficient']
+    optional_string_fields = ['comment']
     for field in optional_string_fields:
         if field in data and not isinstance(data[field], str):
             errors.append(f"'{field}' must be a string")
@@ -68,9 +79,6 @@ def validate_article_creation(data):
     }
     
     
-
-
-
 def download_and_process_image(image_url, title):
     """
     Download, process, and upload image to S3.

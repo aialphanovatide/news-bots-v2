@@ -5,25 +5,179 @@ from typing import List
 
 
 
-def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
-                                       article_url: str, content: str,
-                                       used_keywords: List[str], image: str,
-                                       audio_file: str = None):
-    formatted_keywords = ', '.join(used_keywords)
+# def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
+#                                        article_url: str, content: str,
+#                                        used_keywords: List[str], image: str,
+#                                        audio_file: str = None):
     
+#     formatted_keywords = ', '.join(used_keywords)
+    
+#     blocks = [
+#         {
+#             "type": "header",
+#             "text": {
+#                 "type": "plain_text",
+#                 "text": f"{title}",
+#                 "emoji": True
+#             }
+#         },
+#         {
+#             "type": "image",
+#             "image_url": f"{image}",
+#             "alt_text": f"{title}"
+#         },
+#         {
+#             "type": "section",
+#             "fields": [
+#                 {
+#                     "type": "mrkdwn",
+#                     "text": f"{article_url}"
+#                 }
+#             ]
+#         },
+#         {
+#             "type": "section",
+#             "fields": [
+#                 {
+#                     "type": "mrkdwn",
+#                     "text": f"{content}"
+#                 }
+#             ]
+#         },
+#         {
+#             "type": "section",
+#             "fields": [
+#                 {
+#                     "type": "mrkdwn",
+#                     "text": f"*Used Keywords:* {formatted_keywords}"
+#                 }
+#             ]
+#         },
+#         {
+#             "type": "section",
+#             "text": {
+#                 "type": "mrkdwn",
+#                 "text": f"*Send to AI Alpha App*"
+#             },
+#             "accessory": {
+#                 "type": "button",
+#                 "text": {
+#                     "type": "plain_text",
+#                     "text": "ADD AS TOP STORY",
+#                     "emoji": True
+#                 },
+#                 "value": f"link_to_article: {article_url}",
+#                 "action_id": "add_to_top_story"
+#             }
+#         },
+#         {
+#             "dispatch_action": True,
+#             "type": "input",
+#             "element": {
+#                 "type": "plain_text_input",
+#                 "action_id": "green"
+#             },
+#             "label": {
+#                 "type": "plain_text",
+#                 "text": "GREEN",
+#                 "emoji": True
+#             }
+#         },
+#         {
+#             "dispatch_action": True,
+#             "type": "input",
+#             "element": {
+#                 "type": "plain_text_input",
+#                 "action_id": "red"
+#             },
+#             "label": {
+#                 "type": "plain_text",
+#                 "text": "RED",
+#                 "emoji": True
+#             }
+#         },
+#         {
+#             "dispatch_action": True,
+#             "type": "input",
+#             "element": {
+#                 "type": "plain_text_input",
+#                 "action_id": "yellow"
+#             },
+#             "label": {
+#                 "type": "plain_text",
+#                 "text": "YELLOW",
+#                 "emoji": True
+#             }
+#         },
+#         {
+#             "type": "divider"
+#         }
+#     ]
+
+#     try:
+#         result = client.chat_postMessage(
+#             channel=channel_id,
+#             text=title,
+#             blocks=blocks
+#         )
+        
+#         if audio_file:
+#             try:
+#                 # Upload the audio file
+#                 audio_upload = client.files_upload_v2(
+#                     channels=channel_id,
+#                     file=audio_file,
+#                     title=f"{title}",
+#                 )
+#                 current_app.logger.debug(f"Audio file uploaded: {audio_upload['file']['id']}")
+#             except SlackApiError as e:
+#                 current_app.logger.error(f"Error uploading audio file: {e}")
+
+#         response = result['ok']
+#         ts = result['ts']
+#         current_app.logger.debug(f'Slack message timestamp: {ts}')
+
+#         if response:
+#             return {'response': f'Message sent successfully to Slack channel {channel_id}', 'success': True}
+#         return {'error': 'Response error from slack API', 'success': False}
+
+#     except SlackApiError as e:
+#         current_app.logger.error(f'---Slack API Error Details---: {e.response}\n{e.response.data}\n{e.response.headers}')
+#         return {'error': f'Slack API Error: {str(e)}', 'success': False}
+#     except Exception as e:
+#         current_app.logger.error(f'---General Error Details---: {str(e)}')
+#         return {'error': f'Error while sending message to slack: {str(e)}', 'success': False}
+
+def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
+                                     article_url: str, content: str,
+                                     image: str, used_keywords: List[str] = None,
+                                     audio_file: str = None):
+    """
+    Send a formatted news message to a Slack channel.
+    
+    Args:
+        channel_id (str): The Slack channel ID
+        title (str): Article title
+        article_url (str): URL of the article
+        content (str): Article content
+        image (str): URL of the article image
+        used_keywords (List[str], optional): List of keywords used. Defaults to None
+        audio_file (str, optional): Path to audio file. Defaults to None
+    """
+    # Base blocks without keywords section
     blocks = [
         {
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": f"{title}",
+                "text": f"{title}"[:150],  # Slack has a 150 char limit
                 "emoji": True
             }
         },
         {
             "type": "image",
             "image_url": f"{image}",
-            "alt_text": f"{title}"
+            "alt_text": f"{title}"[:150]
         },
         {
             "type": "section",
@@ -39,36 +193,30 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
             "fields": [
                 {
                     "type": "mrkdwn",
-                    "text": f"{content}"
+                    "text": f"{content}"[:3000]  # Slack has character limits
                 }
             ]
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": f"*Used Keywords:* {formatted_keywords}"
-                }
-            ]
-        },
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": f"*Send to AI Alpha App*"
-            },
-            "accessory": {
-                "type": "button",
-                "text": {
-                    "type": "plain_text",
-                    "text": "ADD AS TOP STORY",
-                    "emoji": True
-                },
-                "value": f"link_to_article: {article_url}",
-                "action_id": "add_to_top_story"
-            }
-        },
+        }
+    ]
+    
+    # Add keywords section only if keywords are provided and valid
+    if used_keywords and isinstance(used_keywords, (list, tuple)) and len(used_keywords) > 0:
+        try:
+            formatted_keywords = ', '.join(str(keyword) for keyword in used_keywords)
+            blocks.append({
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Used Keywords:* {formatted_keywords}"[:2000]  # Slack limit
+                    }
+                ]
+            })
+        except Exception as e:
+            current_app.logger.warning(f"Failed to format keywords: {str(e)}")
+    
+    # Add the rest of the blocks
+    blocks.extend([
         {
             "dispatch_action": True,
             "type": "input",
@@ -111,22 +259,21 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
         {
             "type": "divider"
         }
-    ]
+    ])
 
     try:
         result = client.chat_postMessage(
             channel=channel_id,
-            text=title,
+            text=title[:150],  # Fallback text with limit
             blocks=blocks
         )
         
         if audio_file:
             try:
-                # Upload the audio file
                 audio_upload = client.files_upload_v2(
                     channels=channel_id,
                     file=audio_file,
-                    title=f"{title}",
+                    title=f"{title}"[:150],
                 )
                 current_app.logger.debug(f"Audio file uploaded: {audio_upload['file']['id']}")
             except SlackApiError as e:
@@ -148,7 +295,6 @@ def send_NEWS_message_to_slack_channel(channel_id: str, title: str,
         return {'error': f'Error while sending message to slack: {str(e)}', 'success': False}
 
 
-
 # Deletes a message in Slack
 def delete_messages_in_channel(ts_messages_list, channel_id="C05UB8G8B0F"):
     try:
@@ -166,7 +312,6 @@ def delete_messages_in_channel(ts_messages_list, channel_id="C05UB8G8B0F"):
     except Exception as e:
         print(f'---Error while deleting messages in Slack: {str(e)}---')
         return f'Error while deleting messages in Slack: {str(e)}'
-
 
 
 # Sends a message to a Slack channel
