@@ -125,163 +125,112 @@ class Swagger:
 swagger = Swagger()
 
 # ____Add or update an endpoint____
-# swagger.add_or_update_endpoint(
-#     endpoint_route='/bot',
-#     method='post',
-#     tag='Bots',
-#     description='Create a new bot',
-#     detail_description='''
-#     Create a new bot with associated site, keywords, and blacklist.
+
+# Add this to your existing swagger_builder.py file
+
+swagger.add_or_update_endpoint(
+    endpoint_route='/articles',
+    method='get',
+    tag='Articles',
+    description='[DEPRECATED] Get all articles with basic pagination',
+    detail_description='''
+    ⚠️ DEPRECATED: This endpoint is deprecated and will be removed in future versions. 
+    Please use the new /articles/all endpoint with advanced filtering capabilities instead.
     
-#     The endpoint performs the following operations:
-#     - Validates all required fields
-#     - Checks for duplicate bot names
-#     - Validates category existence
-#     - Creates bot with normalized icon name
-#     - Creates associated site if URL is provided
-#     - Adds keywords (whitelist) if provided
-#     - Adds blacklist entries if provided
-#     - Handles all database operations with rollback capability
-    
-#     Note: The run_frequency must be at least 20 minutes, and URLs must contain 'news'/'google' and 'rss'.
-#     ''',
-#     params=[
-#         {
-#             'name': 'body',
-#             'in': 'body',
-#             'description': 'Bot creation data',
-#             'required': True,
-#             'schema': {
-#                 'type': 'object',
-#                 'required': ['name', 'alias', 'category_id', 'run_frequency'],
-#                 'properties': {
-#                     'name': {
-#                         'type': 'string',
-#                         'description': 'Unique name for the bot'
-#                     },
-#                     'alias': {
-#                         'type': 'string',
-#                         'description': 'Display name for the bot'
-#                     },
-#                     'category_id': {
-#                         'type': 'integer',
-#                         'description': 'ID of the category the bot belongs to'
-#                     },
-#                     'dalle_prompt': {
-#                         'type': 'string',
-#                         'description': 'DALL-E prompt for bot image generation',
-#                         'required': False
-#                     },
-#                     'background_color': {
-#                         'type': 'string',
-#                         'description': 'HEX color code for bot background',
-#                         'required': False,
-#                         'example': '#4287f5'
-#                     },
-#                     'run_frequency': {
-#                         'type': 'integer',
-#                         'description': 'Bot execution frequency in minutes (minimum 20)',
-#                         'minimum': 20
-#                     },
-#                     'url': {
-#                         'type': 'string',
-#                         'description': 'RSS feed URL (must contain news/google and rss)',
-#                         'required': False,
-#                         'example': 'https://rss.news.google.com/search?q=tech%20news'
-#                     },
-#                     'whitelist': {
-#                         'type': 'string',
-#                         'description': 'Comma-separated list of keywords to match',
-#                         'required': False,
-#                         'example': 'AI, machine learning, robotics'
-#                     },
-#                     'blacklist': {
-#                         'type': 'string',
-#                         'description': 'Comma-separated list of words to filter out',
-#                         'required': False,
-#                         'example': 'spam, scam, adult content'
-#                     }
-#                 }
-#             }
-#         }
-#     ],
-#     responses={
-#         '201': {
-#             'description': 'Bot created successfully',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'success': {'type': 'boolean'},
-#                     'bot': {
-#                         'type': 'object',
-#                         'properties': {
-#                             'id': {'type': 'integer'},
-#                             'name': {'type': 'string'},
-#                             'alias': {'type': 'string'},
-#                             'category_id': {'type': 'integer'},
-#                             'dalle_prompt': {'type': 'string'},
-#                             'prompt': {'type': 'string'},
-#                             'icon': {'type': 'string'},
-#                             'background_color': {'type': 'string'},
-#                             'run_frequency': {'type': 'integer'},
-#                             'is_active': {'type': 'boolean'},
-#                             'created_at': {'type': 'string', 'format': 'date-time'},
-#                             'updated_at': {'type': 'string', 'format': 'date-time'}
-#                         }
-#                     },
-#                     'message': {'type': 'string'}
-#                 }
-#             }
-#         },
-#         '400': {
-#             'description': 'Bad request',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'success': {'type': 'boolean'},
-#                     'error': {
-#                         'type': 'string',
-#                         'description': 'Error message detailing the validation failure',
-#                         'examples': [
-#                             'Missing field in request data: name',
-#                             'Run frequency must be an integer of at least 20 minutes',
-#                             'A bot with the name \'Test Bot\' already exists',
-#                             'Invalid URL provided',
-#                             'Whitelist must be a comma-separated string'
-#                         ]
-#                     }
-#                 }
-#             }
-#         },
-#         '404': {
-#             'description': 'Category not found',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'success': {'type': 'boolean'},
-#                     'error': {'type': 'string'}
-#                 }
-#             }
-#         },
-#         '500': {
-#             'description': 'Internal server error',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'success': {'type': 'boolean'},
-#                     'error': {
-#                         'type': 'string',
-#                         'description': 'Error message from the server',
-#                         'examples': [
-#                             'Database error: [SQL error details]',
-#                             'An unexpected error occurred: [error details]'
-#                         ]
-#                     }
-#                 }
-#             }
-#         }
-#     }
-# )
+    Basic endpoint to retrieve articles with optional pagination support.
+    Results are sorted by creation date in descending order.
+    ''',
+    params=[
+        {
+            'name': 'page',
+            'in': 'query',
+            'description': '[DEPRECATED] Page number for pagination',
+            'required': False,
+            'type': 'integer'
+        },
+        {
+            'name': 'per_page',
+            'in': 'query',
+            'description': '[DEPRECATED] Number of articles per page',
+            'required': False,
+            'type': 'integer'
+        }
+    ],
+    responses={
+        '200': {
+            'description': 'Articles retrieved successfully',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'data': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'id': {'type': 'integer'},
+                                'title': {'type': 'string'},
+                                'content': {'type': 'string'},
+                                'image': {'type': 'string'},
+                                'url': {'type': 'string'},
+                                'date': {'type': 'string', 'format': 'date-time'},
+                                'bot_id': {'type': 'integer'},
+                                'created_at': {'type': 'string', 'format': 'date-time'},
+                                'updated_at': {'type': 'string', 'format': 'date-time'}
+                            }
+                        }
+                    },
+                    'pagination': {
+                        'type': 'object',
+                        'properties': {
+                            'page': {'type': 'integer'},
+                            'per_page': {'type': 'integer'},
+                            'total_pages': {'type': 'integer'},
+                            'total_items': {'type': 'integer'}
+                        }
+                    }
+                }
+            }
+        },
+        '204': {
+            'description': 'No articles found',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'data': {'type': 'array', 'items': {}},
+                    'message': {'type': 'string'}
+                }
+            }
+        },
+        '400': {
+            'description': 'Bad request',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'error': {
+                        'type': 'string',
+                        'example': 'Page and per_page must be positive integers'
+                    }
+                }
+            }
+        },
+        '404': {
+            'description': 'Page not found',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'error': {
+                        'type': 'string',
+                        'example': 'Page 5 does not exist. Max page is 3'
+                    }
+                }
+            }
+        }
+    }
+)
 
 # # ____Delete an endpoint____
 # success, message = swagger.delete_endpoint(endpoint_route='/articles/unwanted')
