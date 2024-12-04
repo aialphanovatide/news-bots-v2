@@ -12,32 +12,74 @@
     }
   ],
   "paths": {
-    "/articles": {
+    "/articles/all": {
       "get": {
         "tags": [
           "Articles"
         ],
-        "summary": "Retrieve articles with optional pagination",
-        "description": "This endpoint retrieves articles from the database, with optional pagination support.\nArticles are ordered by creation date (most recent first).\nIf pagination parameters are not provided, all articles are returned.",
+        "summary": "Get all articles with advanced filtering and pagination",
+        "description": "\n    retrieve articles with comprehensive filtering options and pagination support.\n    \n    features:\n    - pagination support\n    - search functionality for title and content\n    - filter by bot id\n    - filter for top stories\n    - include/exclude unwanted articles (bin)\n    - include/exclude valid articles\n    \n    the endpoint combines results from both article and unwantedarticle tables based on the filters.\n    results are sorted by creation date in descending order.\n    ",
         "parameters": [
           {
             "name": "page",
             "in": "query",
-            "description": "Page number for pagination (optional)",
+            "description": "Page number for pagination",
             "required": false,
-            "type": "integer"
+            "type": "integer",
+            "schema": {}
           },
           {
             "name": "per_page",
             "in": "query",
-            "description": "Number of articles per page (optional)",
+            "description": "Number of articles per page",
             "required": false,
-            "type": "integer"
+            "type": "integer",
+            "schema": {}
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search term to filter articles by content or title",
+            "required": false,
+            "type": "string",
+            "schema": {}
+          },
+          {
+            "name": "bot_id",
+            "in": "query",
+            "description": "Filter articles by specific bot ID",
+            "required": false,
+            "type": "integer",
+            "schema": {}
+          },
+          {
+            "name": "top_stories",
+            "in": "query",
+            "description": "If \"true\", return only top stories",
+            "required": false,
+            "type": "boolean",
+            "schema": {}
+          },
+          {
+            "name": "bin",
+            "in": "query",
+            "description": "If \"true\", include unwanted articles",
+            "required": false,
+            "type": "boolean",
+            "schema": {}
+          },
+          {
+            "name": "valid_articles",
+            "in": "query",
+            "description": "If \"true\", include valid articles",
+            "required": false,
+            "type": "boolean",
+            "schema": {}
           }
         ],
         "responses": {
           "200": {
-            "description": "Successfully retrieved articles",
+            "description": "Articles retrieved successfully",
             "schema": {
               "type": "object",
               "properties": {
@@ -58,18 +100,15 @@
                       "content": {
                         "type": "string"
                       },
-                      "summary": {
+                      "image": {
+                        "type": "string"
+                      },
+                      "url": {
                         "type": "string"
                       },
                       "date": {
                         "type": "string",
                         "format": "date-time"
-                      },
-                      "url": {
-                        "type": "string"
-                      },
-                      "image_url": {
-                        "type": "string"
                       },
                       "bot_id": {
                         "type": "integer"
@@ -81,6 +120,13 @@
                       "updated_at": {
                         "type": "string",
                         "format": "date-time"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "valid",
+                          "bin"
+                        ]
                       }
                     }
                   }
@@ -124,12 +170,19 @@
             }
           },
           "400": {
-            "description": "Bad request - invalid pagination parameters",
+            "description": "Bad request",
             "schema": {
               "type": "object",
               "properties": {
+                "success": {
+                  "type": "boolean"
+                },
                 "error": {
-                  "type": "string"
+                  "type": "string",
+                  "examples": [
+                    "Page and per_page must be positive integers",
+                    "At least one article type (bin or valid_articles) must be selected"
+                  ]
                 }
               }
             }
@@ -139,6 +192,9 @@
             "schema": {
               "type": "object",
               "properties": {
+                "success": {
+                  "type": "boolean"
+                },
                 "error": {
                   "type": "string"
                 }
@@ -3632,6 +3688,149 @@
                 "error": {
                   "type": "string",
                   "description": "Error message describing what went wrong"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles": {
+      "get": {
+        "tags": [
+          "Articles"
+        ],
+        "summary": "[deprecated] get all articles with basic pagination",
+        "description": "\n    \u26a0\ufe0f deprecated: this endpoint is deprecated and will be removed in future versions. \n    please use the new /articles/all endpoint with advanced filtering capabilities instead.\n    \n    basic endpoint to retrieve articles with optional pagination support.\n    results are sorted by creation date in descending order.\n    ",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "[DEPRECATED] Page number for pagination",
+            "required": false,
+            "type": "integer",
+            "schema": {}
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "[DEPRECATED] Number of articles per page",
+            "required": false,
+            "type": "integer",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Articles retrieved successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      },
+                      "image": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      },
+                      "date": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "bot_id": {
+                        "type": "integer"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                },
+                "pagination": {
+                  "type": "object",
+                  "properties": {
+                    "page": {
+                      "type": "integer"
+                    },
+                    "per_page": {
+                      "type": "integer"
+                    },
+                    "total_pages": {
+                      "type": "integer"
+                    },
+                    "total_items": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No articles found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "data": {
+                  "type": "array",
+                  "items": {}
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string",
+                  "example": "Page and per_page must be positive integers"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Page not found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string",
+                  "example": "Page 5 does not exist. Max page is 3"
                 }
               }
             }

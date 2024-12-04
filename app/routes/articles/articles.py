@@ -13,8 +13,171 @@ articles_bp = Blueprint('articles_bp', __name__,
                         template_folder='templates', 
                         static_folder='static')
 
+@articles_bp.route('/articles/all', methods=['GET'])
+@handle_db_session
+def get_all_articles_all():
+    """
+    Retrieve articles with advanced filtering and pagination.
+    
+    Query Parameters:
+    - page: The page number (default: 1)
+    - per_page: Number of articles per page (default: 10)
+    - search: Search term to filter articles by content or title
+    - bot_id: Filter articles by specific bot
+    - top_stories: If "true", return only top stories
+    - bin: If "true", include unwanted articles
+    - valid_articles: If "true", include valid articles
+    
+    Returns:
+        JSON response with filtered list of articles and pagination info
+    """
+    # Get query parameters with defaults
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    search_term = request.args.get('search', '').strip()
+    bot_id = request.args.get('bot_id', type=int)
+    top_stories = request.args.get('top_stories', '').lower() == 'true'
+    include_bin = request.args.get('bin', '').lower() == 'true'
+    include_valid = request.args.get('valid_articles', 'true').lower() == 'true'  # defaults to true
+
+    print(f"Query params - page: {page}, per_page: {per_page}, search: {search_term}, bot_id: {bot_id}")
+    print(f"Flags - top_stories: {top_stories}, include_bin: {include_bin}, include_valid: {include_valid}")
+
+    # Validate pagination parameters
+    if page < 1 or per_page < 1:
+        response = create_response(error='Page and per_page must be positive integers')
+        return jsonify(response), 400
+
+    # Validate that at least one type of article is selected
+    if not include_bin and not include_valid:
+        response = create_response(error='At least one article type (bin or valid_articles) must be selected')
+        return jsonify(response), 400
+
+    # Initialize queries based on flags
+    queries = []
+    
+    if include_valid:
+        print("Building valid articles query")
+        article_query = Article.query
+        if search_term:
+            article_query = article_query.filter(
+                db.or_(
+                    Article.content.ilike(f'%{search_term}%'),
+                    Article.title.ilike(f'%{search_term}%')
+                )
+            )
+        if bot_id:
+            article_query = article_query.filter(Article.bot_id == bot_id)
+        if top_stories:
+            article_query = article_query.filter(Article.is_top_story == True)
+            
+        queries.append(
+            article_query.with_entities(
+                Article.id,
+                Article.title,
+                Article.content,
+                Article.image,
+                Article.url,
+                Article.date,
+                Article.bot_id,
+                Article.created_at.label('created_at'),
+                Article.updated_at,
+                db.literal('valid').label('type')
+            )
+        )
+
+    if include_bin:
+        print("Building unwanted articles query")
+        unwanted_query = UnwantedArticle.query
+        if search_term:
+            unwanted_query = unwanted_query.filter(
+                db.or_(
+                    UnwantedArticle.content.ilike(f'%{search_term}%'),
+                    UnwantedArticle.title.ilike(f'%{search_term}%')
+                )
+            )
+        if bot_id:
+            unwanted_query = unwanted_query.filter(UnwantedArticle.bot_id == bot_id)
+            
+        queries.append(
+            unwanted_query.with_entities(
+                UnwantedArticle.id,
+                UnwantedArticle.title,
+                UnwantedArticle.content,
+                db.null().label('image'),
+                UnwantedArticle.url,
+                UnwantedArticle.date,
+                UnwantedArticle.bot_id,
+                UnwantedArticle.created_at.label('created_at'),
+                UnwantedArticle.updated_at,
+                db.literal('bin').label('type')
+            )
+        )
+
+    # Combine queries if both types are selected
+    if len(queries) > 1:
+        print("Combining valid and unwanted article queries")
+        base_query = queries[0].union(queries[1])
+    else:
+        base_query = queries[0]
+
+    # Order combined results
+    base_query = base_query.order_by(desc('created_at'))
+
+    # Get total count for pagination
+    total_items = base_query.count()
+    total_pages = ceil(total_items / per_page)
+    print(f"Total items: {total_items}, Total pages: {total_pages}")
+
+    # Validate page number against total pages
+    if page > total_pages and total_items > 0:
+        response = create_response(error=f'Page {page} does not exist. Max page is {total_pages}')
+        return jsonify(response), 404
+
+    # Apply pagination
+    items = base_query.offset((page - 1) * per_page).limit(per_page).all()
+    print(f"Retrieved {len(items)} items for page {page}")
+
+    if not items:
+        response = create_response(success=True, data=[], message='No articles found')
+        return jsonify(response), 204
+
+    # Prepare pagination info
+    pagination_info = {
+        'page': page,
+        'per_page': per_page,
+        'total_pages': total_pages,
+        'total_items': total_items
+    }
+
+    # Prepare response data
+    data = [{
+        'id': item.id,
+        'title': item.title,
+        'content': item.content,
+        'image': item.image,
+        'url': item.url,
+        'date': item.date,
+        'bot_id': item.bot_id,
+        'created_at': item.created_at,
+        'updated_at': item.updated_at,
+        'type': item.type
+    } for item in items]
+
+    print(f"Returning {len(data)} articles in response")
+    # Prepare response
+    response = create_response(
+        success=True,
+        data=data,
+        pagination=pagination_info
+    )
+    return jsonify(response), 200
+
+
+# _______DEPRECATED_____________________________
 @articles_bp.route('/articles', methods=['GET'])
 @handle_db_session
+@cache_with_redis()
 def get_all_articles():
     """
     Retrieve articles with optional pagination.
