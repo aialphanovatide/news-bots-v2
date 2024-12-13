@@ -1,6 +1,5 @@
 # routes.py
 import os
-from sched import scheduler
 import boto3
 from sqlalchemy import func
 from dotenv import load_dotenv
