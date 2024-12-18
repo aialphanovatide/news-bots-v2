@@ -235,9 +235,7 @@ def get_article_by_id(article_id):
     """
     Retrieve a specific article by its ID from either the Article or UnwantedArticle table.
     
-    This function queries the database for an article with the specified ID in both the Article
-    and UnwantedArticle tables. It returns the article details if found in either table.
-    If the article is not found in either table, it returns an error response.
+    Returns article details in a standardized format including category and bot information.
     
     Args:
         article_id (int): The ID of the article to retrieve.
@@ -245,19 +243,86 @@ def get_article_by_id(article_id):
     Returns:
         JSON response with the article data or an error message.
     """
-    article = Article.query.filter_by(id=article_id).first()
+    # Query Article table with joins for category and bot info
+    article = (Article.query
+        .outerjoin(Category, Article.category_id == Category.id)
+        .outerjoin(Bot, Article.bot_id == Bot.id)
+        .filter(Article.id == article_id)
+        .with_entities(
+            Article.id,
+            Article.title,
+            Article.content,
+            Article.image,
+            Article.url,
+            Article.date,
+            Article.bot_id,
+            Article.created_at,
+            Article.updated_at,
+            Article.is_top_story,
+            Category.name.label('category_name'),
+            Category.icon.label('category_icon'),
+            Bot.icon.label('bot_icon'),
+            db.literal('valid').label('type')
+        ).first())
     
     if article:
-        response = create_response(success=True, data=article.as_dict(), source="Article")
+        response_data = {
+            'id': article.id,
+            'title': article.title,
+            'content': article.content,
+            'image': article.image,
+            'url': article.url,
+            'date': article.date,
+            'bot_id': article.bot_id,
+            'bot_icon': article.bot_icon,
+            'created_at': article.created_at,
+            'updated_at': article.updated_at,
+            'top_story': article.is_top_story,
+            'category_name': article.category_name,
+            'category_icon': article.category_icon,
+            'type': article.type
+        }
+        response = create_response(success=True, data=response_data)
         return jsonify(response), 200
     
-    unwanted_article = UnwantedArticle.query.filter_by(id=article_id).first()
+    # If not found in Article table, check UnwantedArticle table
+    unwanted = (UnwantedArticle.query
+        .outerjoin(Bot, UnwantedArticle.bot_id == Bot.id)
+        .filter(UnwantedArticle.id == article_id)
+        .with_entities(
+            UnwantedArticle.id,
+            UnwantedArticle.title,
+            UnwantedArticle.content,
+            UnwantedArticle.url,
+            UnwantedArticle.date,
+            UnwantedArticle.bot_id,
+            UnwantedArticle.created_at,
+            UnwantedArticle.updated_at,
+            Bot.icon.label('bot_icon'),
+            db.literal('bin').label('type')
+        ).first())
     
-    if unwanted_article:
-        response = create_response(success=True, data=unwanted_article.as_dict(), source="UnwantedArticle")
+    if unwanted:
+        response_data = {
+            'id': unwanted.id,
+            'title': unwanted.title,
+            'content': unwanted.content,
+            'image': None,
+            'url': unwanted.url,
+            'date': unwanted.date,
+            'bot_id': unwanted.bot_id,
+            'bot_icon': unwanted.bot_icon,
+            'created_at': unwanted.created_at,
+            'updated_at': unwanted.updated_at,
+            'top_story': False,
+            'category_name': None,
+            'category_icon': None,
+            'type': unwanted.type
+        }
+        response = create_response(success=True, data=response_data)
         return jsonify(response), 200
     
-    response = create_response(error='No article found for the specified article ID in either Article or UnwantedArticle table')
+    response = create_response(error='No article found for the specified article ID')
     return jsonify(response), 404
 
 
