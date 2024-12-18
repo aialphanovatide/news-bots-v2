@@ -13,9 +13,9 @@ articles_bp = Blueprint('articles_bp', __name__,
                         template_folder='templates', 
                         static_folder='static')
 
-@articles_bp.route('/articles/all', methods=['GET'])
+@articles_bp.route('/articles', methods=['GET'])
 @handle_db_session
-def get_all_articles_all():
+def get_articles():
     """
     Retrieve articles with advanced filtering and pagination.
     
@@ -23,10 +23,11 @@ def get_all_articles_all():
     - page: The page number (default: 1)
     - per_page: Number of articles per page (default: 10)
     - search: Search term to filter articles by content or title
-    - bot_id: Filter articles by specific bot
+    - bot: Filter articles by bot name
+    - category: Filter articles by category name
     - top_stories: If "true", return only top stories
-    - bin: If "true", include unwanted articles
-    - valid_articles: If "true", include valid articles
+    - bin: If "true", include unwanted articles (default: false)
+    - valid_articles: If "true", include valid articles (default: true)
     
     Returns:
         JSON response with filtered list of articles and pagination info
@@ -35,30 +36,20 @@ def get_all_articles_all():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
     search_term = request.args.get('search', '').strip()
-    bot_id = request.args.get('bot_id', type=int)
+    bot_name = request.args.get('bot', '').strip()
+    category_name = request.args.get('category', '').strip()
     top_stories = request.args.get('top_stories', '').lower() == 'true'
     include_bin = request.args.get('bin', '').lower() == 'true'
-    include_valid = request.args.get('valid_articles', 'true').lower() == 'true'  # defaults to true
-
-    print(f"Query params - page: {page}, per_page: {per_page}, search: {search_term}, bot_id: {bot_id}")
-    print(f"Flags - top_stories: {top_stories}, include_bin: {include_bin}, include_valid: {include_valid}")
-
-    # Validate pagination parameters
-    if page < 1 or per_page < 1:
-        response = create_response(error='Page and per_page must be positive integers')
-        return jsonify(response), 400
-
-    # Validate that at least one type of article is selected
-    if not include_bin and not include_valid:
-        response = create_response(error='At least one article type (bin or valid_articles) must be selected')
-        return jsonify(response), 400
+    include_valid = request.args.get('valid_articles', 'true').lower() == 'true'
 
     # Initialize queries based on flags
     queries = []
     
     if include_valid:
-        print("Building valid articles query")
-        article_query = Article.query
+        article_query = (Article.query
+            .outerjoin(Bot, Article.bot_id == Bot.id)
+            .outerjoin(Category, Article.category_id == Category.id))
+
         if search_term:
             article_query = article_query.filter(
                 db.or_(
@@ -66,8 +57,10 @@ def get_all_articles_all():
                     Article.title.ilike(f'%{search_term}%')
                 )
             )
-        if bot_id:
-            article_query = article_query.filter(Article.bot_id == bot_id)
+        if bot_name:
+            article_query = article_query.filter(func.lower(Bot.name) == bot_name.lower())
+        if category_name:
+            article_query = article_query.filter(func.lower(Category.name) == category_name.lower())
         if top_stories:
             article_query = article_query.filter(Article.is_top_story == True)
             
@@ -82,13 +75,18 @@ def get_all_articles_all():
                 Article.bot_id,
                 Article.created_at.label('created_at'),
                 Article.updated_at,
+                Article.is_top_story.label('top_story'),
+                Bot.icon.label('bot_icon'),
+                Category.name.label('category_name'),
+                Category.icon.label('category_icon'),
                 db.literal('valid').label('type')
             )
         )
 
     if include_bin:
-        print("Building unwanted articles query")
-        unwanted_query = UnwantedArticle.query
+        unwanted_query = (UnwantedArticle.query
+            .outerjoin(Bot, UnwantedArticle.bot_id == Bot.id))
+
         if search_term:
             unwanted_query = unwanted_query.filter(
                 db.or_(
@@ -96,8 +94,8 @@ def get_all_articles_all():
                     UnwantedArticle.title.ilike(f'%{search_term}%')
                 )
             )
-        if bot_id:
-            unwanted_query = unwanted_query.filter(UnwantedArticle.bot_id == bot_id)
+        if bot_name:
+            unwanted_query = unwanted_query.filter(func.lower(Bot.name) == bot_name.lower())
             
         queries.append(
             unwanted_query.with_entities(
@@ -110,47 +108,49 @@ def get_all_articles_all():
                 UnwantedArticle.bot_id,
                 UnwantedArticle.created_at.label('created_at'),
                 UnwantedArticle.updated_at,
+                db.literal(False).label('top_story'),
+                Bot.icon.label('bot_icon'),
+                db.null().label('category_name'),
+                db.null().label('category_icon'),
                 db.literal('bin').label('type')
             )
         )
 
-    # Combine queries if both types are selected
-    if len(queries) > 1:
-        print("Combining valid and unwanted article queries")
-        base_query = queries[0].union(queries[1])
-    else:
-        base_query = queries[0]
+    # Validate and combine queries
+    if not queries:
+        return jsonify(create_response(
+            error='At least one article type (bin or valid_articles) must be selected'
+        )), 400
 
-    # Order combined results
+    # Combine and order results
+    base_query = queries[0] if len(queries) == 1 else queries[0].union(queries[1])
     base_query = base_query.order_by(desc('created_at'))
 
-    # Get total count for pagination
+    # Handle pagination
     total_items = base_query.count()
     total_pages = ceil(total_items / per_page)
-    print(f"Total items: {total_items}, Total pages: {total_pages}")
 
-    # Validate page number against total pages
+    if page < 1 or per_page < 1:
+        return jsonify(create_response(
+            error='Page and per_page must be positive integers'
+        )), 400
+
     if page > total_pages and total_items > 0:
-        response = create_response(error=f'Page {page} does not exist. Max page is {total_pages}')
-        return jsonify(response), 404
+        return jsonify(create_response(
+            error=f'Page {page} does not exist. Max page is {total_pages}'
+        )), 404
 
-    # Apply pagination
+    # Get paginated results
     items = base_query.offset((page - 1) * per_page).limit(per_page).all()
-    print(f"Retrieved {len(items)} items for page {page}")
 
     if not items:
-        response = create_response(success=True, data=[], message='No articles found')
-        return jsonify(response), 204
+        return jsonify(create_response(
+            success=True, 
+            data=[], 
+            message='No articles found'
+        )), 204
 
-    # Prepare pagination info
-    pagination_info = {
-        'page': page,
-        'per_page': per_page,
-        'total_pages': total_pages,
-        'total_items': total_items
-    }
-
-    # Prepare response data
+    # Prepare response
     data = [{
         'id': item.id,
         'title': item.title,
@@ -159,74 +159,26 @@ def get_all_articles_all():
         'url': item.url,
         'date': item.date,
         'bot_id': item.bot_id,
+        'bot_icon': item.bot_icon,
         'created_at': item.created_at,
         'updated_at': item.updated_at,
+        'top_story': item.top_story,
+        'category_name': item.category_name,
+        'category_icon': item.category_icon,
         'type': item.type
     } for item in items]
 
-    print(f"Returning {len(data)} articles in response")
-    # Prepare response
     response = create_response(
         success=True,
         data=data,
-        pagination=pagination_info
-    )
-    return jsonify(response), 200
-
-
-# _______DEPRECATED_____________________________
-@articles_bp.route('/articles', methods=['GET'])
-@handle_db_session
-@cache_with_redis()
-def get_all_articles():
-    """
-    Retrieve articles with optional pagination.
-    
-    Query Parameters:
-    - page: The page number (optional)
-    - per_page: Number of articles per page (optional)
-    
-    Returns:
-        JSON response with the list of articles, pagination info (if applicable), or an error message.
-    """
-    page = request.args.get('page', type=int)
-    per_page = request.args.get('per_page', type=int)
-
-    if (page is not None and page < 1) or (per_page is not None and per_page < 1):
-        response = create_response(error='Page and per_page must be positive integers')
-        return jsonify(response), 400
-
-    query = Article.query.order_by(desc(Article.created_at))
-    total_articles = query.count()
-
-    if page is None or per_page is None:
-        articles = query.all()
-        pagination_info = None
-    else:
-        total_pages = ceil(total_articles / per_page)
-        if page > total_pages and total_articles > 0:
-            response = create_response(error=f'Page {page} does not exist. Max page is {total_pages}')
-            return jsonify(response), 404
-
-        articles = query.paginate(page=page, per_page=per_page, error_out=False).items
-        pagination_info = {
+        pagination={
             'page': page,
             'per_page': per_page,
             'total_pages': total_pages,
-            'total_items': total_articles
+            'total_items': total_items
         }
-
-    if not articles:
-        response = create_response(success=True, data=[], message='No articles found')
-        return jsonify(response), 204
-
-    response = create_response(
-        success=True,
-        data=[article.as_dict() for article in articles],
-        pagination=pagination_info
     )
     return jsonify(response), 200
-
 
 @articles_bp.route('/article/<int:article_id>', methods=['GET'])
 @handle_db_session
