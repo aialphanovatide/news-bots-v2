@@ -213,6 +213,8 @@ class Article(db.Model):
     used_keywords = db.Column(db.String)
     is_article_efficent = db.Column(db.String)
     is_top_story = db.Column(db.Boolean)
+    top_story_timeframe = db.Column(Enum('1D', '1W', '1M', name='top_story_timeframe'), nullable=True)
+
     
     # relationship
     bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'))

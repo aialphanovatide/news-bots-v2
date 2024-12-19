@@ -128,109 +128,109 @@ swagger = Swagger()
 
 # Add this to your existing swagger_builder.py file
 
-swagger.add_or_update_endpoint(
-    endpoint_route='/articles',
-    method='get',
-    tag='Articles',
-    description='[DEPRECATED] Get all articles with basic pagination',
-    detail_description='''
-    ⚠️ DEPRECATED: This endpoint is deprecated and will be removed in future versions. 
-    Please use the new /articles/all endpoint with advanced filtering capabilities instead.
+# swagger.add_or_update_endpoint(
+#     endpoint_route='/articles',
+#     method='get',
+#     tag='Articles',
+#     description='[DEPRECATED] Get all articles with basic pagination',
+#     detail_description='''
+#     ⚠️ DEPRECATED: This endpoint is deprecated and will be removed in future versions. 
+#     Please use the new /articles/all endpoint with advanced filtering capabilities instead.
     
-    Basic endpoint to retrieve articles with optional pagination support.
-    Results are sorted by creation date in descending order.
-    ''',
-    params=[
-        {
-            'name': 'page',
-            'in': 'query',
-            'description': '[DEPRECATED] Page number for pagination',
-            'required': False,
-            'type': 'integer'
-        },
-        {
-            'name': 'per_page',
-            'in': 'query',
-            'description': '[DEPRECATED] Number of articles per page',
-            'required': False,
-            'type': 'integer'
-        }
-    ],
-    responses={
-        '200': {
-            'description': 'Articles retrieved successfully',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'data': {
-                        'type': 'array',
-                        'items': {
-                            'type': 'object',
-                            'properties': {
-                                'id': {'type': 'integer'},
-                                'title': {'type': 'string'},
-                                'content': {'type': 'string'},
-                                'image': {'type': 'string'},
-                                'url': {'type': 'string'},
-                                'date': {'type': 'string', 'format': 'date-time'},
-                                'bot_id': {'type': 'integer'},
-                                'created_at': {'type': 'string', 'format': 'date-time'},
-                                'updated_at': {'type': 'string', 'format': 'date-time'}
-                            }
-                        }
-                    },
-                    'pagination': {
-                        'type': 'object',
-                        'properties': {
-                            'page': {'type': 'integer'},
-                            'per_page': {'type': 'integer'},
-                            'total_pages': {'type': 'integer'},
-                            'total_items': {'type': 'integer'}
-                        }
-                    }
-                }
-            }
-        },
-        '204': {
-            'description': 'No articles found',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'data': {'type': 'array', 'items': {}},
-                    'message': {'type': 'string'}
-                }
-            }
-        },
-        '400': {
-            'description': 'Bad request',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'error': {
-                        'type': 'string',
-                        'example': 'Page and per_page must be positive integers'
-                    }
-                }
-            }
-        },
-        '404': {
-            'description': 'Page not found',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'error': {
-                        'type': 'string',
-                        'example': 'Page 5 does not exist. Max page is 3'
-                    }
-                }
-            }
-        }
-    }
-)
+#     Basic endpoint to retrieve articles with optional pagination support.
+#     Results are sorted by creation date in descending order.
+#     ''',
+#     params=[
+#         {
+#             'name': 'page',
+#             'in': 'query',
+#             'description': '[DEPRECATED] Page number for pagination',
+#             'required': False,
+#             'type': 'integer'
+#         },
+#         {
+#             'name': 'per_page',
+#             'in': 'query',
+#             'description': '[DEPRECATED] Number of articles per page',
+#             'required': False,
+#             'type': 'integer'
+#         }
+#     ],
+#     responses={
+#         '200': {
+#             'description': 'Articles retrieved successfully',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'data': {
+#                         'type': 'array',
+#                         'items': {
+#                             'type': 'object',
+#                             'properties': {
+#                                 'id': {'type': 'integer'},
+#                                 'title': {'type': 'string'},
+#                                 'content': {'type': 'string'},
+#                                 'image': {'type': 'string'},
+#                                 'url': {'type': 'string'},
+#                                 'date': {'type': 'string', 'format': 'date-time'},
+#                                 'bot_id': {'type': 'integer'},
+#                                 'created_at': {'type': 'string', 'format': 'date-time'},
+#                                 'updated_at': {'type': 'string', 'format': 'date-time'}
+#                             }
+#                         }
+#                     },
+#                     'pagination': {
+#                         'type': 'object',
+#                         'properties': {
+#                             'page': {'type': 'integer'},
+#                             'per_page': {'type': 'integer'},
+#                             'total_pages': {'type': 'integer'},
+#                             'total_items': {'type': 'integer'}
+#                         }
+#                     }
+#                 }
+#             }
+#         },
+#         '204': {
+#             'description': 'No articles found',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'data': {'type': 'array', 'items': {}},
+#                     'message': {'type': 'string'}
+#                 }
+#             }
+#         },
+#         '400': {
+#             'description': 'Bad request',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'error': {
+#                         'type': 'string',
+#                         'example': 'Page and per_page must be positive integers'
+#                     }
+#                 }
+#             }
+#         },
+#         '404': {
+#             'description': 'Page not found',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean'},
+#                     'error': {
+#                         'type': 'string',
+#                         'example': 'Page 5 does not exist. Max page is 3'
+#                     }
+#                 }
+#             }
+#         }
+#     }
+# )
 
 # # ____Delete an endpoint____
 # success, message = swagger.delete_endpoint(endpoint_route='/articles/unwanted')
