@@ -197,7 +197,6 @@ def get_article_by_id(article_id):
     """
     # Query Article table with joins for category and bot info
     article = (Article.query
-        .outerjoin(Category, Article.category_id == Category.id)
         .outerjoin(Bot, Article.bot_id == Bot.id)
         .filter(Article.id == article_id)
         .with_entities(
