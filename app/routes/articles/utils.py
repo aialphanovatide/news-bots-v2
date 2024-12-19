@@ -11,6 +11,13 @@ load_dotenv()
 AWS_ACCESS = os.getenv('AWS_ACCESS')
 AWS_SECRET_KEY = os.getenv('AWS_SECRET_KEY')
 
+# Constants for the article creation process
+ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt'}
+UPLOAD_FOLDER = 'static/temp_uploads'
+
+def allowed_file(filename):
+   return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 def validate_article_creation(data):
     """

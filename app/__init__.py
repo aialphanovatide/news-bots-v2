@@ -81,7 +81,6 @@ def create_app():
 
     # Register blueprints
     from app.routes.bots.bots import bots_bp
-    from app.routes.sites.sites import sites_bp
     from app.routes.keywords.keywords import keyword_bp
     from app.routes.articles.articles import articles_bp
     from app.routes.bots.activate import activate_bots_bp
@@ -91,14 +90,12 @@ def create_app():
     from app.routes.used_keywords.u_k import news_bots_features_bp
     from app.routes.top_stories.top_stories import top_stories_bp
     from app.routes.unwanted_articles.unwanted_article import unwanted_articles_bp
-    from app.routes.articles.news_creator import creator_tool_bp
     from app.routes.metrics.server_health_check import health_check_bp
 
     blueprints = [
         bots_bp, categories_bp, articles_bp, blacklist_bp, keyword_bp,
-        top_stories_bp, unwanted_articles_bp, sites_bp, deactivate_bots_bp,
-        activate_bots_bp, news_bots_features_bp,
-        creator_tool_bp, health_check_bp
+        top_stories_bp, unwanted_articles_bp, deactivate_bots_bp,
+        activate_bots_bp, news_bots_features_bp,health_check_bp
     ]
 
     for blueprint in blueprints:

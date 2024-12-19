@@ -1,10 +1,13 @@
 from datetime import datetime
 from math import ceil
+import os
+from werkzeug.utils import secure_filename
 from sqlalchemy import desc, func
 from sqlalchemy.exc import SQLAlchemyError
 from flask import Blueprint, jsonify, request
-from app.routes.articles.utils import download_and_process_image, validate_article_creation
+from app.routes.articles.utils import download_and_process_image, validate_article_creation, UPLOAD_FOLDER, ALLOWED_EXTENSIONS, allowed_file
 from app.services.slack.actions import send_NEWS_message_to_slack_channel
+from app.services.news_creator.news_creator import NewsCreatorAgent
 from config import Article, Bot, Category, db, UnwantedArticle, UsedKeywords
 from app.routes.routes_utils import create_response, handle_db_session
 from redis_client.redis_client import cache_with_redis, update_cache_with_redis
@@ -485,3 +488,78 @@ def create_article():
         )), 500
 
 
+@articles_bp.route('/article/generate', methods=['POST'])
+def generate_article():
+   """
+   Generate a new article using the NewsCreatorAgent.
+   
+   Request Body (multipart/form-data):
+       - initial_story (str, optional): Initial story or URL to generate from
+       - documents (files, optional): Multiple document files (PDF, DOC, DOCX, TXT)
+       
+   Returns:
+       JSON response with the generated article content or error message
+   """
+   try:
+       # Ensure upload directory exists
+       os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+       
+       initial_story = request.form.get('initial_story')
+       files = request.files.getlist('documents')
+       
+       # Validate that at least one source is provided
+       if not initial_story and not files:
+           return jsonify(create_response(
+               error='Either initial_story or documents must be provided'
+           )), 400
+       
+       # Process uploaded files
+       temp_files = []
+       if files:
+           for file in files:
+               if file and allowed_file(file.filename):
+                   filename = secure_filename(file.filename)
+                   filepath = os.path.join(UPLOAD_FOLDER, filename)
+                   file.save(filepath)
+                   temp_files.append(filepath)
+               else:
+                   return jsonify(create_response(
+                       error=f'Invalid file type. Allowed types are: {", ".join(ALLOWED_EXTENSIONS)}'
+                   )), 400
+       
+       try:
+           # Initialize the NewsCreatorAgent
+           agent = NewsCreatorAgent(api_key=os.getenv("OPENAI_API_KEY"))
+           
+           # Generate the story
+           generated_story = agent.create_news_story(
+               initial_story=initial_story,
+               file_paths=temp_files  # This will need to be updated once NewsCreatorAgent is modified
+           )
+           
+           if not generated_story:
+               return jsonify(create_response(
+                   error='Failed to generate article content'
+               )), 500
+               
+           return jsonify(create_response(
+               success=True,
+               data={'content': generated_story}
+           )), 200
+           
+       finally:
+           # Clean up temporary files
+           for filepath in temp_files:
+               try:
+                   os.remove(filepath)
+               except Exception as e:
+                   print(f"Error removing temporary file {filepath}: {str(e)}")
+           
+   except ValueError as e:
+       return jsonify(create_response(
+           error=f'Invalid input: {str(e)}'
+       )), 400
+   except Exception as e:
+       return jsonify(create_response(
+           error=f'Unexpected error occurred: {str(e)}'
+       )), 500
