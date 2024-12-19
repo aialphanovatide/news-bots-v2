@@ -1,0 +1,1 @@
+# News Creator Agent with OpenAI Assitant API it will take PDFs and Docx to expand the context and create a better news story. 

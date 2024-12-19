@@ -368,6 +368,7 @@ def extract_text_from_google_docs(link):
         print(f"An error occurred: {str(e)}")
         return None
 
+
 def clean_response(response):
     """
     Erase the first and last lines from the response.
