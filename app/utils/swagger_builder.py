@@ -126,80 +126,49 @@ swagger = Swagger()
 
 # ____Add or update an endpoint____
 
-# Add this to your existing swagger_builder.py file
-
 # swagger.add_or_update_endpoint(
-#     endpoint_route='/articles',
-#     method='get',
+#     endpoint_route='/article/generate',
+#     method='post',
 #     tag='Articles',
-#     description='[DEPRECATED] Get all articles with basic pagination',
+#     description='Generate a new article using AI',
 #     detail_description='''
-#     ⚠️ DEPRECATED: This endpoint is deprecated and will be removed in future versions. 
-#     Please use the new /articles/all endpoint with advanced filtering capabilities instead.
-    
-#     Basic endpoint to retrieve articles with optional pagination support.
-#     Results are sorted by creation date in descending order.
+#     Generate a new article using the NewsCreatorAgent.
+#     The endpoint accepts either an initial story (text/URL) or document files (or both) as input.
+#     Supported document formats are PDF, DOC, DOCX, and TXT.
 #     ''',
 #     params=[
 #         {
-#             'name': 'page',
-#             'in': 'query',
-#             'description': '[DEPRECATED] Page number for pagination',
+#             'name': 'initial_story',
+#             'in': 'formData',
+#             'description': 'Initial story text or URL to generate from',
 #             'required': False,
-#             'type': 'integer'
+#             'type': 'string'
 #         },
 #         {
-#             'name': 'per_page',
-#             'in': 'query',
-#             'description': '[DEPRECATED] Number of articles per page',
+#             'name': 'documents',
+#             'in': 'formData',
+#             'description': 'Multiple document files (PDF, DOC, DOCX, TXT)',
 #             'required': False,
-#             'type': 'integer'
+#             'type': 'file',
+#             'allowMultiple': True
 #         }
 #     ],
 #     responses={
 #         '200': {
-#             'description': 'Articles retrieved successfully',
+#             'description': 'Article generated successfully',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
 #                     'success': {'type': 'boolean'},
 #                     'data': {
-#                         'type': 'array',
-#                         'items': {
-#                             'type': 'object',
-#                             'properties': {
-#                                 'id': {'type': 'integer'},
-#                                 'title': {'type': 'string'},
-#                                 'content': {'type': 'string'},
-#                                 'image': {'type': 'string'},
-#                                 'url': {'type': 'string'},
-#                                 'date': {'type': 'string', 'format': 'date-time'},
-#                                 'bot_id': {'type': 'integer'},
-#                                 'created_at': {'type': 'string', 'format': 'date-time'},
-#                                 'updated_at': {'type': 'string', 'format': 'date-time'}
-#                             }
-#                         }
-#                     },
-#                     'pagination': {
 #                         'type': 'object',
 #                         'properties': {
-#                             'page': {'type': 'integer'},
-#                             'per_page': {'type': 'integer'},
-#                             'total_pages': {'type': 'integer'},
-#                             'total_items': {'type': 'integer'}
+#                             'content': {
+#                                 'type': 'string',
+#                                 'description': 'The generated article content'
+#                             }
 #                         }
 #                     }
-#                 }
-#             }
-#         },
-#         '204': {
-#             'description': 'No articles found',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'success': {'type': 'boolean'},
-#                     'data': {'type': 'array', 'items': {}},
-#                     'message': {'type': 'string'}
 #                 }
 #             }
 #         },
@@ -211,20 +180,26 @@ swagger = Swagger()
 #                     'success': {'type': 'boolean'},
 #                     'error': {
 #                         'type': 'string',
-#                         'example': 'Page and per_page must be positive integers'
+#                         'examples': [
+#                             'Either initial_story or documents must be provided',
+#                             'Invalid file type. Allowed types are: pdf, doc, docx, txt'
+#                         ]
 #                     }
 #                 }
 #             }
 #         },
-#         '404': {
-#             'description': 'Page not found',
+#         '500': {
+#             'description': 'Internal server error',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
 #                     'success': {'type': 'boolean'},
 #                     'error': {
 #                         'type': 'string',
-#                         'example': 'Page 5 does not exist. Max page is 3'
+#                         'examples': [
+#                             'Failed to generate article content',
+#                             'Unexpected error occurred'
+#                         ]
 #                     }
 #                 }
 #             }
@@ -232,8 +207,8 @@ swagger = Swagger()
 #     }
 # )
 
-# # ____Delete an endpoint____
-# success, message = swagger.delete_endpoint(endpoint_route='/articles/unwanted')
+# ____Delete an endpoint____
+# success, message = swagger.delete_endpoint(endpoint_route='/upload_news_file_to_drive')
 # print(message)
 
 

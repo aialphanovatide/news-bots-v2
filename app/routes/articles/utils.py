@@ -2,6 +2,7 @@ import os
 import boto3
 import requests
 import re
+from bs4 import BeautifulSoup
 from PIL import Image
 from io import BytesIO
 from dotenv import load_dotenv
@@ -17,7 +18,6 @@ UPLOAD_FOLDER = 'static/temp_uploads'
 
 def allowed_file(filename):
    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 
 def validate_article_creation(data):
     """
@@ -84,8 +84,7 @@ def validate_article_creation(data):
         'valid': len(errors) == 0,
         'errors': errors
     }
-    
-    
+ 
 def download_and_process_image(image_url, title):
     """
     Download, process, and upload image to S3.

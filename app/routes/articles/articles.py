@@ -529,7 +529,7 @@ def generate_article():
        
        try:
            # Initialize the NewsCreatorAgent
-           agent = NewsCreatorAgent(api_key=os.getenv("OPENAI_API_KEY"))
+           agent = NewsCreatorAgent(api_key=os.getenv("NEWS_BOT_OPENAI_API_KEY"))
            
            # Generate the story
            generated_story = agent.create_news_story(

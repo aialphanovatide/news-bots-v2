@@ -354,197 +354,6 @@
         }
       }
     },
-    "/articles/generate_image": {
-      "post": {
-        "tags": [
-          "News Creator"
-        ],
-        "summary": "Generate an image using DALL-E 3 model",
-        "description": "Generate an image based on the content and bot_id using DALL-E 3 model.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "content",
-                  "bot_id"
-                ],
-                "properties": {
-                  "content": {
-                    "type": "string"
-                  },
-                  "bot_id": {
-                    "type": "integer"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Image generated successfully"
-          },
-          "400": {
-            "description": "Missing required fields"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/articles/generate": {
-      "post": {
-        "tags": [
-          "News Creator"
-        ],
-        "summary": "Generate an article summary using the Perplexity model",
-        "description": "Generate a new article summary based on the provided content and category_id.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "content",
-                  "category_id"
-                ],
-                "properties": {
-                  "content": {
-                    "type": "string"
-                  },
-                  "category_id": {
-                    "type": "integer"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Article summary generated successfully"
-          },
-          "400": {
-            "description": "Missing required fields"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/articles/recent": {
-      "get": {
-        "tags": [
-          "News Creator"
-        ],
-        "summary": "Get the last five articles",
-        "description": "Retrieve the last five articles with extended details.",
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved the last five articles"
-          },
-          "404": {
-            "description": "No articles found matching the criteria"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/content/extract": {
-      "post": {
-        "tags": [
-          "News Creator"
-        ],
-        "summary": "Extract content from a link or Google Docs",
-        "description": "Extract content from a provided link or Google Docs based on the extract type.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "extract_type",
-                  "link"
-                ],
-                "properties": {
-                  "extract_type": {
-                    "type": "string",
-                    "description": "Type of extraction ('link' or 'google_docs')"
-                  },
-                  "link": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successfully extracted content"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/upload_news_file_to_drive": {
-      "post": {
-        "tags": [
-          "News Creator"
-        ],
-        "summary": "Upload a file to Google Drive",
-        "description": "Upload a file to a specified folder in Google Drive.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "folderName",
-                  "file",
-                  "fileName"
-                ],
-                "properties": {
-                  "folderName": {
-                    "type": "string"
-                  },
-                  "file": {
-                    "type": "string",
-                    "format": "binary"
-                  },
-                  "fileName": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "File uploaded successfully"
-          },
-          "400": {
-            "description": "Bad request. Missing required data"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
     "/bots": {
       "get": {
         "tags": [
@@ -3831,6 +3640,91 @@
                 "error": {
                   "type": "string",
                   "example": "Page 5 does not exist. Max page is 3"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/article/generate": {
+      "post": {
+        "tags": [
+          "Articles"
+        ],
+        "summary": "Generate a new article using ai",
+        "description": "\n    generate a new article using the newscreatoragent.\n    the endpoint accepts either an initial story (text/url) or document files (or both) as input.\n    supported document formats are pdf, doc, docx, and txt.\n    ",
+        "parameters": [
+          {
+            "name": "initial_story",
+            "in": "formData",
+            "description": "Initial story text or URL to generate from",
+            "required": false,
+            "type": "string",
+            "schema": {}
+          },
+          {
+            "name": "documents",
+            "in": "formData",
+            "description": "Multiple document files (PDF, DOC, DOCX, TXT)",
+            "required": false,
+            "type": "file",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Article generated successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "string",
+                      "description": "The generated article content"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string",
+                  "examples": [
+                    "Either initial_story or documents must be provided",
+                    "Invalid file type. Allowed types are: pdf, doc, docx, txt"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "error": {
+                  "type": "string",
+                  "examples": [
+                    "Failed to generate article content",
+                    "Unexpected error occurred"
+                  ]
                 }
               }
             }
