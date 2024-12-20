@@ -47,8 +47,7 @@ def get_articles():
     
     if include_valid:
         article_query = (Article.query
-            .outerjoin(Bot, Article.bot_id == Bot.id)
-            .outerjoin(Category, Article.category_id == Category.id))
+            .outerjoin(Bot, Article.bot_id == Bot.id))
 
         if search_term:
             article_query = article_query.filter(
