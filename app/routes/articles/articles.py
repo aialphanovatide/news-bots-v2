@@ -47,7 +47,7 @@ def get_articles():
     
     if include_valid:
         article_query = (Article.query
-            .outerjoin(Bot, Article.bot_id == Bot.id))
+            .join(Bot, Article.bot_id == Bot.id))
 
         if search_term:
             article_query = article_query.filter(
@@ -76,8 +76,8 @@ def get_articles():
                 Article.updated_at,
                 Article.is_top_story.label('top_story'),
                 Bot.icon.label('bot_icon'),
-                Category.name.label('category_name'),
-                Category.icon.label('category_icon'),
+                db.literal(None).label('category_name'),
+                db.literal(None).label('category_icon'),
                 db.literal('valid').label('type')
             )
         )
@@ -194,7 +194,7 @@ def get_article_by_id(article_id):
     Returns:
         JSON response with the article data or an error message.
     """
-    # Query Article table with joins for category and bot info
+    # Query Article table with joins for bot info only
     article = (Article.query
         .outerjoin(Bot, Article.bot_id == Bot.id)
         .filter(Article.id == article_id)
@@ -209,8 +209,8 @@ def get_article_by_id(article_id):
             Article.created_at,
             Article.updated_at,
             Article.is_top_story,
-            Category.name.label('category_name'),
-            Category.icon.label('category_icon'),
+            db.literal(None).label('category_name'),
+            db.literal(None).label('category_icon'),
             Bot.icon.label('bot_icon'),
             db.literal('valid').label('type')
         ).first())
