@@ -145,7 +145,7 @@ swagger = Swagger()
 #             'type': 'string'
 #         },
 #         {
-#             'name': 'documents',
+#             'name': 'files',
 #             'in': 'formData',
 #             'description': 'Multiple document files (PDF, DOC, DOCX, TXT)',
 #             'required': False,

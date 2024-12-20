@@ -490,76 +490,78 @@ def create_article():
 
 @articles_bp.route('/article/generate', methods=['POST'])
 def generate_article():
-   """
-   Generate a new article using the NewsCreatorAgent.
-   
-   Request Body (multipart/form-data):
-       - initial_story (str, optional): Initial story or URL to generate from
-       - documents (files, optional): Multiple document files (PDF, DOC, DOCX, TXT)
-       
-   Returns:
-       JSON response with the generated article content or error message
-   """
-   try:
-       # Ensure upload directory exists
-       os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-       
-       initial_story = request.form.get('initial_story')
-       files = request.files.getlist('documents')
-       
-       # Validate that at least one source is provided
-       if not initial_story and not files:
-           return jsonify(create_response(
-               error='Either initial_story or documents must be provided'
-           )), 400
-       
-       # Process uploaded files
-       temp_files = []
-       if files:
-           for file in files:
-               if file and allowed_file(file.filename):
-                   filename = secure_filename(file.filename)
-                   filepath = os.path.join(UPLOAD_FOLDER, filename)
-                   file.save(filepath)
-                   temp_files.append(filepath)
-               else:
-                   return jsonify(create_response(
-                       error=f'Invalid file type. Allowed types are: {", ".join(ALLOWED_EXTENSIONS)}'
-                   )), 400
-       
-       try:
-           # Initialize the NewsCreatorAgent
-           agent = NewsCreatorAgent(api_key=os.getenv("NEWS_BOT_OPENAI_API_KEY"))
-           
-           # Generate the story
-           generated_story = agent.create_news_story(
-               initial_story=initial_story,
-               file_paths=temp_files  # This will need to be updated once NewsCreatorAgent is modified
-           )
-           
-           if not generated_story:
-               return jsonify(create_response(
-                   error='Failed to generate article content'
-               )), 500
-               
-           return jsonify(create_response(
-               success=True,
-               data={'content': generated_story}
-           )), 200
-           
-       finally:
-           # Clean up temporary files
-           for filepath in temp_files:
-               try:
-                   os.remove(filepath)
-               except Exception as e:
-                   print(f"Error removing temporary file {filepath}: {str(e)}")
-           
-   except ValueError as e:
-       return jsonify(create_response(
-           error=f'Invalid input: {str(e)}'
-       )), 400
-   except Exception as e:
-       return jsonify(create_response(
-           error=f'Unexpected error occurred: {str(e)}'
-       )), 500
+    """
+    Generate a new article using the NewsCreatorAgent.
+    
+    Request Body (multipart/form-data):
+        - initial_story (str, optional): Initial story or URL to generate from
+        - files (files, optional): Multiple document files (PDF, DOC, DOCX, TXT)
+        
+    Returns:
+        JSON response with the generated article content or error message
+    """
+    try:
+        initial_story = request.form.get('initial_story')
+        files = request.files.getlist('files')
+
+        print(f"Initial story: {initial_story}")
+        print(f"Files: {files}")
+        
+        # Validate that at least one source is provided
+        if not initial_story and not files:
+            return jsonify(create_response(
+                error='Either initial_story or files must be provided'
+            )), 400
+        
+        # Initialize the NewsCreatorAgent
+        agent = NewsCreatorAgent(api_key=os.getenv("NEWS_BOT_OPENAI_API_KEY"))
+        
+        # Validate and process files
+        valid_files = []
+        for file in files:
+            if not file.filename:
+                continue
+                
+            # Check file extension
+            file_extension = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+            if file_extension not in agent.supported_extensions:
+                return jsonify(create_response(
+                    error=f'Invalid file type: {file.filename}. Allowed types are: {", ".join(agent.supported_extensions)}'
+                )), 400
+            
+            # Check file size
+            file.seek(0, os.SEEK_END)
+            size_mb = file.tell() / (1024 * 1024)
+            file.seek(0)
+            
+            if size_mb > agent.MAX_FILE_SIZE_MB:
+                return jsonify(create_response(
+                    error=f'File too large: {file.filename} ({size_mb:.2f} MB). Maximum allowed size is {agent.MAX_FILE_SIZE_MB} MB.'
+                )), 400
+            
+            valid_files.append(file)
+        
+        # Generate the story
+        generated_story = agent.create_news_story(
+            initial_story=initial_story,
+            files=valid_files
+        )
+        
+        if not generated_story:
+            return jsonify(create_response(
+                error='Failed to generate article content'
+            )), 500
+            
+        return jsonify(create_response(
+            success=True,
+            data={'content': generated_story}
+        )), 200
+        
+    except ValueError as e:
+        return jsonify(create_response(
+            error=f'Invalid input: {str(e)}'
+        )), 400
+    except Exception as e:
+        return jsonify(create_response(
+            error=f'Unexpected error occurred: {str(e)}'
+        )), 500
