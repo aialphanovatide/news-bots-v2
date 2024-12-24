@@ -127,150 +127,149 @@ swagger = Swagger()
 # ____Add or update an endpoint____
 
 # swagger.add_or_update_endpoint(
-#     endpoint_route='/bot/{bot_id}/metrics',
+#     endpoint_route='/articles',
 #     method='get',
-#     tag='Bots',
-#     description='Get bot metrics with pagination and filtering',
+#     tag='Articles',
+#     description='Get all articles with advanced filtering and pagination',
 #     detail_description='''
-#     Retrieves metrics for a specific bot with pagination and date filtering options.
-    
-#     The endpoint returns:
-#     - List of individual metric records
-#     - Aggregated statistics across the returned metrics
-#     - Pagination metadata
-    
-#     Metrics include:
-#     - Runtime statistics
-#     - Resource usage (CPU, memory)
-#     - Article processing counts
-#     - Error and filtering statistics
+#     Retrieve articles with advanced filtering options including bot name, category name, 
+#     top stories status, timeframes, and article type (valid/bin).
+#     Results are ordered by creation date (most recent first).
 #     ''',
 #     params=[
 #         {
-#             'name': 'bot_id',
-#             'in': 'path',
-#             'description': 'ID of the bot',
-#             'required': True,
-#             'type': 'integer'
-#         },
-#         {
 #             'name': 'page',
 #             'in': 'query',
-#             'description': 'Page number (starts at 1)',
-#             'required': False,
+#             'description': 'Page number for pagination',
 #             'type': 'integer',
-#             'default': 1,
-#             'minimum': 1
+#             'default': 1
 #         },
 #         {
 #             'name': 'per_page',
 #             'in': 'query',
 #             'description': 'Number of items per page',
-#             'required': False,
 #             'type': 'integer',
-#             'default': 10,
-#             'minimum': 1
+#             'default': 10
 #         },
 #         {
-#             'name': 'start_date',
+#             'name': 'search',
 #             'in': 'query',
-#             'description': 'Filter metrics after this date (ISO format: YYYY-MM-DDTHH:MM:SS)',
-#             'required': False,
-#             'type': 'string',
-#             'format': 'date-time'
+#             'description': 'Search term to filter articles by content or title',
+#             'type': 'string'
 #         },
 #         {
-#             'name': 'end_date',
+#             'name': 'bot_name',
 #             'in': 'query',
-#             'description': 'Filter metrics before this date (ISO format: YYYY-MM-DDTHH:MM:SS)',
-#             'required': False,
+#             'description': 'Filter articles by bot name',
+#             'type': 'string'
+#         },
+#         {
+#             'name': 'category_name',
+#             'in': 'query',
+#             'description': 'Filter articles by category name',
+#             'type': 'string'
+#         },
+#         {
+#             'name': 'top_stories',
+#             'in': 'query',
+#             'description': 'If "true", return only top stories',
+#             'type': 'boolean'
+#         },
+#         {
+#             'name': 'timeframe',
+#             'in': 'query',
+#             'description': 'Filter top stories by timeframe',
 #             'type': 'string',
-#             'format': 'date-time'
+#             'enum': ['1D', '1W', '1M']
+#         },
+#         {
+#             'name': 'bin',
+#             'in': 'query',
+#             'description': 'If "true", include unwanted articles',
+#             'type': 'boolean',
+#             'default': False
+#         },
+#         {
+#             'name': 'valid_articles',
+#             'in': 'query',
+#             'description': 'If "true", include valid articles',
+#             'type': 'boolean',
+#             'default': True
 #         }
 #     ],
 #     responses={
 #         '200': {
-#             'description': 'Metrics retrieved successfully',
+#             'description': 'Successfully retrieved articles',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
-#                     'success': {'type': 'boolean'},
+#                     'success': {
+#                         'type': 'boolean',
+#                         'example': True
+#                     },
 #                     'data': {
+#                         'type': 'array',
+#                         'items': {
+#                             'type': 'object',
+#                             'properties': {
+#                                 'id': {'type': 'integer'},
+#                                 'title': {'type': 'string'},
+#                                 'content': {'type': 'string'},
+#                                 'image': {'type': 'string'},
+#                                 'url': {'type': 'string'},
+#                                 'date': {'type': 'string', 'format': 'date-time'},
+#                                 'bot_id': {'type': 'integer'},
+#                                 'created_at': {'type': 'string', 'format': 'date-time'},
+#                                 'updated_at': {'type': 'string', 'format': 'date-time'},
+#                                 'is_top_story': {'type': 'boolean'},
+#                                 'type': {'type': 'string', 'enum': ['valid', 'bin']}
+#                             }
+#                         }
+#                     },
+#                     'pagination': {
 #                         'type': 'object',
 #                         'properties': {
-#                             'metrics': {
-#                                 'type': 'array',
-#                                 'items': {
-#                                     'type': 'object',
-#                                     'properties': {
-#                                         'id': {'type': 'integer'},
-#                                         'bot_id': {'type': 'integer'},
-#                                         'start_time': {'type': 'string', 'format': 'date-time'},
-#                                         'end_time': {'type': 'string', 'format': 'date-time'},
-#                                         'total_runtime': {'type': 'number'},
-#                                         'total_articles_found': {'type': 'integer'},
-#                                         'articles_processed': {'type': 'integer'},
-#                                         'articles_saved': {'type': 'integer'},
-#                                         'cpu_percent': {'type': 'number'},
-#                                         'memory_percent': {'type': 'number'},
-#                                         'total_errors': {'type': 'integer'},
-#                                         'error_reasons': {'type': 'object'},
-#                                         'total_filtered': {'type': 'integer'},
-#                                         'filter_reasons': {'type': 'object'}
-#                                     }
-#                                 }
-#                             },
-#                             'aggregated_stats': {
-#                                 'type': 'object',
-#                                 'properties': {
-#                                     'total_runtime': {'type': 'number'},
-#                                     'avg_cpu_percent': {'type': 'number'},
-#                                     'avg_memory_percent': {'type': 'number'},
-#                                     'total_articles_found': {'type': 'integer'},
-#                                     'total_articles_processed': {'type': 'integer'},
-#                                     'total_articles_saved': {'type': 'integer'},
-#                                     'total_errors': {'type': 'integer'},
-#                                     'total_filtered': {'type': 'integer'}
-#                                 }
-#                             },
-#                             'pagination': {
-#                                 'type': 'object',
-#                                 'properties': {
-#                                     'total_items': {'type': 'integer'},
-#                                     'total_pages': {'type': 'integer'},
-#                                     'current_page': {'type': 'integer'},
-#                                     'per_page': {'type': 'integer'},
-#                                     'has_next': {'type': 'boolean'},
-#                                     'has_prev': {'type': 'boolean'}
-#                                 }
-#                             }
+#                             'page': {'type': 'integer'},
+#                             'per_page': {'type': 'integer'},
+#                             'total_pages': {'type': 'integer'},
+#                             'total_items': {'type': 'integer'}
+#                         }
+#                     },
+#                     'filters': {
+#                         'type': 'object',
+#                         'properties': {
+#                             'bot_name': {'type': 'string'},
+#                             'category_name': {'type': 'string'},
+#                             'timeframe': {'type': 'string'}
 #                         }
 #                     }
 #                 }
 #             }
 #         },
-#         '400': {
-#             'description': 'Invalid parameters provided',
+#         '204': {
+#             'description': 'No articles found',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
-#                     'success': {'type': 'boolean'},
-#                     'error': {
-#                         'type': 'string',
-#                         'description': 'Error message describing the invalid parameters'
-#                     }
+#                     'success': {'type': 'boolean', 'example': True},
+#                     'data': {'type': 'array', 'items': {}},
+#                     'message': {'type': 'string', 'example': 'No articles found'}
 #                 }
 #             }
 #         },
-#         '404': {
-#             'description': 'Bot not found',
+#         '400': {
+#             'description': 'Bad request',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
-#                     'success': {'type': 'boolean'},
+#                     'success': {'type': 'boolean', 'example': False},
 #                     'error': {
 #                         'type': 'string',
-#                         'description': 'Error message indicating bot was not found'
+#                         'examples': [
+#                             'Page and per_page must be positive integers',
+#                             'At least one article type must be selected',
+#                             'Invalid timeframe: 2D. Must be one of: 1D, 1W, 1M'
+#                         ]
 #                     }
 #                 }
 #             }
@@ -280,11 +279,8 @@ swagger = Swagger()
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
-#                     'success': {'type': 'boolean'},
-#                     'error': {
-#                         'type': 'string',
-#                         'description': 'Error message describing what went wrong'
-#                     }
+#                     'success': {'type': 'boolean', 'example': False},
+#                     'error': {'type': 'string', 'example': 'An unexpected error occurred: Database error'}
 #                 }
 #             }
 #         }
@@ -292,7 +288,7 @@ swagger = Swagger()
 # )
 
 # ____Delete an endpoint____
-# success, message = swagger.delete_endpoint(endpoint_route='/delete_bot/{bot_id}')
+# success, message = swagger.delete_endpoint(endpoint_route='/articles/all')
 # print(message)
 
 

@@ -2,7 +2,7 @@
 # FILE DEPRACATED, SCHEDULE TO REMOVE AND DELETE AFTER SERVER UPDATE
 
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 from app.news_bot.news_bot_v2 import NewsProcessingPipeline as NewsScraper
 from config import Blacklist, Category, Bot, Site, db
 from datetime import datetime, timedelta
@@ -44,11 +44,16 @@ def calculate_next_execution_time(bot_name, current_time):
 
 def scheduled_job(bot_site, bot_name, category_id, bot_id):
     with scheduler.app.app_context():
+        # Obtener la categoría de la base de datos
+        category = Category.query.get(category_id)
+        if not category:
+            raise Exception(f"Category with id {category_id} not found")
+
         news_scraper = NewsScraper(
             url=bot_site,
-            category_id=category_id,
+            category=category,
             bot_id=bot_id
-            )
+        )
         result = news_scraper.run()
         
         print(f"Scraping result: {result['message']}")
@@ -101,7 +106,7 @@ def activate_all_bots():
         if not categories:
             return create_response(error='No categories found'), 404
 
-        global_minutes = 6
+        global_minutes = 2
         interval_base = 4  # Adjust interval base as needed
 
         # Initialize ThreadPoolExecutor
@@ -139,7 +144,7 @@ def activate_all_bots():
                         func=scheduled_job,
                         name=bot_name,
                         replace_existing=True,
-                        args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category_slack_channel],
+                        args=[bot_site, bot_name, category.id, bot_id,],
                         trigger=DateTrigger(run_date=next_execution_time)
                     )
                     futures.append(future)
@@ -189,7 +194,7 @@ def activate_bots_by_category():
         if not category:
             return create_response(error='Category not found'), 404
 
-        category_interval = category.time_interval
+        category_interval = 2
         category_slack_channel = category.slack_channel
         if category.is_active:
             return create_response(success=True, message=f"{category_name} category is already active"), 200
@@ -224,7 +229,7 @@ def activate_bots_by_category():
                     func=scheduled_job,
                     name=bot_name,
                     replace_existing=True,
-                    args=[bot_site, bot_name, bot_blacklist, category.id, bot_id, category_slack_channel],
+                    args=[bot_site, bot_name, category.id, bot_id],
                     trigger=DateTrigger(run_date=next_execution_time)
                 )
                 futures.append(future)

@@ -184,18 +184,22 @@ def create_bot():
             # Create new Site if URL is provided
             url = data.get('url')
             if url:
-                if not validate_url(url):
-                    return jsonify(create_response(error='Invalid URL provided')), 400
-                site_name_match = re.search(r"https://www\.([^.]+)\.com", url)
-                site_name = 'Google News' if not site_name_match else site_name_match.group(1)
-                new_site = Site(
-                    name=site_name,
-                    url=url,
-                    bot_id=new_bot.id,
-                    created_at=current_time,
-                    updated_at=current_time
-                )
-                session.add(new_site)
+                try:
+                    if not validate_url(url):
+                        return jsonify(create_response(error='Invalid URL provided')), 400
+                    site_name_match = re.search(r"https://www\.([^.]+)\.com", url)
+                    site_name = 'Google News' if not site_name_match else site_name_match.group(1)
+                    new_site = Site(
+                        name=site_name,
+                        url=url,
+                        bot_id=new_bot.id,
+                        created_at=current_time,
+                        updated_at=current_time
+                    )
+                    session.add(new_site)
+                except Exception as e:
+                    return jsonify(create_response(error=f'Error creating site: {str(e)}')), 500
+
 
             # Validate and add keywords (whitelist) to the bot
             if 'whitelist' in data:
@@ -227,11 +231,10 @@ def create_bot():
 
             session.commit()
 
-            schedule_message = "Bot created successfully."
             return jsonify(create_response(
                 success=True,
                 bot=new_bot.as_dict(),
-                message=schedule_message
+                message="Bot created successfully."
             )), 201
 
         except SQLAlchemyError as e:
@@ -468,7 +471,7 @@ def toggle_activation_bot(bot_id):
                     )), 400
 
                 try:
-                    scheduling_success = schedule_bot(bot, category, True)
+                    scheduling_success = schedule_bot(bot, category, fire_now=True)
                 
                     if scheduling_success:
                         bot.is_active = True

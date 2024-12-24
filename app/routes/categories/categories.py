@@ -332,7 +332,7 @@ def toggle_category_activation(category_id):
                             bot_result['error'] = f"Validation errors: {bot_validation_errors}"
                             failure_count += 1
                         else:
-                            scheduling_success = schedule_bot(bot, category)
+                            scheduling_success = schedule_bot(bot, category, fire_now=True)
                             if scheduling_success:
                                 bot.is_active = True
                                 bot.status = 'IDLE'

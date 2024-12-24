@@ -213,14 +213,38 @@ class Article(db.Model):
     used_keywords = db.Column(db.String)
     is_article_efficent = db.Column(db.String)
     is_top_story = db.Column(db.Boolean)
-    # relationship
+    
+    # relationships
     bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'))
+    timeframes = db.relationship('ArticleTimeframe', back_populates='article', cascade="all, delete-orphan")
+
     created_at = db.Column(db.TIMESTAMP)
     updated_at = db.Column(db.TIMESTAMP)
 
 
     def as_dict(self):
-        return {column.name: getattr(self, column.name) for column in self.__table__.columns}
+        article_dict = {column.name: getattr(self, column.name) for column in self.__table__.columns}
+        article_dict['timeframes'] = [tf.as_dict() for tf in self.timeframes]
+        return article_dict
+
+
+class ArticleTimeframe(db.Model):
+    __tablename__ = 'article_timeframes'
+   
+    article_id = db.Column(db.Integer, db.ForeignKey('article.id'), primary_key=True)
+    timeframe = db.Column(Enum('1D', '1W', '1M', name='top_story_timeframe'), primary_key=True)
+    created_at = db.Column(db.TIMESTAMP, server_default=func.now())
+    updated_at = db.Column(db.TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    # Add a relationship back to the Article model
+    article = db.relationship('Article', back_populates='timeframes')
+
+    def as_dict(self):
+        return {
+            'article_id': self.article_id,
+            'timeframe': self.timeframe,
+            'created_at': self.created_at
+        }
 
 
 class UnwantedArticle(db.Model):
