@@ -127,41 +127,79 @@ swagger = Swagger()
 # ____Add or update an endpoint____
 
 # swagger.add_or_update_endpoint(
-#     endpoint_route='/top-stories',
+#     endpoint_route='/articles',
 #     method='get',
-#     tag='Top Stories',
-#     description='Get all top stories with optional pagination and timeframe filtering',
+#     tag='Articles',
+#     description='Get all articles with advanced filtering and pagination',
 #     detail_description='''
-#     Retrieve top stories from the article database with optional pagination and timeframe filtering.
-#     Results are ordered by date (most recent first).
+#     Retrieve articles with advanced filtering options including bot name, category name, 
+#     top stories status, timeframes, and article type (valid/bin).
+#     Results are ordered by creation date (most recent first).
 #     ''',
 #     params=[
 #         {
 #             'name': 'page',
 #             'in': 'query',
 #             'description': 'Page number for pagination',
-#             'required': False,
-#             'type': 'integer'
+#             'type': 'integer',
+#             'default': 1
 #         },
 #         {
 #             'name': 'per_page',
 #             'in': 'query',
 #             'description': 'Number of items per page',
-#             'required': False,
-#             'type': 'integer'
+#             'type': 'integer',
+#             'default': 10
+#         },
+#         {
+#             'name': 'search',
+#             'in': 'query',
+#             'description': 'Search term to filter articles by content or title',
+#             'type': 'string'
+#         },
+#         {
+#             'name': 'bot_name',
+#             'in': 'query',
+#             'description': 'Filter articles by bot name',
+#             'type': 'string'
+#         },
+#         {
+#             'name': 'category_name',
+#             'in': 'query',
+#             'description': 'Filter articles by category name',
+#             'type': 'string'
+#         },
+#         {
+#             'name': 'top_stories',
+#             'in': 'query',
+#             'description': 'If "true", return only top stories',
+#             'type': 'boolean'
 #         },
 #         {
 #             'name': 'timeframe',
 #             'in': 'query',
-#             'description': 'Filter articles by timeframe',
-#             'required': False,
+#             'description': 'Filter top stories by timeframe',
 #             'type': 'string',
 #             'enum': ['1D', '1W', '1M']
+#         },
+#         {
+#             'name': 'bin',
+#             'in': 'query',
+#             'description': 'If "true", include unwanted articles',
+#             'type': 'boolean',
+#             'default': False
+#         },
+#         {
+#             'name': 'valid_articles',
+#             'in': 'query',
+#             'description': 'If "true", include valid articles',
+#             'type': 'boolean',
+#             'default': True
 #         }
 #     ],
 #     responses={
 #         '200': {
-#             'description': 'Successfully retrieved top stories',
+#             'description': 'Successfully retrieved articles',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
@@ -180,29 +218,42 @@ swagger = Swagger()
 #                                 'image': {'type': 'string'},
 #                                 'url': {'type': 'string'},
 #                                 'date': {'type': 'string', 'format': 'date-time'},
-#                                 'is_article_efficent': {'type': 'string'},
-#                                 'is_top_story': {'type': 'boolean'},
 #                                 'bot_id': {'type': 'integer'},
 #                                 'created_at': {'type': 'string', 'format': 'date-time'},
 #                                 'updated_at': {'type': 'string', 'format': 'date-time'},
-#                                 'timeframes': {
-#                                     'type': 'array',
-#                                     'items': {
-#                                         'type': 'object',
-#                                         'properties': {
-#                                             'timeframe': {'type': 'string'},
-#                                             'created_at': {'type': 'string', 'format': 'date-time'}
-#                                         }
-#                                     }
-#                                 }
+#                                 'is_top_story': {'type': 'boolean'},
+#                                 'type': {'type': 'string', 'enum': ['valid', 'bin']}
 #                             }
 #                         }
 #                     },
-#                     'count': {'type': 'integer'},
-#                     'total': {'type': 'integer'},
-#                     'page': {'type': 'integer'},
-#                     'pages': {'type': 'integer'},
-#                     'timeframe': {'type': 'string'}
+#                     'pagination': {
+#                         'type': 'object',
+#                         'properties': {
+#                             'page': {'type': 'integer'},
+#                             'per_page': {'type': 'integer'},
+#                             'total_pages': {'type': 'integer'},
+#                             'total_items': {'type': 'integer'}
+#                         }
+#                     },
+#                     'filters': {
+#                         'type': 'object',
+#                         'properties': {
+#                             'bot_name': {'type': 'string'},
+#                             'category_name': {'type': 'string'},
+#                             'timeframe': {'type': 'string'}
+#                         }
+#                     }
+#                 }
+#             }
+#         },
+#         '204': {
+#             'description': 'No articles found',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {'type': 'boolean', 'example': True},
+#                     'data': {'type': 'array', 'items': {}},
+#                     'message': {'type': 'string', 'example': 'No articles found'}
 #                 }
 #             }
 #         },
@@ -211,15 +262,13 @@ swagger = Swagger()
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
-#                     'success': {
-#                         'type': 'boolean',
-#                         'example': False
-#                     },
+#                     'success': {'type': 'boolean', 'example': False},
 #                     'error': {
 #                         'type': 'string',
 #                         'examples': [
-#                             'Invalid timeframe: 2D. Must be one of: 1D, 1W, 1M',
-#                             'Invalid input: page must be a positive integer'
+#                             'Page and per_page must be positive integers',
+#                             'At least one article type must be selected',
+#                             'Invalid timeframe: 2D. Must be one of: 1D, 1W, 1M'
 #                         ]
 #                     }
 #                 }
@@ -230,14 +279,8 @@ swagger = Swagger()
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
-#                     'success': {
-#                         'type': 'boolean',
-#                         'example': False
-#                     },
-#                     'error': {
-#                         'type': 'string',
-#                         'example': 'An unexpected error occurred: Database error'
-#                     }
+#                     'success': {'type': 'boolean', 'example': False},
+#                     'error': {'type': 'string', 'example': 'An unexpected error occurred: Database error'}
 #                 }
 #             }
 #         }
@@ -245,7 +288,7 @@ swagger = Swagger()
 # )
 
 # ____Delete an endpoint____
-# success, message = swagger.delete_endpoint(endpoint_route='/upload_news_file_to_drive')
+# success, message = swagger.delete_endpoint(endpoint_route='/articles/all')
 # print(message)
 
 
