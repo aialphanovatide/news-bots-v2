@@ -8,7 +8,7 @@ from flask import Blueprint, jsonify, request
 from app.routes.articles.utils import download_and_process_image, validate_article_creation, UPLOAD_FOLDER, ALLOWED_EXTENSIONS, allowed_file
 from app.services.slack.actions import send_NEWS_message_to_slack_channel
 from app.services.news_creator.news_creator import NewsCreatorAgent
-from config import Article, Bot, Category, db, UnwantedArticle, UsedKeywords
+from config import Article, Bot, Category, db, UnwantedArticle, UsedKeywords, ArticleTimeframe
 from app.routes.routes_utils import create_response, handle_db_session
 from redis_client.redis_client import cache_with_redis, update_cache_with_redis
 
@@ -16,7 +16,7 @@ articles_bp = Blueprint('articles_bp', __name__,
                         template_folder='templates', 
                         static_folder='static')
 
-@articles_bp.route('/articles/all', methods=['GET'])
+@articles_bp.route('/articles', methods=['GET'])
 @handle_db_session
 def get_all_articles_all():
     """
@@ -177,60 +177,6 @@ def get_all_articles_all():
     return jsonify(response), 200
 
 
-# _______DEPRECATED_____________________________
-@articles_bp.route('/articles', methods=['GET'])
-@handle_db_session
-@cache_with_redis()
-def get_all_articles():
-    """
-    Retrieve articles with optional pagination.
-    
-    Query Parameters:
-    - page: The page number (optional)
-    - per_page: Number of articles per page (optional)
-    
-    Returns:
-        JSON response with the list of articles, pagination info (if applicable), or an error message.
-    """
-    page = request.args.get('page', type=int)
-    per_page = request.args.get('per_page', type=int)
-
-    if (page is not None and page < 1) or (per_page is not None and per_page < 1):
-        response = create_response(error='Page and per_page must be positive integers')
-        return jsonify(response), 400
-
-    query = Article.query.order_by(desc(Article.created_at))
-    total_articles = query.count()
-
-    if page is None or per_page is None:
-        articles = query.all()
-        pagination_info = None
-    else:
-        total_pages = ceil(total_articles / per_page)
-        if page > total_pages and total_articles > 0:
-            response = create_response(error=f'Page {page} does not exist. Max page is {total_pages}')
-            return jsonify(response), 404
-
-        articles = query.paginate(page=page, per_page=per_page, error_out=False).items
-        pagination_info = {
-            'page': page,
-            'per_page': per_page,
-            'total_pages': total_pages,
-            'total_items': total_articles
-        }
-
-    if not articles:
-        response = create_response(success=True, data=[], message='No articles found')
-        return jsonify(response), 204
-
-    response = create_response(
-        success=True,
-        data=[article.as_dict() for article in articles],
-        pagination=pagination_info
-    )
-    return jsonify(response), 200
-
-
 @articles_bp.route('/article/<int:article_id>', methods=['GET'])
 @handle_db_session
 @cache_with_redis()
@@ -262,78 +208,6 @@ def get_article_by_id(article_id):
     
     response = create_response(error='No article found for the specified article ID in either Article or UnwantedArticle table')
     return jsonify(response), 404
-
-
-@articles_bp.route('/article', methods=['GET'])
-@handle_db_session
-@cache_with_redis()
-def get_articles_by_bot():
-    """
-    Retrieve articles by bot ID or bot name with optional pagination and search functionality.
-    
-    Query Parameters:
-    - bot_id: ID of the bot (optional if bot_name is provided)
-    - bot_name: Name of the bot (optional if bot_id is provided)
-    - page: The page number (optional)
-    - per_page: Number of articles per page (optional)
-    - search: Search term to filter articles by content (optional)
-    
-    Returns:
-        JSON response with the list of articles, pagination info (if applicable), or an error message.
-    """
-    bot_id = request.args.get('bot_id', type=int)
-    bot_name = request.args.get('bot_name')
-    page = request.args.get('page', type=int)
-    per_page = request.args.get('per_page', type=int)
-    search_term = request.args.get('search', '')
-
-    if not bot_id and not bot_name:
-        return jsonify(create_response(error='Missing bot ID or bot name in request data')), 400
-
-    if bot_name:
-        bot = Bot.query.filter_by(name=bot_name).first()
-        if not bot:
-            return jsonify(create_response(error='No bot found with the specified bot name')), 404
-        bot_id = bot.id
-
-    if (page is not None and page < 1) or (per_page is not None and per_page < 1):
-        return jsonify(create_response(error='Page and per_page must be positive integers')), 400
-
-    query = Article.query.filter_by(bot_id=bot_id)
-
-    if search_term:
-        query = query.filter(Article.content.ilike(f'%{search_term}%'))
-
-    query = query.order_by(desc(Article.created_at))
-    
-    total_articles = query.count()
-
-    if page is None or per_page is None:
-        articles = query.all()
-        pagination_info = None
-    else:
-        total_pages = ceil(total_articles / per_page)
-        if page > total_pages and total_articles > 0:
-            return jsonify(create_response(error=f'Page {page} does not exist. Max page is {total_pages}')), 404
-
-        articles = query.paginate(page=page, per_page=per_page, error_out=False).items
-        pagination_info = {
-            'page': page,
-            'per_page': per_page,
-            'total_pages': total_pages,
-            'total_items': total_articles
-        }
-
-    if not articles:
-        return jsonify(create_response(success=True, data=[], message='No articles found for the specified criteria')), 204
-
-    response = create_response(
-        success=True,
-        data=[article.as_dict() for article in articles],
-        pagination=pagination_info
-    )
-    return jsonify(response), 200
-
 
 
 @articles_bp.route('/article/<int:article_id>', methods=['DELETE'])
@@ -372,6 +246,121 @@ def delete_article(article_id):
 
 
 
+# @articles_bp.route('/article', methods=['POST'])
+# def create_article():
+#     """
+#     Create a new article with comprehensive validation and error handling.
+    
+#     Request Body:
+#         - title (str, required): Article title
+#         - content (str, required): Article content
+#         - bot_id (int, required): Bot identifier
+#         - category_id (int, required): Category identifier
+#         - image_url (str, required): URL of the article image
+#         - comment (str, optional): Comment on the article efficiency
+#         - is_top_story (bool, optional): Whether this is a top story
+    
+#     Required Parameters:
+#         - title
+#         - content
+#         - bot_id
+#         - category_id
+#         - image_url
+    
+#     Returns:
+#         JSON response with created article data or error message
+    
+#     Response Codes:
+#         201: Article created successfully
+#         400: Bad request (missing/invalid fields)
+#         409: Conflict (duplicate article)
+#         500: Internal server error
+#     """
+#     try:
+#         # Parse incoming JSON data
+#         data = request.get_json()
+        
+#         # Validate required fields
+#         required_fields = ['title', 'image_url', 'content', 'bot_id', 'category_id']
+#         missing_fields = [field for field in required_fields if field not in data]
+#         if missing_fields:
+#             return jsonify(create_response(
+#                 error=f'Missing required fields: {", ".join(missing_fields)}'
+#             )), 400
+        
+#         # Validate bot_id and category_id exist
+#         if not Bot.query.filter_by(id=data['bot_id']).first():
+#             return jsonify(create_response(
+#                 error='Bot ID does not exist'
+#             )), 400
+#         if not Category.query.filter_by(id=data['category_id']).first():
+#             return jsonify(create_response(
+#                 error='Category ID does not exist'
+#             )), 400
+        
+#         # Validate input data
+#         validation_result = validate_article_creation(data)
+#         if not validation_result['valid']:
+#             return jsonify(create_response(
+#                 error=validation_result['errors']
+#             )), 400
+        
+#         # Check for potential duplicate article
+#         existing_article = Article.query.filter(
+#             func.lower(Article.title) == data['title'].lower()
+#         ).first()
+#         if existing_article:
+#             return jsonify(create_response(
+#                 error='An article with this title already exists'
+#             )), 409
+        
+#         # Download and process image
+#         try:
+#             image_filename = download_and_process_image(
+#                 data['image_url'], 
+#                 data['title']
+#             )
+#         except Exception as e:
+#             return jsonify(create_response(
+#                 error=f'Image processing failed: {str(e)}'
+#             )), 400
+        
+#         # Prepare article data
+#         current_time = datetime.now()
+#         new_article = Article(
+#             title=data['title'],
+#             content=data['content'].replace("- ", ""),
+#             image=image_filename,
+#             url="Generated By AI Alpha Team.",
+#             date=current_time,
+#             is_article_efficent='Green - ' + data.get('comment', ''),
+#             is_top_story=data.get('is_top_story', False), 
+#             bot_id=data['bot_id'],
+#             created_at=current_time,
+#             updated_at=current_time
+#         )
+        
+#         # Save article to database
+#         try:
+#             db.session.add(new_article)
+#             db.session.commit()
+#         except Exception as e:
+#             db.session.rollback()
+#             return jsonify(create_response(
+#                 error=f'Database insertion failed: {str(e)}'
+#             )), 500
+        
+#         # Return successful response
+#         return jsonify(create_response(
+#             success=True, 
+#             data=new_article.as_dict()
+#         )), 201
+    
+#     except Exception as e:
+#         return jsonify(create_response(
+#             error=f'Unexpected error occurred: {str(e)}'
+#         )), 500
+
 @articles_bp.route('/article', methods=['POST'])
 def create_article():
     """
@@ -385,13 +374,7 @@ def create_article():
         - image_url (str, required): URL of the article image
         - comment (str, optional): Comment on the article efficiency
         - is_top_story (bool, optional): Whether this is a top story
-    
-    Required Parameters:
-        - title
-        - content
-        - bot_id
-        - category_id
-        - image_url
+        - timeframes (list, required if is_top_story=True): List of timeframes ('1D', '1W', '1M')
     
     Returns:
         JSON response with created article data or error message
@@ -431,6 +414,23 @@ def create_article():
                 error=validation_result['errors']
             )), 400
         
+        # Validate timeframes if is_top_story is True
+        is_top_story = data.get('is_top_story', False)
+        timeframes = data.get('timeframes', [])
+        
+        if is_top_story and not timeframes:
+            return jsonify(create_response(
+                error='Timeframes are required when is_top_story is True'
+            )), 400
+            
+        if timeframes:
+            valid_timeframes = ['1D', '1W', '1M']
+            invalid_timeframes = [tf for tf in timeframes if tf not in valid_timeframes]
+            if invalid_timeframes:
+                return jsonify(create_response(
+                    error=f'Invalid timeframes: {", ".join(invalid_timeframes)}. Must be one of: {", ".join(valid_timeframes)}'
+                )), 400
+        
         # Check for potential duplicate article
         existing_article = Article.query.filter(
             func.lower(Article.title) == data['title'].lower()
@@ -455,38 +455,47 @@ def create_article():
         current_time = datetime.now()
         new_article = Article(
             title=data['title'],
-            content=data['content'].replace("- ", ""),
+            content=data['content'],
             image=image_filename,
             url="Generated By AI Alpha Team.",
             date=current_time,
             is_article_efficent='Green - ' + data.get('comment', ''),
-            is_top_story=data.get('is_top_story', False), 
+            is_top_story=is_top_story,
             bot_id=data['bot_id'],
             created_at=current_time,
             updated_at=current_time
         )
         
-        # Save article to database
+        # Add timeframes if is_top_story
+        if is_top_story:
+            for timeframe in timeframes:
+                new_timeframe = ArticleTimeframe(
+                    timeframe=timeframe,
+                    created_at=current_time,
+                    updated_at=current_time
+                )
+                new_article.timeframes.append(new_timeframe)
+        
+        # Save to database
         try:
             db.session.add(new_article)
             db.session.commit()
-        except Exception as e:
+            
+            return jsonify(create_response(
+                success=True, 
+                data=new_article.as_dict()
+            )), 201
+            
+        except SQLAlchemyError as e:
             db.session.rollback()
             return jsonify(create_response(
                 error=f'Database insertion failed: {str(e)}'
             )), 500
-        
-        # Return successful response
-        return jsonify(create_response(
-            success=True, 
-            data=new_article.as_dict()
-        )), 201
     
     except Exception as e:
         return jsonify(create_response(
             error=f'Unexpected error occurred: {str(e)}'
         )), 500
-
 
 @articles_bp.route('/article/generate', methods=['POST'])
 def generate_article():

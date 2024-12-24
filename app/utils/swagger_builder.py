@@ -126,86 +126,153 @@ swagger = Swagger()
 
 # ____Add or update an endpoint____
 
-# swagger.add_or_update_endpoint(
-#     endpoint_route='/article/generate',
-#     method='post',
-#     tag='Articles',
-#     description='Generate a new article using AI',
-#     detail_description='''
-#     Generate a new article using the NewsCreatorAgent.
-#     The endpoint accepts either an initial story (text/URL) or document files (or both) as input.
-#     Supported document formats are PDF, DOC, DOCX, and TXT.
-#     ''',
-#     params=[
-#         {
-#             'name': 'initial_story',
-#             'in': 'formData',
-#             'description': 'Initial story text or URL to generate from',
-#             'required': False,
-#             'type': 'string'
-#         },
-#         {
-#             'name': 'files',
-#             'in': 'formData',
-#             'description': 'Multiple document files (PDF, DOC, DOCX, TXT)',
-#             'required': False,
-#             'type': 'file',
-#             'allowMultiple': True
-#         }
-#     ],
-#     responses={
-#         '200': {
-#             'description': 'Article generated successfully',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'success': {'type': 'boolean'},
-#                     'data': {
-#                         'type': 'object',
-#                         'properties': {
-#                             'content': {
-#                                 'type': 'string',
-#                                 'description': 'The generated article content'
-#                             }
-#                         }
-#                     }
-#                 }
-#             }
-#         },
-#         '400': {
-#             'description': 'Bad request',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'success': {'type': 'boolean'},
-#                     'error': {
-#                         'type': 'string',
-#                         'examples': [
-#                             'Either initial_story or documents must be provided',
-#                             'Invalid file type. Allowed types are: pdf, doc, docx, txt'
-#                         ]
-#                     }
-#                 }
-#             }
-#         },
-#         '500': {
-#             'description': 'Internal server error',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'success': {'type': 'boolean'},
-#                     'error': {
-#                         'type': 'string',
-#                         'examples': [
-#                             'Failed to generate article content',
-#                             'Unexpected error occurred'
-#                         ]
-#                     }
-#                 }
-#             }
-#         }
-#     }
-# )
+swagger.add_or_update_endpoint(
+    endpoint_route='/article',
+    method='post',
+    tag='Articles',
+    description='Create a new article',
+    detail_description='''
+    Create a new article with comprehensive validation and error handling.
+    If is_top_story is set to true, timeframes must be provided with at least one value from: '1D', '1W', '1M'.
+    ''',
+    params=[
+        {
+            'name': 'body',
+            'in': 'body',
+            'description': 'Article data',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'required': ['title', 'content', 'bot_id', 'category_id', 'image_url'],
+                'properties': {
+                    'title': {
+                        'type': 'string',
+                        'description': 'Article title'
+                    },
+                    'content': {
+                        'type': 'string',
+                        'description': 'Article content'
+                    },
+                    'bot_id': {
+                        'type': 'integer',
+                        'description': 'Bot identifier'
+                    },
+                    'category_id': {
+                        'type': 'integer',
+                        'description': 'Category identifier'
+                    },
+                    'image_url': {
+                        'type': 'string',
+                        'description': 'URL of the article image'
+                    },
+                    'comment': {
+                        'type': 'string',
+                        'description': 'Optional comment on the article efficiency'
+                    },
+                    'is_top_story': {
+                        'type': 'boolean',
+                        'description': 'Whether this is a top story',
+                        'default': False
+                    },
+                    'timeframes': {
+                        'type': 'array',
+                        'description': 'Required if is_top_story is true. List of timeframes',
+                        'items': {
+                            'type': 'string',
+                            'enum': ['1D', '1W', '1M']
+                        }
+                    }
+                }
+            }
+        }
+    ],
+    responses={
+        '201': {
+            'description': 'Article created successfully',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'data': {
+                        'type': 'object',
+                        'properties': {
+                            'id': {'type': 'integer'},
+                            'title': {'type': 'string'},
+                            'content': {'type': 'string'},
+                            'image': {'type': 'string'},
+                            'url': {'type': 'string'},
+                            'date': {'type': 'string', 'format': 'date-time'},
+                            'is_article_efficent': {'type': 'string'},
+                            'is_top_story': {'type': 'boolean'},
+                            'bot_id': {'type': 'integer'},
+                            'created_at': {'type': 'string', 'format': 'date-time'},
+                            'updated_at': {'type': 'string', 'format': 'date-time'},
+                            'timeframes': {
+                                'type': 'array',
+                                'items': {
+                                    'type': 'object',
+                                    'properties': {
+                                        'timeframe': {'type': 'string'},
+                                        'created_at': {'type': 'string', 'format': 'date-time'}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '400': {
+            'description': 'Bad request',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'error': {
+                        'type': 'string',
+                        'examples': [
+                            'Missing required fields: title, content, bot_id, category_id, image_url',
+                            'Bot ID does not exist',
+                            'Category ID does not exist',
+                            'Timeframes are required when is_top_story is True',
+                            'Invalid timeframes. Must be one of: 1D, 1W, 1M',
+                            'Image processing failed'
+                        ]
+                    }
+                }
+            }
+        },
+        '409': {
+            'description': 'Conflict',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'error': {
+                        'type': 'string',
+                        'example': 'An article with this title already exists'
+                    }
+                }
+            }
+        },
+        '500': {
+            'description': 'Internal server error',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'error': {
+                        'type': 'string',
+                        'examples': [
+                            'Database insertion failed',
+                            'Unexpected error occurred'
+                        ]
+                    }
+                }
+            }
+        }
+    }
+)
 
 # ____Delete an endpoint____
 # success, message = swagger.delete_endpoint(endpoint_route='/upload_news_file_to_drive')

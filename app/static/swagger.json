@@ -770,163 +770,12 @@
       }
     },
     "/article": {
-      "get": {
-        "tags": [
-          "Articles"
-        ],
-        "summary": "Retrieve articles by bot id or bot name with optional pagination and search functionality",
-        "description": "This endpoint retrieves articles by bot id or bot name. it supports optional pagination and search functionality. if no pagination parameters are provided, all matching articles are returned. articles are sorted by creation date in descending order.",
-        "parameters": [
-          {
-            "name": "bot_id",
-            "in": "query",
-            "description": "ID of the bot (optional if bot_name is provided)",
-            "required": false,
-            "type": "integer",
-            "schema": {}
-          },
-          {
-            "name": "bot_name",
-            "in": "query",
-            "description": "Name of the bot (optional if bot_id is provided)",
-            "required": false,
-            "type": "string",
-            "schema": {}
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "description": "The page number for pagination (optional)",
-            "required": false,
-            "type": "integer",
-            "schema": {}
-          },
-          {
-            "name": "per_page",
-            "in": "query",
-            "description": "Number of articles per page for pagination (optional)",
-            "required": false,
-            "type": "integer",
-            "schema": {}
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "description": "Search term to filter articles by content (optional)",
-            "required": false,
-            "type": "string",
-            "schema": {}
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved articles",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "data": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "integer"
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "content": {
-                        "type": "string"
-                      },
-                      "created_at": {
-                        "type": "string",
-                        "format": "date-time"
-                      },
-                      "updated_at": {
-                        "type": "string",
-                        "format": "date-time"
-                      }
-                    }
-                  }
-                },
-                "pagination": {
-                  "type": "object",
-                  "properties": {
-                    "page": {
-                      "type": "integer"
-                    },
-                    "per_page": {
-                      "type": "integer"
-                    },
-                    "total_pages": {
-                      "type": "integer"
-                    },
-                    "total_items": {
-                      "type": "integer"
-                    }
-                  },
-                  "nullable": true
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "No articles found",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "data": {
-                  "type": "array",
-                  "items": {}
-                },
-                "message": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "error": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Bot not found",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "error": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      },
       "post": {
         "tags": [
           "Articles"
         ],
         "summary": "Create a new article",
-        "description": "\n    create a new article with comprehensive validation and error handling.\n    \n    the endpoint performs the following validations:\n    - checks for required fields\n    - validates bot_id and category_id existence\n    - checks for duplicate articles\n    - processes and stores the article image\n    - handles database operations with rollback capability\n    ",
+        "description": "\n    create a new article with comprehensive validation and error handling.\n    if is_top_story is set to true, timeframes must be provided with at least one value from: '1d', '1w', '1m'.\n    ",
         "parameters": [
           {
             "name": "body",
@@ -966,14 +815,24 @@
                 },
                 "comment": {
                   "type": "string",
-                  "description": "Comment on the article efficiency",
-                  "required": false
+                  "description": "Optional comment on the article efficiency"
                 },
                 "is_top_story": {
                   "type": "boolean",
                   "description": "Whether this is a top story",
-                  "required": false,
                   "default": false
+                },
+                "timeframes": {
+                  "type": "array",
+                  "description": "Required if is_top_story is true. List of timeframes",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "1D",
+                      "1W",
+                      "1M"
+                    ]
+                  }
                 }
               }
             }
@@ -1026,6 +885,21 @@
                     "updated_at": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "timeframes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "timeframe": {
+                            "type": "string"
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -1033,7 +907,7 @@
             }
           },
           "400": {
-            "description": "Bad request - Missing or invalid fields",
+            "description": "Bad request",
             "schema": {
               "type": "object",
               "properties": {
@@ -1041,13 +915,21 @@
                   "type": "boolean"
                 },
                 "error": {
-                  "type": "string"
+                  "type": "string",
+                  "examples": [
+                    "Missing required fields: title, content, bot_id, category_id, image_url",
+                    "Bot ID does not exist",
+                    "Category ID does not exist",
+                    "Timeframes are required when is_top_story is True",
+                    "Invalid timeframes. Must be one of: 1D, 1W, 1M",
+                    "Image processing failed"
+                  ]
                 }
               }
             }
           },
           "409": {
-            "description": "Conflict - Duplicate article",
+            "description": "Conflict",
             "schema": {
               "type": "object",
               "properties": {
@@ -1055,7 +937,8 @@
                   "type": "boolean"
                 },
                 "error": {
-                  "type": "string"
+                  "type": "string",
+                  "example": "An article with this title already exists"
                 }
               }
             }
@@ -1069,7 +952,11 @@
                   "type": "boolean"
                 },
                 "error": {
-                  "type": "string"
+                  "type": "string",
+                  "examples": [
+                    "Database insertion failed",
+                    "Unexpected error occurred"
+                  ]
                 }
               }
             }
@@ -3504,149 +3391,7 @@
         }
       }
     },
-    "/articles": {
-      "get": {
-        "tags": [
-          "Articles"
-        ],
-        "summary": "[deprecated] get all articles with basic pagination",
-        "description": "\n    \u26a0\ufe0f deprecated: this endpoint is deprecated and will be removed in future versions. \n    please use the new /articles/all endpoint with advanced filtering capabilities instead.\n    \n    basic endpoint to retrieve articles with optional pagination support.\n    results are sorted by creation date in descending order.\n    ",
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "description": "[DEPRECATED] Page number for pagination",
-            "required": false,
-            "type": "integer",
-            "schema": {}
-          },
-          {
-            "name": "per_page",
-            "in": "query",
-            "description": "[DEPRECATED] Number of articles per page",
-            "required": false,
-            "type": "integer",
-            "schema": {}
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Articles retrieved successfully",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "data": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "integer"
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "content": {
-                        "type": "string"
-                      },
-                      "image": {
-                        "type": "string"
-                      },
-                      "url": {
-                        "type": "string"
-                      },
-                      "date": {
-                        "type": "string",
-                        "format": "date-time"
-                      },
-                      "bot_id": {
-                        "type": "integer"
-                      },
-                      "created_at": {
-                        "type": "string",
-                        "format": "date-time"
-                      },
-                      "updated_at": {
-                        "type": "string",
-                        "format": "date-time"
-                      }
-                    }
-                  }
-                },
-                "pagination": {
-                  "type": "object",
-                  "properties": {
-                    "page": {
-                      "type": "integer"
-                    },
-                    "per_page": {
-                      "type": "integer"
-                    },
-                    "total_pages": {
-                      "type": "integer"
-                    },
-                    "total_items": {
-                      "type": "integer"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "No articles found",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "data": {
-                  "type": "array",
-                  "items": {}
-                },
-                "message": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "error": {
-                  "type": "string",
-                  "example": "Page and per_page must be positive integers"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Page not found",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
-                },
-                "error": {
-                  "type": "string",
-                  "example": "Page 5 does not exist. Max page is 3"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
+    "/articles": {},
     "/article/generate": {
       "post": {
         "tags": [
