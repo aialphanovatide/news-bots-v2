@@ -484,8 +484,8 @@
         "tags": [
           "Top stories"
         ],
-        "summary": "Retrieve top stories with optional pagination",
-        "description": "This endpoint retrieves articles marked as top stories, ordered by date (most recent first). it supports optional pagination.",
+        "summary": "Get all top stories with optional pagination and timeframe filtering",
+        "description": "\n    retrieve top stories from the article database with optional pagination and timeframe filtering.\n    results are ordered by date (most recent first).\n    ",
         "parameters": [
           {
             "name": "page",
@@ -498,9 +498,17 @@
           {
             "name": "per_page",
             "in": "query",
-            "description": "Number of items per page for pagination",
+            "description": "Number of items per page",
             "required": false,
             "type": "integer",
+            "schema": {}
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "description": "Filter articles by timeframe",
+            "required": false,
+            "type": "string",
             "schema": {}
           }
         ],
@@ -511,7 +519,8 @@
               "type": "object",
               "properties": {
                 "success": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "example": true
                 },
                 "data": {
                   "type": "array",
@@ -527,16 +536,47 @@
                       "content": {
                         "type": "string"
                       },
+                      "image": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      },
                       "date": {
                         "type": "string",
                         "format": "date-time"
                       },
+                      "is_article_efficent": {
+                        "type": "string"
+                      },
                       "is_top_story": {
                         "type": "boolean"
+                      },
+                      "bot_id": {
+                        "type": "integer"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
                       },
                       "updated_at": {
                         "type": "string",
                         "format": "date-time"
+                      },
+                      "timeframes": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "timeframe": {
+                              "type": "string"
+                            },
+                            "created_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
                       }
                     }
                   }
@@ -552,20 +592,28 @@
                 },
                 "pages": {
                   "type": "integer"
+                },
+                "timeframe": {
+                  "type": "string"
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid input parameters",
+            "description": "Bad request",
             "schema": {
               "type": "object",
               "properties": {
                 "success": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "example": false
                 },
                 "error": {
-                  "type": "string"
+                  "type": "string",
+                  "examples": [
+                    "Invalid timeframe: 2D. Must be one of: 1D, 1W, 1M",
+                    "Invalid input: page must be a positive integer"
+                  ]
                 }
               }
             }
@@ -576,10 +624,12 @@
               "type": "object",
               "properties": {
                 "success": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "example": false
                 },
                 "error": {
-                  "type": "string"
+                  "type": "string",
+                  "example": "An unexpected error occurred: Database error"
                 }
               }
             }
@@ -685,12 +735,12 @@
           }
         }
       },
-      "delete": {
+      "patch": {
         "tags": [
           "Top stories"
         ],
         "summary": "Remove an article from top stories",
-        "description": "This endpoint removes an article from top stories by setting its is_top_story flag to false.",
+        "description": "\n    remove an article from top stories by setting its is_top_story flag to false and removing its associated timeframes.\n    this endpoint updates a specific article in the database, changing its is_top_story status to false and removing all associated timeframes.\n    ",
         "parameters": [
           {
             "name": "article_id",
@@ -708,46 +758,53 @@
               "type": "object",
               "properties": {
                 "success": {
-                  "type": "boolean"
-                },
-                "message": {
-                  "type": "string"
+                  "type": "boolean",
+                  "example": true
                 },
                 "data": {
                   "type": "object",
                   "properties": {
                     "updated_id": {
-                      "type": "integer"
+                      "type": "integer",
+                      "description": "ID of the updated article"
                     }
                   }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Top story not found",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "success": {
-                  "type": "boolean"
                 },
-                "error": {
-                  "type": "string"
+                "message": {
+                  "type": "string",
+                  "example": "Article with ID 123 has been removed from top stories"
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid input",
+            "description": "Bad request",
             "schema": {
               "type": "object",
               "properties": {
                 "success": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "example": false
                 },
                 "error": {
-                  "type": "string"
+                  "type": "string",
+                  "example": "Invalid input: article_id must be a positive integer"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Article not found",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean",
+                  "example": false
+                },
+                "error": {
+                  "type": "string",
+                  "example": "No top story found with ID: 123"
                 }
               }
             }
@@ -758,10 +815,12 @@
               "type": "object",
               "properties": {
                 "success": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "example": false
                 },
                 "error": {
-                  "type": "string"
+                  "type": "string",
+                  "example": "An unexpected error occurred: Database error"
                 }
               }
             }
@@ -2716,28 +2775,58 @@
           "Top stories"
         ],
         "summary": "Set an article as a top story",
-        "description": "This endpoint sets the is_top_story field of a specific article to true, marking it as a top story.",
+        "description": "\n    set an article as a top story and assign timeframes.\n    this endpoint takes an article id as a url parameter, sets its is_top_story field to true,\n    and associates it with the provided timeframes.\n    ",
         "parameters": [
           {
             "name": "article_id",
             "in": "path",
-            "description": "ID of the article to be set as a top story",
+            "description": "ID of the article to set as top story",
             "required": true,
             "type": "integer",
             "schema": {}
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Timeframes to associate with the article",
+            "required": true,
+            "type": "string",
+            "schema": {
+              "type": "object",
+              "required": [
+                "timeframes"
+              ],
+              "properties": {
+                "timeframes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "1D",
+                      "1W",
+                      "1M"
+                    ]
+                  },
+                  "minItems": 1,
+                  "description": "List of timeframes to associate with the article"
+                }
+              }
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Article successfully set as a top story",
+            "description": "Article successfully set as top story",
             "schema": {
               "type": "object",
               "properties": {
                 "success": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "example": true
                 },
                 "message": {
-                  "type": "string"
+                  "type": "string",
+                  "example": "Article 123 has been set as a top story with timeframes: 1D, 1W"
                 },
                 "data": {
                   "type": "object",
@@ -2751,18 +2840,68 @@
                     "content": {
                       "type": "string"
                     },
+                    "image": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
                     "date": {
                       "type": "string",
                       "format": "date-time"
                     },
+                    "is_article_efficent": {
+                      "type": "string"
+                    },
                     "is_top_story": {
                       "type": "boolean"
+                    },
+                    "bot_id": {
+                      "type": "integer"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
                     },
                     "updated_at": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "timeframes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "timeframe": {
+                            "type": "string"
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
                     }
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean",
+                  "example": false
+                },
+                "error": {
+                  "type": "string",
+                  "examples": [
+                    "At least one timeframe must be provided",
+                    "Invalid timeframes: 2D. Must be one of: 1D, 1W, 1M"
+                  ]
                 }
               }
             }
@@ -2773,10 +2912,12 @@
               "type": "object",
               "properties": {
                 "success": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "example": false
                 },
                 "error": {
-                  "type": "string"
+                  "type": "string",
+                  "example": "Article with ID 123 not found"
                 }
               }
             }
@@ -2787,10 +2928,12 @@
               "type": "object",
               "properties": {
                 "success": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "example": false
                 },
                 "error": {
-                  "type": "string"
+                  "type": "string",
+                  "example": "An unexpected error occurred: Database error"
                 }
               }
             }

@@ -126,153 +126,123 @@ swagger = Swagger()
 
 # ____Add or update an endpoint____
 
-swagger.add_or_update_endpoint(
-    endpoint_route='/article',
-    method='post',
-    tag='Articles',
-    description='Create a new article',
-    detail_description='''
-    Create a new article with comprehensive validation and error handling.
-    If is_top_story is set to true, timeframes must be provided with at least one value from: '1D', '1W', '1M'.
-    ''',
-    params=[
-        {
-            'name': 'body',
-            'in': 'body',
-            'description': 'Article data',
-            'required': True,
-            'schema': {
-                'type': 'object',
-                'required': ['title', 'content', 'bot_id', 'category_id', 'image_url'],
-                'properties': {
-                    'title': {
-                        'type': 'string',
-                        'description': 'Article title'
-                    },
-                    'content': {
-                        'type': 'string',
-                        'description': 'Article content'
-                    },
-                    'bot_id': {
-                        'type': 'integer',
-                        'description': 'Bot identifier'
-                    },
-                    'category_id': {
-                        'type': 'integer',
-                        'description': 'Category identifier'
-                    },
-                    'image_url': {
-                        'type': 'string',
-                        'description': 'URL of the article image'
-                    },
-                    'comment': {
-                        'type': 'string',
-                        'description': 'Optional comment on the article efficiency'
-                    },
-                    'is_top_story': {
-                        'type': 'boolean',
-                        'description': 'Whether this is a top story',
-                        'default': False
-                    },
-                    'timeframes': {
-                        'type': 'array',
-                        'description': 'Required if is_top_story is true. List of timeframes',
-                        'items': {
-                            'type': 'string',
-                            'enum': ['1D', '1W', '1M']
-                        }
-                    }
-                }
-            }
-        }
-    ],
-    responses={
-        '201': {
-            'description': 'Article created successfully',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'data': {
-                        'type': 'object',
-                        'properties': {
-                            'id': {'type': 'integer'},
-                            'title': {'type': 'string'},
-                            'content': {'type': 'string'},
-                            'image': {'type': 'string'},
-                            'url': {'type': 'string'},
-                            'date': {'type': 'string', 'format': 'date-time'},
-                            'is_article_efficent': {'type': 'string'},
-                            'is_top_story': {'type': 'boolean'},
-                            'bot_id': {'type': 'integer'},
-                            'created_at': {'type': 'string', 'format': 'date-time'},
-                            'updated_at': {'type': 'string', 'format': 'date-time'},
-                            'timeframes': {
-                                'type': 'array',
-                                'items': {
-                                    'type': 'object',
-                                    'properties': {
-                                        'timeframe': {'type': 'string'},
-                                        'created_at': {'type': 'string', 'format': 'date-time'}
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        '400': {
-            'description': 'Bad request',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'error': {
-                        'type': 'string',
-                        'examples': [
-                            'Missing required fields: title, content, bot_id, category_id, image_url',
-                            'Bot ID does not exist',
-                            'Category ID does not exist',
-                            'Timeframes are required when is_top_story is True',
-                            'Invalid timeframes. Must be one of: 1D, 1W, 1M',
-                            'Image processing failed'
-                        ]
-                    }
-                }
-            }
-        },
-        '409': {
-            'description': 'Conflict',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'error': {
-                        'type': 'string',
-                        'example': 'An article with this title already exists'
-                    }
-                }
-            }
-        },
-        '500': {
-            'description': 'Internal server error',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'error': {
-                        'type': 'string',
-                        'examples': [
-                            'Database insertion failed',
-                            'Unexpected error occurred'
-                        ]
-                    }
-                }
-            }
-        }
-    }
-)
+# swagger.add_or_update_endpoint(
+#     endpoint_route='/top-stories',
+#     method='get',
+#     tag='Top Stories',
+#     description='Get all top stories with optional pagination and timeframe filtering',
+#     detail_description='''
+#     Retrieve top stories from the article database with optional pagination and timeframe filtering.
+#     Results are ordered by date (most recent first).
+#     ''',
+#     params=[
+#         {
+#             'name': 'page',
+#             'in': 'query',
+#             'description': 'Page number for pagination',
+#             'required': False,
+#             'type': 'integer'
+#         },
+#         {
+#             'name': 'per_page',
+#             'in': 'query',
+#             'description': 'Number of items per page',
+#             'required': False,
+#             'type': 'integer'
+#         },
+#         {
+#             'name': 'timeframe',
+#             'in': 'query',
+#             'description': 'Filter articles by timeframe',
+#             'required': False,
+#             'type': 'string',
+#             'enum': ['1D', '1W', '1M']
+#         }
+#     ],
+#     responses={
+#         '200': {
+#             'description': 'Successfully retrieved top stories',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {
+#                         'type': 'boolean',
+#                         'example': True
+#                     },
+#                     'data': {
+#                         'type': 'array',
+#                         'items': {
+#                             'type': 'object',
+#                             'properties': {
+#                                 'id': {'type': 'integer'},
+#                                 'title': {'type': 'string'},
+#                                 'content': {'type': 'string'},
+#                                 'image': {'type': 'string'},
+#                                 'url': {'type': 'string'},
+#                                 'date': {'type': 'string', 'format': 'date-time'},
+#                                 'is_article_efficent': {'type': 'string'},
+#                                 'is_top_story': {'type': 'boolean'},
+#                                 'bot_id': {'type': 'integer'},
+#                                 'created_at': {'type': 'string', 'format': 'date-time'},
+#                                 'updated_at': {'type': 'string', 'format': 'date-time'},
+#                                 'timeframes': {
+#                                     'type': 'array',
+#                                     'items': {
+#                                         'type': 'object',
+#                                         'properties': {
+#                                             'timeframe': {'type': 'string'},
+#                                             'created_at': {'type': 'string', 'format': 'date-time'}
+#                                         }
+#                                     }
+#                                 }
+#                             }
+#                         }
+#                     },
+#                     'count': {'type': 'integer'},
+#                     'total': {'type': 'integer'},
+#                     'page': {'type': 'integer'},
+#                     'pages': {'type': 'integer'},
+#                     'timeframe': {'type': 'string'}
+#                 }
+#             }
+#         },
+#         '400': {
+#             'description': 'Bad request',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {
+#                         'type': 'boolean',
+#                         'example': False
+#                     },
+#                     'error': {
+#                         'type': 'string',
+#                         'examples': [
+#                             'Invalid timeframe: 2D. Must be one of: 1D, 1W, 1M',
+#                             'Invalid input: page must be a positive integer'
+#                         ]
+#                     }
+#                 }
+#             }
+#         },
+#         '500': {
+#             'description': 'Internal server error',
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'success': {
+#                         'type': 'boolean',
+#                         'example': False
+#                     },
+#                     'error': {
+#                         'type': 'string',
+#                         'example': 'An unexpected error occurred: Database error'
+#                     }
+#                 }
+#             }
+#         }
+#     }
+# )
 
 # ____Delete an endpoint____
 # success, message = swagger.delete_endpoint(endpoint_route='/upload_news_file_to_drive')
