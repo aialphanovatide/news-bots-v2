@@ -127,79 +127,68 @@ swagger = Swagger()
 # ____Add or update an endpoint____
 
 # swagger.add_or_update_endpoint(
-#     endpoint_route='/articles',
+#     endpoint_route='/top-stories',
 #     method='get',
-#     tag='Articles',
-#     description='Get all articles with advanced filtering and pagination',
+#     tag='Top Stories',
+#     description='Get paginated top stories with optional filtering',
 #     detail_description='''
-#     Retrieve articles with advanced filtering options including bot name, category name, 
-#     top stories status, timeframes, and article type (valid/bin).
-#     Results are ordered by creation date (most recent first).
+#     Retrieve top stories from the database with optional filtering and pagination support.
+    
+#     Features:
+#     - Results are ordered by date (most recent first)
+#     - Stories are grouped by bot_id in the response
+#     - Default pagination: 10 items per page, starting at page 1
+#     - Optional filtering by timeframe and bot IDs
+#     - When bot_ids are specified, empty arrays are included for bots with no stories
+#     - When no bot_ids are specified, returns stories from all bots
+    
+#     Example URLs:
+#     - All stories (paginated): /top-stories
+#     - Specific bots: /top-stories?bot_id=1,2,3
+#     - With timeframe: /top-stories?timeframe=1D
+#     - Custom pagination: /top-stories?page=2&per_page=20
+#     - Combined filters: /top-stories?bot_id=1,2&timeframe=1W&page=1&per_page=10
 #     ''',
 #     params=[
 #         {
 #             'name': 'page',
 #             'in': 'query',
-#             'description': 'Page number for pagination',
+#             'description': 'Page number for pagination (default: 1)',
 #             'type': 'integer',
-#             'default': 1
+#             'default': 1,
+#             'minimum': 1,
+#             'required': False
 #         },
 #         {
 #             'name': 'per_page',
 #             'in': 'query',
-#             'description': 'Number of items per page',
+#             'description': 'Number of items per page (default: 10)',
 #             'type': 'integer',
-#             'default': 10
-#         },
-#         {
-#             'name': 'search',
-#             'in': 'query',
-#             'description': 'Search term to filter articles by content or title',
-#             'type': 'string'
-#         },
-#         {
-#             'name': 'bot_name',
-#             'in': 'query',
-#             'description': 'Filter articles by bot name',
-#             'type': 'string'
-#         },
-#         {
-#             'name': 'category_name',
-#             'in': 'query',
-#             'description': 'Filter articles by category name',
-#             'type': 'string'
-#         },
-#         {
-#             'name': 'top_stories',
-#             'in': 'query',
-#             'description': 'If "true", return only top stories',
-#             'type': 'boolean'
+#             'default': 10,
+#             'minimum': 1,
+#             'required': False
 #         },
 #         {
 #             'name': 'timeframe',
 #             'in': 'query',
-#             'description': 'Filter top stories by timeframe',
+#             'description': 'Filter stories by timeframe',
 #             'type': 'string',
-#             'enum': ['1D', '1W', '1M']
+#             'enum': ['1D', '1W', '1M'],
+#             'required': False
 #         },
 #         {
-#             'name': 'bin',
+#             'name': 'bot_id',
 #             'in': 'query',
-#             'description': 'If "true", include unwanted articles',
-#             'type': 'boolean',
-#             'default': False
-#         },
-#         {
-#             'name': 'valid_articles',
-#             'in': 'query',
-#             'description': 'If "true", include valid articles',
-#             'type': 'boolean',
-#             'default': True
+#             'description': '''Comma-separated list of bot IDs to filter by.
+#                             If not provided, returns stories from all bots.
+#                             Example: bot_id=1,2,3''',
+#             'type': 'string',
+#             'required': False
 #         }
 #     ],
 #     responses={
 #         '200': {
-#             'description': 'Successfully retrieved articles',
+#             'description': 'Successfully retrieved top stories',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
@@ -208,52 +197,50 @@ swagger = Swagger()
 #                         'example': True
 #                     },
 #                     'data': {
-#                         'type': 'array',
-#                         'items': {
-#                             'type': 'object',
-#                             'properties': {
-#                                 'id': {'type': 'integer'},
-#                                 'title': {'type': 'string'},
-#                                 'content': {'type': 'string'},
-#                                 'image': {'type': 'string'},
-#                                 'url': {'type': 'string'},
-#                                 'date': {'type': 'string', 'format': 'date-time'},
-#                                 'bot_id': {'type': 'integer'},
-#                                 'created_at': {'type': 'string', 'format': 'date-time'},
-#                                 'updated_at': {'type': 'string', 'format': 'date-time'},
-#                                 'is_top_story': {'type': 'boolean'},
-#                                 'type': {'type': 'string', 'enum': ['valid', 'bin']}
+#                         'type': 'object',
+#                         'description': 'Stories grouped by bot_id',
+#                         'additionalProperties': {
+#                             'type': 'array',
+#                             'items': {
+#                                 'type': 'object',
+#                                 'properties': {
+#                                     'id': {'type': 'integer', 'description': 'Article ID'},
+#                                     'title': {'type': 'string', 'description': 'Article title'},
+#                                     'content': {'type': 'string', 'description': 'Article content'},
+#                                     'image': {'type': 'string', 'description': 'Image URL'},
+#                                     'url': {'type': 'string', 'description': 'Article URL'},
+#                                     'date': {'type': 'string', 'format': 'date-time', 'description': 'Article date'},
+#                                     'bot_id': {'type': 'integer', 'description': 'Bot identifier'},
+#                                     'is_top_story': {'type': 'boolean', 'description': 'Indicates if this is a top story'},
+#                                     'timeframes': {
+#                                         'type': 'array',
+#                                         'description': 'Timeframes this article appears in',
+#                                         'items': {
+#                                             'type': 'object',
+#                                             'properties': {
+#                                                 'article_id': {'type': 'integer'},
+#                                                 'timeframe': {'type': 'string', 'enum': ['1D', '1W', '1M']},
+#                                                 'created_at': {'type': 'string', 'format': 'date-time'}
+#                                             }
+#                                         }
+#                                     },
+#                                     'created_at': {'type': 'string', 'format': 'date-time'},
+#                                     'updated_at': {'type': 'string', 'format': 'date-time'}
+#                                 }
 #                             }
 #                         }
 #                     },
-#                     'pagination': {
-#                         'type': 'object',
-#                         'properties': {
-#                             'page': {'type': 'integer'},
-#                             'per_page': {'type': 'integer'},
-#                             'total_pages': {'type': 'integer'},
-#                             'total_items': {'type': 'integer'}
-#                         }
-#                     },
-#                     'filters': {
-#                         'type': 'object',
-#                         'properties': {
-#                             'bot_name': {'type': 'string'},
-#                             'category_name': {'type': 'string'},
-#                             'timeframe': {'type': 'string'}
-#                         }
+#                     'count': {'type': 'integer', 'description': 'Number of articles returned'},
+#                     'total': {'type': 'integer', 'description': 'Total number of articles matching the query'},
+#                     'page': {'type': 'integer', 'description': 'Current page number'},
+#                     'pages': {'type': 'integer', 'description': 'Total number of pages'},
+#                     'per_page': {'type': 'integer', 'description': 'Items per page'},
+#                     'timeframe': {'type': 'string', 'description': 'Applied timeframe filter'},
+#                     'queried_bots': {
+#                         'type': 'array',
+#                         'description': 'List of bot IDs that were queried',
+#                         'items': {'type': 'integer'}
 #                     }
-#                 }
-#             }
-#         },
-#         '204': {
-#             'description': 'No articles found',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'success': {'type': 'boolean', 'example': True},
-#                     'data': {'type': 'array', 'items': {}},
-#                     'message': {'type': 'string', 'example': 'No articles found'}
 #                 }
 #             }
 #         },
@@ -266,9 +253,10 @@ swagger = Swagger()
 #                     'error': {
 #                         'type': 'string',
 #                         'examples': [
-#                             'Page and per_page must be positive integers',
-#                             'At least one article type must be selected',
-#                             'Invalid timeframe: 2D. Must be one of: 1D, 1W, 1M'
+#                             'Invalid bot_id format. Must be comma-separated integers (e.g., 1,2,3)',
+#                             'Invalid timeframe: 2D. Must be one of: 1D, 1W, 1M',
+#                             'Page number must be greater than 0',
+#                             'Items per page must be greater than 0'
 #                         ]
 #                     }
 #                 }

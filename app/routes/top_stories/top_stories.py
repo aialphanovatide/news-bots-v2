@@ -95,103 +95,58 @@ def set_top_story(article_id):
             error=f"An unexpected error occurred: {str(e)}"
         )), HTTPStatus.INTERNAL_SERVER_ERROR
     
-
-# @top_stories_bp.route('/top-stories', methods=['GET'])
-# def get_top_stories():
-#     """
-#     Retrieve top stories from the article database with optional pagination.
-
-#     This endpoint queries the database for articles marked as top stories,
-#     ordered by date (most recent first). It supports optional pagination.
-
-#     Query Parameters:
-#         page (int, optional): The page number for pagination.
-#         per_page (int, optional): The number of items per page for pagination.
-
-#     Returns:
-#         JSON: A JSON object containing:
-#             - success (bool): Indicates if the operation was successful
-#             - data (list): List of top story articles, each as a dictionary
-#             - count (int): Number of articles returned
-#             - total (int): Total number of top stories (only with pagination)
-#             - page (int): Current page number (only with pagination)
-#             - pages (int): Total number of pages (only with pagination)
-#             - error (str or None): Error message, if any
-#         HTTP Status Code
-
-#     Raises:
-#         400 Bad Request: If the provided parameters are not valid
-#         500 Internal Server Error: If there's an unexpected error during execution
-#     """
-#     try:
-#         # Check if pagination is requested
-#         page = request.args.get('page', type=int)
-#         per_page = request.args.get('per_page', type=int)
-        
-#         # Query for top stories
-#         query = Article.query.filter_by(is_top_story=True).order_by(desc(Article.date))
-        
-#         if page is not None and per_page is not None:
-#             # Use pagination
-#             pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-#             top_stories = pagination.items
-#             result = [article.as_dict() for article in top_stories]
-            
-#             return jsonify(create_response(
-#                 success=True,
-#                 data=result,
-#                 count=len(result),
-#                 total=pagination.total,
-#                 page=page,
-#                 pages=pagination.pages
-#             )), HTTPStatus.OK
-#         else:
-#             # No pagination, return all top stories
-#             top_stories = query.all()
-#             result = [article.as_dict() for article in top_stories]
-            
-#             return jsonify(create_response(
-#                 success=True,
-#                 data=result,
-#                 count=len(result)
-#             )), HTTPStatus.OK
-
-#     except ValueError as ve:
-#         return jsonify(create_response(error=f"Invalid input: {str(ve)}")), HTTPStatus.BAD_REQUEST
     
-#     except Exception as e:
-#         db.session.rollback()
-#         return jsonify(create_response(error=f"An unexpected error occurred: {str(e)}")), HTTPStatus.INTERNAL_SERVER_ERROR
-
-
 @top_stories_bp.route('/top-stories', methods=['GET'])
 def get_top_stories():
     """
-    Retrieve top stories from the article database with optional pagination and timeframe filtering.
-
-    This endpoint queries the database for articles marked as top stories,
-    ordered by date (most recent first). It supports optional pagination and timeframe filtering.
+    Retrieve top stories from the article database with optional pagination, timeframe filtering,
+    and bot filtering.
 
     Query Parameters:
-        page (int, optional): The page number for pagination.
-        per_page (int, optional): The number of items per page for pagination.
+        page (int, optional): The page number for pagination (default: 1)
+        per_page (int, optional): The number of items per page for pagination (default: 10)
         timeframe (str, optional): Filter by timeframe ('1D', '1W', '1M')
+        bot_id (str, optional): Comma-separated bot IDs to filter by
+                              Example: /top-stories?bot_id=1,2,3
+                              If not provided, returns stories from all bots
 
     Returns:
         JSON: A JSON object containing:
             - success (bool): Indicates if the operation was successful
-            - data (list): List of top story articles, each as a dictionary
-            - count (int): Number of articles returned
-            - total (int): Total number of top stories (only with pagination)
-            - page (int): Current page number (only with pagination)
-            - pages (int): Total number of pages (only with pagination)
+            - data (dict): Dictionary of articles grouped by bot_id (includes empty arrays for specified bots with no stories)
+            - count (int): Total number of articles returned
+            - total (int): Total number of top stories
+            - page (int): Current page number
+            - pages (int): Total number of pages
             - error (str or None): Error message, if any
     """
     try:
-        # Check if pagination is requested
-        page = request.args.get('page', type=int)
-        per_page = request.args.get('per_page', type=int)
+        # Get query parameters with defaults
+        page = request.args.get('page', type=int, default=1)
+        per_page = request.args.get('per_page', type=int, default=10)
         timeframe = request.args.get('timeframe')
+        bot_ids_param = request.args.get('bot_id')
+
+        # Validate pagination parameters
+        if page < 1:
+            return jsonify(create_response(
+                error="Page number must be greater than 0"
+            )), HTTPStatus.BAD_REQUEST
+        
+        if per_page < 1:
+            return jsonify(create_response(
+                error="Items per page must be greater than 0"
+            )), HTTPStatus.BAD_REQUEST
+
+        # Process comma-separated bot_ids if provided
+        bot_ids = None
+        if bot_ids_param:
+            try:
+                bot_ids = [int(id_.strip()) for id_ in bot_ids_param.split(',')]
+            except ValueError:
+                return jsonify(create_response(
+                    error="Invalid bot_id format. Must be comma-separated integers (e.g., 1,2,3)"
+                )), HTTPStatus.BAD_REQUEST
 
         # Validate timeframe if provided
         valid_timeframes = ['1D', '1W', '1M']
@@ -200,50 +155,44 @@ def get_top_stories():
                 error=f"Invalid timeframe: {timeframe}. Must be one of: {', '.join(valid_timeframes)}"
             )), HTTPStatus.BAD_REQUEST
         
-        # Base query for top stories
+        # Build query
         query = Article.query.filter_by(is_top_story=True)
         
-        # Add timeframe filter if specified
+        if bot_ids:
+            query = query.filter(Article.bot_id.in_(bot_ids))
+
         if timeframe:
             query = query.join(Article.timeframes).filter(ArticleTimeframe.timeframe == timeframe)
         
-        # Order by date
         query = query.order_by(desc(Article.date))
         
-        if page is not None and per_page is not None:
-            # Use pagination
-            pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-            top_stories = pagination.items
-            result = [article.as_dict() for article in top_stories]
-            
-            return jsonify(create_response(
-                success=True,
-                data=result,
-                count=len(result),
-                total=pagination.total,
-                page=page,
-                pages=pagination.pages,
-                timeframe=timeframe
-            )), HTTPStatus.OK
-        else:
-            # No pagination, return all top stories
-            top_stories = query.all()
-            result = [article.as_dict() for article in top_stories]
-            
-            return jsonify(create_response(
-                success=True,
-                data=result,
-                count=len(result),
-                timeframe=timeframe
-            )), HTTPStatus.OK
-
-    except ValueError as ve:
+        # Always use pagination with defaults
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        articles = pagination.items
+        
+        # Initialize articles_by_bot with empty arrays for requested bot_ids
+        articles_by_bot = {str(bot_id): [] for bot_id in bot_ids} if bot_ids else {}
+        
+        # Group articles by bot_id
+        for article in articles:
+            bot_id = str(article.bot_id)
+            if bot_id not in articles_by_bot:
+                articles_by_bot[bot_id] = []
+            articles_by_bot[bot_id].append(article.as_dict())
+        
         return jsonify(create_response(
-            error=f"Invalid input: {str(ve)}"
-        )), HTTPStatus.BAD_REQUEST
-    
+            success=True,
+            data=articles_by_bot,
+            count=len(articles),
+            total=pagination.total,
+            page=page,
+            pages=pagination.pages,
+            per_page=per_page,
+            timeframe=timeframe,
+            queried_bots=bot_ids  # Will be None if no bot_ids were specified
+        )), HTTPStatus.OK
+
     except Exception as e:
-        db.session.rollback()
         return jsonify(create_response(
             error=f"An unexpected error occurred: {str(e)}"
         )), HTTPStatus.INTERNAL_SERVER_ERROR
