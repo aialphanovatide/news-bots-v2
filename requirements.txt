@@ -31,5 +31,9 @@ psutil
 openpyxl
 elementpath
 snscrape
+<<<<<<< HEAD
+python-docx
+=======
 PyPDF2
 python-docx>=1.1.2
+>>>>>>> develop
