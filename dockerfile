@@ -27,7 +27,8 @@
 # CMD ["./script.sh"]
 
 
-FROM python:3.8-slim
+# Use debian-buster base instead of slim
+FROM python:3.8-buster
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -36,8 +37,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Update package lists and install dependencies
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
     curl \
@@ -46,15 +50,16 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python packages
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Install playwright and its dependencies
 RUN pip install playwright && \
     playwright install-deps && \
     playwright install
 
-# Copy the current directory contents into the container at /app
+# Copy the current directory contents into the container
 COPY . .
 
 # Make the script executable
