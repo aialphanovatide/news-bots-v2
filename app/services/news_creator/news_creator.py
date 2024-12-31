@@ -1,9 +1,20 @@
 import os
+import sys
+import json
+from pathlib import Path
+
+# Add project root to PYTHONPATH
+root_dir = Path(__file__).resolve().parents[3]  # Go up 3 levels to project root
+sys.path.append(str(root_dir))
+
+import io
 import logging
 from openai import OpenAI
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any, Union
 from werkzeug.datastructures import FileStorage
 from app.services.news_creator.tools.request import request_to_link
+from app.services.news_creator.tools.docx_extracter import extract_docx_content
+from app.services.news_creator.tools.pdf_extracter import extract_pdf_content
 from pathlib import Path
 import json
 import time
@@ -65,6 +76,17 @@ class NewsCreatorAgent:
                 self.logger.addHandler(console_handler)
         else:
             self.logger.setLevel(logging.WARNING)
+
+    def list_assistants(self):
+        """List all available OpenAI assistants."""
+        try:
+            assistants = self.client.beta.assistants.list()
+            self.logger.info(f"Found {len(assistants.data)} assistants")
+            return [model.model_dump() for model in assistants.data]
+
+        except Exception as e:
+            self.logger.error(f"Error listing assistants: {str(e)}")
+            return []
     
     def create_assistant(self):
         """Create and configure the OpenAI Assistant with file handling capabilities."""
@@ -92,12 +114,137 @@ class NewsCreatorAgent:
                 4. Include relevant quotes from the source material
                 5. Structure stories with headlines, subheadings, and proper formatting
                 6. Synthesize information from multiple sources when available""",
-                model="gpt-4-turbo-preview",  # Updated model name
+                model="gpt-4o",
                 tools=self.tools
             )
             return self.assistant
         except Exception as e:
             self.logger.error(f"Error creating/retrieving assistant: {str(e)}")
+            raise
+
+    def delete_assistant(self, assistant_id: str) -> bool:
+        """
+        Delete an OpenAI assistant by ID.
+
+        Args:
+            assistant_id (str): The ID of the assistant to delete
+
+        Returns:
+            bool: True if deletion was successful, False otherwise
+        """
+        try:
+            self.logger.info(f"Attempting to delete assistant: {assistant_id}")
+            response = self.client.beta.assistants.delete(assistant_id=assistant_id)
+            
+            # Check if deletion was successful
+            if response.deleted:
+                self.logger.info(f"Successfully deleted assistant: {assistant_id}")
+                # If this was our current assistant, clear it
+                if self.assistant and self.assistant.id == assistant_id:
+                    self.assistant = None
+                return True
+            else:
+                self.logger.warning(f"Deletion response indicated failure for assistant: {assistant_id}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Error deleting assistant {assistant_id}: {str(e)}")
+            return False
+
+    def retrieve_assistant(self, assistant_id: str):
+        """
+        Retrieve an existing assistant by ID.
+
+        Args:
+            assistant_id (str): The ID of the assistant to retrieve
+
+        Returns:
+            The assistant object if found, None if not found or error occurs
+
+        Raises:
+            Exception: If there's an error retrieving the assistant
+        """
+        try:
+            self.logger.info(f"Retrieving assistant with ID: {assistant_id}")
+            assistant = self.client.beta.assistants.retrieve(assistant_id=assistant_id)
+            self.assistant = assistant
+            return assistant
+        except Exception as e:
+            self.logger.error(f"Error retrieving assistant: {str(e)}")
+            raise
+
+    def update_assistant(
+        self,
+        assistant_id: str,
+        name: str = None,
+        instructions: str = None,
+        model: str = None,
+        tools: list = None,
+        description: str = None,
+        metadata: dict = None,
+        temperature: float = None,
+        top_p: float = None,
+        response_format: Union[str, dict] = None
+    ) -> Optional[Any]:
+        """
+        Update an existing assistant's properties.
+
+        Args:
+            assistant_id (str): The ID of the assistant to modify
+            name (str, optional): New name for the assistant (max 256 chars)
+            instructions (str, optional): New system instructions (max 256k chars)
+            model (str, optional): New model ID to use
+            tools (list, optional): New list of tools (max 128 tools)
+            description (str, optional): New description (max 512 chars)
+            metadata (dict, optional): New metadata key-value pairs
+            temperature (float, optional): New sampling temperature (0 to 2)
+            top_p (float, optional): New nucleus sampling value (0 to 1)
+            response_format (Union[str, dict], optional): New response format specification
+
+        Returns:
+            The modified assistant object if successful, None if error occurs
+
+        Raises:
+            Exception: If there's an error updating the assistant
+        """
+        try:
+            self.logger.info(f"Updating assistant with ID: {assistant_id}")
+            
+            # Build update parameters (only include non-None values)
+            update_params = {}
+            if name is not None:
+                update_params['name'] = name
+            if instructions is not None:
+                update_params['instructions'] = instructions
+            if model is not None:
+                update_params['model'] = model
+            if tools is not None:
+                update_params['tools'] = tools
+            if description is not None:
+                update_params['description'] = description
+            if metadata is not None:
+                update_params['metadata'] = metadata
+            if temperature is not None:
+                update_params['temperature'] = temperature
+            if top_p is not None:
+                update_params['top_p'] = top_p
+            if response_format is not None:
+                update_params['response_format'] = response_format
+
+            # Update the assistant
+            updated_assistant = self.client.beta.assistants.update(
+                assistant_id=assistant_id,
+                **update_params
+            )
+            
+            # Update the instance's assistant if it's the same one
+            if self.assistant and self.assistant.id == assistant_id:
+                self.assistant = updated_assistant
+                
+            return updated_assistant
+
+        except Exception as e:
+            self.logger.error(f"Error updating assistant: {str(e)}")
             raise
 
     def create_thread(self):
@@ -207,9 +354,7 @@ class NewsCreatorAgent:
             # Update thread with file
             self.client.beta.threads.update(
                 thread_id=self.thread.id,
-                tool_resources={"code_interpreter": {
-                    "file_ids": [file_id]
-                }}
+                tool_resources= {"code_interpreter": {"file_ids": [file_id]}}
             )
             return True
             
@@ -313,6 +458,7 @@ class NewsCreatorAgent:
                         self.logger.error(f"Maximum retries ({max_retries}) exceeded")
                         break
                     
+                    self.logger.info(f"Tool calls: {run.required_action.submit_tool_outputs.tool_calls}")
                     tool_outputs = self._handle_tool_calls(run.required_action.submit_tool_outputs.tool_calls)
                     
                     if tool_outputs:
@@ -339,33 +485,35 @@ class NewsCreatorAgent:
             self.cleanup_files()
 
     def _handle_tool_calls(self, tool_calls) -> List[Dict[str, str]]:
-       """
-       Handle tool calls from the assistant.
-       
-       Args:
-           tool_calls: The tool calls to process
-           
-       Returns:
-           List[Dict[str, str]]: List of tool outputs
-       """
-       tool_outputs = []
-       for tool_call in tool_calls:
-           try:
-               if tool_call.function.name == "request_to_link":
-                   self.logger.info(f"Executing request_to_link")
-                   args = json.loads(tool_call.function.arguments)
-                   result = request_to_link(args["link"])
-                   tool_outputs.append({
-                       "tool_call_id": tool_call.id,
-                       "output": result
-                   })
-           except Exception as e:
-               self.logger.error(f"Tool execution error: {str(e)}")
-               tool_outputs.append({
-                   "tool_call_id": tool_call.id,
-                   "output": f"Error: {str(e)}"
-               })
-       return tool_outputs 
+        """
+        Handle tool calls from the assistant.
+        
+        Args:
+            tool_calls: The tool calls to process
+            
+        Returns:
+            List[Dict[str, str]]: List of tool outputs
+        """
+        tool_outputs = []
+        for tool_call in tool_calls:
+            try:
+                if tool_call.function.name == "request_to_link":
+                    self.logger.info("Executing request_to_link")
+                    args = json.loads(tool_call.function.arguments)
+                    result = request_to_link(args["link"])
+                    tool_outputs.append({
+                        "tool_call_id": tool_call.id,
+                        "output": result
+                    })
+
+            except Exception as e:
+                self.logger.error(f"Tool execution error: {str(e)}")
+                tool_outputs.append({
+                    "tool_call_id": tool_call.id,
+                    "output": f"Error: {str(e)}"
+                })
+        
+        return tool_outputs
  
     def _create_story_prompt(self, file_paths, initial_story) -> str:
         """Create the comprehensive prompt for story generation."""
@@ -409,4 +557,3 @@ class NewsCreatorAgent:
             except Exception as e:
                 print(f"Error deleting file {file.id}: {str(e)}")
         self.uploaded_files = []
-
