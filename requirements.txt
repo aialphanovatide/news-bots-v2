@@ -19,8 +19,7 @@ flasgger
 Flask-APScheduler
 scikit-learn
 pyperclip
-google-api-python-client          
-flask_migrate       
+google-api-python-client                
 Flask-SQLAlchemy    
 gunicorn
 redis
