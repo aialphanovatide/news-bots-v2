@@ -24,6 +24,10 @@ env/
 *.pyo
 *.pyd
 
+*.docx
+*.doc
+*.pdf
+
 app/utils/userDataDir/
 
 # Database
