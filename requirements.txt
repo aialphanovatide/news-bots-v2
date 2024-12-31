@@ -5,7 +5,6 @@ Flask-Cors
 Flask-Migrate
 postgres
 psycopg2-binary
-Flask-SQLAlchemy
 bs4
 requests
 aiofiles
@@ -33,4 +32,3 @@ elementpath
 snscrape
 python-docx
 PyPDF2
-Flask-SQLAlchemy==3.1.1
