@@ -80,20 +80,20 @@ services:
       retries: 3
       start_period: 180s
 
-  playwright:
-    build:
-      context: .
-      dockerfile: Dockerfile.playwright
-    volumes:
-      - .:/home/pwuser/app
-    depends_on:
-      - app-dev
-    environment:
-      - DISPLAY=:99
-    cap_add:
-      - SYS_ADMIN
-    networks:
-      - app-network-dev
+  # playwright:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.playwright
+  #   volumes:
+  #     - .:/home/pwuser/app
+  #   depends_on:
+  #     - app-dev
+  #   environment:
+  #     - DISPLAY=:99
+  #   cap_add:
+  #     - SYS_ADMIN
+  #   networks:
+  #     - app-network-dev
 
   ngrok:
     image: ngrok/ngrok:latest
