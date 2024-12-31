@@ -1,21 +1,26 @@
 FROM python:3.8-slim
 
-# Set the working directory in the container
+# Set the working directory
 WORKDIR /app
 
-# Copy requirements first to leverage Docker cache
-COPY requirements.txt .
+# Install necessary packages
+RUN apt-get update && apt-get install -y \
+    file \
+    dos2unix \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install any needed packages specified in requirements.txt
+# Copy requirements first
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the current directory contents into the container at /app
+# Copy the script and set permissions
+COPY script.sh .
+RUN dos2unix script.sh && chmod +x script.sh
+
+# Copy the rest of the application
 COPY . .
 
-# Make the script executable
-RUN chmod +x script.sh
-
-# Make port 5000 available to the world outside this container
+# Make port 5000 available
 EXPOSE 5000
 
 # Run the script when the container launches
