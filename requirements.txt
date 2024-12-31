@@ -33,4 +33,3 @@ elementpath
 snscrape
 python-docx
 PyPDF2
-python-docx>=1.1.2
