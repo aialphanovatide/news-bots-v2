@@ -1,65 +1,65 @@
 # THIS SCRIPT IS FOR LINUX ONLY
 
-FROM python:3.8-slim
+# FROM python:3.8-slim
 
-# Set the working directory in the container
-WORKDIR /app
+# # Set the working directory in the container
+# WORKDIR /app
 
-# Copy requirements first to leverage Docker cache
-COPY requirements.txt .
+# # Copy requirements first to leverage Docker cache
+# COPY requirements.txt .
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# # Install any needed packages specified in requirements.txt
+# RUN pip install --no-cache-dir -r requirements.txt
 
-# Install playwright and its dependencies
-RUN pip install playwright
+# # Install playwright and its dependencies
+# RUN pip install playwright
 
-# Copy the current directory contents into the container at /app
-COPY . .
+# # Copy the current directory contents into the container at /app
+# COPY . .
 
-# Make the script executable
-RUN chmod +x script.sh
+# # Make the script executable
+# RUN chmod +x script.sh
 
-# Make port 5000 available to the world outside this container
-EXPOSE 5000
+# # Make port 5000 available to the world outside this container
+# EXPOSE 5000
 
-# Run the script when the container launches
-CMD ["./script.sh"]
+# # Run the script when the container launches
+# CMD ["./script.sh"]
 
 
 
 # THIS SCRIPT IS FOR WINDOWS ONLY
 
-# FROM python:3.8-slim-buster
+FROM python:3.8-slim-buster
 
-# # Set environment variables
-# ENV PYTHONDONTWRITEBYTECODE=1 \
-#     PYTHONUNBUFFERED=1 \
-#     DEBIAN_FRONTEND=noninteractive
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive
 
-# WORKDIR /app
+WORKDIR /app
 
-# # Detect OS and install dos2unix only on Windows
-# RUN if [ "$(uname -s)" = "Linux" ] && [ -f /etc/os-release ] && grep -q Microsoft /proc/version; then \
-#     # Windows Docker Desktop detected
-#     apt-get update && \
-#     apt-get install -y dos2unix && \
-#     rm -rf /var/lib/apt/lists/*; \
-# fi
+# Detect OS and install dos2unix only on Windows
+RUN if [ "$(uname -s)" = "Linux" ] && [ -f /etc/os-release ] && grep -q Microsoft /proc/version; then \
+    # Windows Docker Desktop detected
+    apt-get update && \
+    apt-get install -y dos2unix && \
+    rm -rf /var/lib/apt/lists/*; \
+fi
 
-# COPY script.sh .
+COPY script.sh .
 
-# # Handle line endings based on OS
-# RUN if command -v dos2unix > /dev/null; then \
-#     # Windows: use dos2unix
-#     dos2unix script.sh; \
-# else \
-#     # macOS/Linux: use sed
-#     sed -i 's/\r$//' script.sh; \
-# fi && \
-# chmod +x script.sh
+# Handle line endings based on OS
+RUN if command -v dos2unix > /dev/null; then \
+    # Windows: use dos2unix
+    dos2unix script.sh; \
+else \
+    # macOS/Linux: use sed
+    sed -i 's/\r$//' script.sh; \
+fi && \
+chmod +x script.sh
 
-# COPY . .
-# EXPOSE 5000
+COPY . .
+EXPOSE 5000
 
-# CMD ["./script.sh"]
+CMD ["./script.sh"]
