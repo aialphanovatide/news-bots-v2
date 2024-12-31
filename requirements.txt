@@ -33,3 +33,4 @@ elementpath
 snscrape
 python-docx
 PyPDF2
+Flask-SQLAlchemy==3.1.1
