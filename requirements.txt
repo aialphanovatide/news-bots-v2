@@ -31,3 +31,4 @@ psutil
 openpyxl
 elementpath
 snscrape
+python-docx
