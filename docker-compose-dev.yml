@@ -65,25 +65,39 @@ services:
       - COINMARKET_API_KEY=${COINMARKET_API_KEY}
     volumes:
       - .:/app
+    # command: 
+    #   - /bin/bash
+    #   - -c
+    #   - |
+    #     echo "Current directory: $(pwd)"
+    #     echo "Listing directory contents:"
+    #     ls -la /app
+    #     echo "Script contents:"
+    #     cat /app/script.sh
+    #     echo "Converting line endings:"
+    #     dos2unix /app/script.sh
+    #     echo "Setting permissions:"
+    #     chmod +x /app/script.sh
+    #     echo "New permissions:"
+    #     ls -la /app/script.sh
+    #     echo "Shell being used:"
+    #     echo $SHELL
+    #     echo "Executing script with bash:"
+    #     bash /app/script.sh
     command: 
       - /bin/bash
       - -c
       - |
-        echo "Current directory: $(pwd)"
-        echo "Listing directory contents:"
-        ls -la /app
-        echo "Script contents:"
-        cat /app/script.sh
-        echo "Converting line endings:"
-        dos2unix /app/script.sh
-        echo "Setting permissions:"
-        chmod +x /app/script.sh
-        echo "New permissions:"
-        ls -la /app/script.sh
-        echo "Shell being used:"
-        echo $SHELL
-        echo "Executing script with bash:"
-        bash /app/script.sh
+        # Platform-specific line ending handling
+        if command -v dos2unix > /dev/null; then
+          echo "Windows environment detected, converting line endings..."
+          dos2unix script.sh
+        else
+          echo "Unix environment detected, using sed..."
+          sed -i 's/\r$//' script.sh
+        fi
+        chmod +x script.sh
+        ./script.sh
     networks:
       - app-network-dev
     healthcheck:
@@ -93,20 +107,20 @@ services:
       retries: 3
       start_period: 180s
 
-  playwright:
-    build:
-      context: .
-      dockerfile: Dockerfile.playwright
-    volumes:
-      - .:/home/pwuser/app
-    depends_on:
-      - app-dev
-    environment:
-      - DISPLAY=:99
-    cap_add:
-      - SYS_ADMIN
-    networks:
-      - app-network-dev
+  # playwright:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.playwright
+  #   volumes:
+  #     - .:/home/pwuser/app
+  #   depends_on:
+  #     - app-dev
+  #   environment:
+  #     - DISPLAY=:99
+  #   cap_add:
+  #     - SYS_ADMIN
+  #   networks:
+  #     - app-network-dev
 
   ngrok:
     image: ngrok/ngrok:latest
