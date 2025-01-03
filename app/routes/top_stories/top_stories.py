@@ -147,13 +147,15 @@ def get_top_stories():
                 return jsonify(create_response(
                     error="Invalid bot_id format. Must be comma-separated integers (e.g., 1,2,3)"
                 )), HTTPStatus.BAD_REQUEST
-
         # Validate timeframe if provided
         valid_timeframes = ['1D', '1W', '1M']
-        if timeframe and timeframe not in valid_timeframes:
-            return jsonify(create_response(
-                error=f"Invalid timeframe: {timeframe}. Must be one of: {', '.join(valid_timeframes)}"
-            )), HTTPStatus.BAD_REQUEST
+        if timeframe:
+            normalized_timeframe = timeframe.upper()
+            if normalized_timeframe not in valid_timeframes:
+                return jsonify(create_response(
+                    error=f"Invalid timeframe: {timeframe}. Must be one of: {', '.join(valid_timeframes)}"
+                )), HTTPStatus.BAD_REQUEST
+            timeframe = normalized_timeframe
         
         # Build query
         query = Article.query.filter_by(is_top_story=True)
@@ -169,20 +171,13 @@ def get_top_stories():
         # Always use pagination with defaults
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         articles = pagination.items
-        
-        # Initialize articles_by_bot with empty arrays for requested bot_ids
-        articles_by_bot = {str(bot_id): [] for bot_id in bot_ids} if bot_ids else {}
-        
-        # Group articles by bot_id
-        for article in articles:
-            bot_id = str(article.bot_id)
-            if bot_id not in articles_by_bot:
-                articles_by_bot[bot_id] = []
-            articles_by_bot[bot_id].append(article.as_dict())
+
+        # Convert articles to array of dictionaries
+        articles_array = [article.as_dict() for article in articles]
         
         return jsonify(create_response(
             success=True,
-            data=articles_by_bot,
+            data=articles_array,
             count=len(articles),
             total=pagination.total,
             page=page,
