@@ -71,6 +71,20 @@ services:
       - |
         chmod +x /app/script.sh
         ./script.sh
+    # command: 
+    #   - /bin/bash
+    #   - -c
+    #   - |
+    #     # Platform-specific line ending handling
+    #     if command -v dos2unix > /dev/null; then
+    #       echo "Windows environment detected, converting line endings..."
+    #       dos2unix script.sh
+    #     else
+    #       echo "Unix environment detected, using sed..."
+    #       sed -i 's/\r$//' script.sh
+    #     fi
+    #     chmod +x script.sh
+    #     ./script.sh
     networks:
       - app-network-dev
     healthcheck:

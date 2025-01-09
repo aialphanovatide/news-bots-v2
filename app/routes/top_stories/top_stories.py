@@ -1,7 +1,7 @@
 from app.routes.routes_utils import create_response
 from flask import request, Blueprint, jsonify
 from sqlalchemy.orm.exc import NoResultFound
-from config import db, Article
+from config import db, Article, ArticleTimeframe
 from http import HTTPStatus
 from sqlalchemy import desc
 from datetime import datetime
@@ -21,16 +21,21 @@ top_stories_bp = Blueprint(
     static_folder='static'
 )
 
+
 @top_stories_bp.route('/top-stories/<int:article_id>', methods=['POST'])
 @handle_db_session
 def set_top_story(article_id):
     """
-    Set an article as a top story.
+    Set an article as a top story and assign timeframes.
 
-    This endpoint takes an article ID as a URL parameter and sets its is_top_story field to True.
+    This endpoint takes an article ID as a URL parameter, sets its is_top_story field to True,
+    and associates it with the provided timeframes.
 
     URL Parameters:
         article_id (int): The ID of the article to be set as a top story
+
+    Request Body:
+        timeframes (list): List of timeframes to associate with the article ('1D', '1W', '1M')
 
     Returns:
         JSON: A JSON object containing:
@@ -38,99 +43,154 @@ def set_top_story(article_id):
             - message (str): A message describing the result of the operation
             - data (dict): The updated article information
             - error (str or None): Error message, if any
-        HTTP Status Code
-
-    Raises:
-        404 Not Found: If the article with the given ID doesn't exist
-        500 Internal Server Error: If there's an unexpected error during execution
     """
     try:
+        data = request.get_json()
+        timeframes = data.get('timeframes', []) if data else []
+
+        # Validate timeframes
+        valid_timeframes = ['1D', '1W', '1M']
+        if not timeframes:
+            return jsonify(create_response(
+                error="At least one timeframe must be provided"
+            )), HTTPStatus.BAD_REQUEST
+
+        invalid_timeframes = [tf for tf in timeframes if tf not in valid_timeframes]
+        if invalid_timeframes:
+            return jsonify(create_response(
+                error=f"Invalid timeframes: {', '.join(invalid_timeframes)}. Must be one of: {', '.join(valid_timeframes)}"
+            )), HTTPStatus.BAD_REQUEST
+
         article = Article.query.get(article_id)
-
         if not article:
-            return jsonify(create_response(error=f"Article with ID {article_id} not found")), HTTPStatus.NOT_FOUND
+            return jsonify(create_response(
+                error=f"Article with ID {article_id} not found"
+            )), HTTPStatus.NOT_FOUND
 
+        # Set article as top story
         article.is_top_story = True
         article.updated_at = datetime.now()
+
+        # Add timeframes
+        current_time = datetime.now()
+        for timeframe in timeframes:
+            new_timeframe = ArticleTimeframe(
+                timeframe=timeframe,
+                created_at=current_time,
+                updated_at=current_time
+            )
+            article.timeframes.append(new_timeframe)
+
         db.session.commit()
 
         return jsonify(create_response(
             success=True,
-            message=f"Article {article_id} has been set as a top story",
+            message=f"Article {article_id} has been set as a top story with timeframes: {', '.join(timeframes)}",
             data=article.as_dict()
         )), HTTPStatus.OK
 
     except Exception as e:
         db.session.rollback()
-        return jsonify(create_response(error=f"An unexpected error occurred: {str(e)}")), HTTPStatus.INTERNAL_SERVER_ERROR
-
-
+        return jsonify(create_response(
+            error=f"An unexpected error occurred: {str(e)}"
+        )), HTTPStatus.INTERNAL_SERVER_ERROR
+    
+    
 @top_stories_bp.route('/top-stories', methods=['GET'])
 def get_top_stories():
     """
-    Retrieve top stories from the article database with optional pagination.
-
-    This endpoint queries the database for articles marked as top stories,
-    ordered by date (most recent first). It supports optional pagination.
+    Retrieve top stories from the article database with optional pagination, timeframe filtering,
+    and bot filtering.
 
     Query Parameters:
-        page (int, optional): The page number for pagination.
-        per_page (int, optional): The number of items per page for pagination.
+        page (int, optional): The page number for pagination (default: 1)
+        per_page (int, optional): The number of items per page for pagination (default: 10)
+        timeframe (str, optional): Filter by timeframe ('1D', '1W', '1M')
+        bot_id (str, optional): Comma-separated bot IDs to filter by
+                              Example: /top-stories?bot_id=1,2,3
+                              If not provided, returns stories from all bots
 
     Returns:
         JSON: A JSON object containing:
             - success (bool): Indicates if the operation was successful
-            - data (list): List of top story articles, each as a dictionary
-            - count (int): Number of articles returned
-            - total (int): Total number of top stories (only with pagination)
-            - page (int): Current page number (only with pagination)
-            - pages (int): Total number of pages (only with pagination)
+            - data (dict): Dictionary of articles grouped by bot_id (includes empty arrays for specified bots with no stories)
+            - count (int): Total number of articles returned
+            - total (int): Total number of top stories
+            - page (int): Current page number
+            - pages (int): Total number of pages
             - error (str or None): Error message, if any
-        HTTP Status Code
-
-    Raises:
-        400 Bad Request: If the provided parameters are not valid
-        500 Internal Server Error: If there's an unexpected error during execution
     """
     try:
-        # Check if pagination is requested
-        page = request.args.get('page', type=int)
-        per_page = request.args.get('per_page', type=int)
-        
-        # Query for top stories
-        query = Article.query.filter_by(is_top_story=True).order_by(desc(Article.date))
-        
-        if page is not None and per_page is not None:
-            # Use pagination
-            pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-            top_stories = pagination.items
-            result = [article.as_dict() for article in top_stories]
-            
-            return jsonify(create_response(
-                success=True,
-                data=result,
-                count=len(result),
-                total=pagination.total,
-                page=page,
-                pages=pagination.pages
-            )), HTTPStatus.OK
-        else:
-            # No pagination, return all top stories
-            top_stories = query.all()
-            result = [article.as_dict() for article in top_stories]
-            
-            return jsonify(create_response(
-                success=True,
-                data=result,
-                count=len(result)
-            )), HTTPStatus.OK
+        # Get query parameters with defaults
+        page = request.args.get('page', type=int, default=1)
+        per_page = request.args.get('per_page', type=int, default=10)
+        timeframe = request.args.get('timeframe')
+        bot_ids_param = request.args.get('bot_id')
 
-    except ValueError as ve:
-        return jsonify(create_response(error=f"Invalid input: {str(ve)}")), HTTPStatus.BAD_REQUEST
-    
+        # Validate pagination parameters
+        if page < 1:
+            return jsonify(create_response(
+                error="Page number must be greater than 0"
+            )), HTTPStatus.BAD_REQUEST
+        
+        if per_page < 1:
+            return jsonify(create_response(
+                error="Items per page must be greater than 0"
+            )), HTTPStatus.BAD_REQUEST
+
+        # Process comma-separated bot_ids if provided
+        bot_ids = None
+        if bot_ids_param:
+            try:
+                bot_ids = [int(id_.strip()) for id_ in bot_ids_param.split(',')]
+            except ValueError:
+                return jsonify(create_response(
+                    error="Invalid bot_id format. Must be comma-separated integers (e.g., 1,2,3)"
+                )), HTTPStatus.BAD_REQUEST
+        # Validate timeframe if provided
+        valid_timeframes = ['1D', '1W', '1M']
+        if timeframe:
+            normalized_timeframe = timeframe.upper()
+            if normalized_timeframe not in valid_timeframes:
+                return jsonify(create_response(
+                    error=f"Invalid timeframe: {timeframe}. Must be one of: {', '.join(valid_timeframes)}"
+                )), HTTPStatus.BAD_REQUEST
+            timeframe = normalized_timeframe
+        
+        # Build query
+        query = Article.query.filter_by(is_top_story=True)
+        
+        if bot_ids:
+            query = query.filter(Article.bot_id.in_(bot_ids))
+
+        if timeframe:
+            query = query.join(Article.timeframes).filter(ArticleTimeframe.timeframe == timeframe)
+        
+        query = query.order_by(desc(Article.date))
+        
+        # Always use pagination with defaults
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        articles = pagination.items
+
+        # Convert articles to array of dictionaries
+        articles_array = [article.as_dict() for article in articles]
+        
+        return jsonify(create_response(
+            success=True,
+            data=articles_array,
+            count=len(articles),
+            total=pagination.total,
+            page=page,
+            pages=pagination.pages,
+            per_page=per_page,
+            timeframe=timeframe,
+            queried_bots=bot_ids  # Will be None if no bot_ids were specified
+        )), HTTPStatus.OK
+
     except Exception as e:
-        db.session.rollback()
-        return jsonify(create_response(error=f"An unexpected error occurred: {str(e)}")), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify(create_response(
+            error=f"An unexpected error occurred: {str(e)}"
+        )), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @top_stories_bp.route('/top-story/<int:article_id>', methods=['GET'])
@@ -181,13 +241,15 @@ def get_top_story_by_id(article_id):
         )), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@top_stories_bp.route('/top-story/<int:article_id>', methods=['DELETE'])
+@top_stories_bp.route('/top-story/<int:article_id>', methods=['PATCH'])
+@handle_db_session
 def remove_top_story(article_id):
     """
-    Remove an article from top stories by setting its is_top_story flag to False.
+    Remove an article from top stories by setting its is_top_story flag to False
+    and removing its associated timeframes.
 
     This endpoint updates a specific article in the database, changing its is_top_story
-    status to False based on the given ID.
+    status to False and removing all associated timeframes.
 
     Args:
         article_id (int): The ID of the article to remove from top stories.
@@ -196,6 +258,7 @@ def remove_top_story(article_id):
         JSON: A JSON object containing:
             - success (bool): Indicates if the operation was successful
             - data (dict): Contains the ID of the updated article
+            - message (str): A success message
             - error (str or None): Error message, if any
         HTTP Status Code
 
@@ -213,8 +276,13 @@ def remove_top_story(article_id):
                 error=f"No top story found with ID: {article_id}"
             )), HTTPStatus.NOT_FOUND
         
+        # Remove all timeframes associated with the article
+        ArticleTimeframe.query.filter_by(article_id=article_id).delete()
+        
         # Update the is_top_story flag
         article.is_top_story = False
+        article.updated_at = datetime.now()
+        
         db.session.commit()
         
         return jsonify(create_response(
@@ -234,167 +302,3 @@ def remove_top_story(article_id):
         return jsonify(create_response(
             error=f"An unexpected error occurred: {str(e)}"
         )), HTTPStatus.INTERNAL_SERVER_ERROR
-    
-
-
-
-
-# RESERVED ENDPOINT - DO NOT DELETE
-@top_stories_bp.route("/slack/events", methods=["POST"])
-@handle_db_session
-def post_top_stories():
-    try:
-        payload = request.form.get('payload')
-        if not payload:
-            return jsonify(create_response(success=False, error='Missing payload')), 400
-
-        data = json.loads(payload)
-        event_type = data.get('type')
-
-        if event_type != 'block_actions':
-            return jsonify(create_response(success=False, error='Unsupported event type')), 400
-
-        response = handle_block_actions(data)
-
-        if not response.get('success'):
-            # send_WARNING_message_to_slack_channel(
-            #     channel_id=NEWS_BOT_ERRORS_SLACK_CHANNEL,
-            #     title_message='Error in Slack Action',
-            #     sub_title='Reason',
-            #     message=response.get('error', 'Unknown error occurred')
-            # )
-            return jsonify(create_response(success=False, error=response.get('error'))), 400
-
-        return jsonify(create_response(
-            success=True, 
-            message=response.get('message', 'Operation successful'),
-            data=response.get('data')
-        )), 200
-
-    except json.JSONDecodeError:
-        return jsonify(create_response(success=False, error='Invalid JSON payload')), 400
-    except Exception as e:
-        return jsonify(create_response(success=False, error=f'Internal server error: {str(e)}')), 500
-
-def clean_url(url):
-    """
-    Cleans the URL by removing unwanted characters.
-
-    Args:
-        url (str): The URL to clean.
-
-    Returns:
-        str: The cleaned URL.
-    """
-    if url:
-        return url.replace('<', '').replace('>', '')
-    return url
-
-def handle_block_actions(data):
-    """
-    Handles block actions received from Slack messages to modify articles in the database.
-    
-    Args:
-        data (dict): JSON data containing Slack message blocks and actions.
-    
-    Returns:
-        dict: Response indicating success or failure with appropriate messages.
-    """
-    try:
-        actions = data.get('actions', [])
-        if not actions:
-            return {'success': False, 'error': 'No actions found in the slack message'}
-        
-        article_data = {}
-
-        # Process actions triggered by buttons or text fields
-        for action in actions:
-            action_id = action.get('action_id')
-            value = action.get('value')
-            if action_id and value:
-                article_data['action_id'] = action_id
-                article_data['value'] = value
-    
-        # Extract the URL from the message blocks
-        url = extract_url_from_blocks(data['message']['blocks'])
-
-        url = clean_url(url)
-
-
-        # Find the article in the database using the extracted URL or Grok title
-        existing_article = None
-
-        if url:
-            existing_article = Article.query.filter_by(url=url).first()
-        if not existing_article:
-            value = actions[0]['value']
-            grok_title = value.split('link_to_article: Grok AI -')[1].strip()
-            pre_grok_fix = 'Grok AI - '
-            final_grok_url = f'{pre_grok_fix}{grok_title}'
-            existing_article = Article.query.filter_by(url=final_grok_url).first()
-
-        if not existing_article:
-            return {'success': False, 'error': 'Article not found in the database'}
-
-        # Update the article based on the action
-        if article_data['action_id'] == 'add_to_top_story':
-            existing_article.is_top_story = True
-            message = 'Article added to top story successfully'
-        elif article_data['action_id'] in ['green', 'red', 'yellow']:
-            existing_article.is_article_efficent = f"{article_data['action_id']} - {article_data['value']}"
-            message = f'Article updated with: {article_data["value"]} as feedback and additional comments'
-        else:
-            return {'success': False, 'error': f'Unknown action ID: {article_data["action_id"]} while updating the article'}
-
-        existing_article.updated_at = datetime.now()
-        db.session.commit()
-
-        return {'success': True, 'message': message}
-
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        return {'success': False, 'error': f'Database error: {str(e)}'}
-
-    except Exception as e:
-        return {'success': False, 'error': f'Internal server error: {str(e)}'}
-    
-def extract_url_from_blocks(blocks):
-    """
-    Extracts URL from message blocks.
-
-    Args:
-        blocks (list): List of message blocks.
-
-    Returns:
-        str or None: Extracted URL or None if not found.
-    """
-    for block in blocks:
-        if block.get('type') == 'section':
-            if 'fields' in block:
-                for field in block['fields']:
-                    url = extract_url_from_text(field.get('text', ''))
-                    if url:
-                        print(f"URL extracted: {url}") 
-                        return url
-            if 'text' in block:
-                url = extract_url_from_text(block['text'].get('text', ''))
-                if url:
-                    return url
-    return None
-
-def extract_url_from_text(text):
-    """
-    Extracts a URL from the given text using a regular expression.
-
-    Args:
-        text (str): The text from which to extract the URL.
-
-    Returns:
-        str or None: The extracted URL, or None if no URL is found.
-    """
-    # El patrón para buscar URLs
-    url_pattern = r'<(https?://[^\s]+)>'  
-    match = re.search(url_pattern, text)
-    if match:
-        return match.group(1)  # Retornamos solo la URL sin los corchetes
-    return None

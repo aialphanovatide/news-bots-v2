@@ -126,46 +126,87 @@ swagger = Swagger()
 
 # ____Add or update an endpoint____
 
+swagger = Swagger()
+
 # swagger.add_or_update_endpoint(
-#     endpoint_route='/article/generate',
+#     endpoint_route='/generate-image',
 #     method='post',
-#     tag='Articles',
-#     description='Generate a new article using AI',
+#     tag='Image Generation',
+#     description='Generate an image using DALL-E based on the provided prompt',
 #     detail_description='''
-#     Generate a new article using the NewsCreatorAgent.
-#     The endpoint accepts either an initial story (text/URL) or document files (or both) as input.
-#     Supported document formats are PDF, DOC, DOCX, and TXT.
+#     Generate an AI image using DALL-E 3 with customizable settings.
+    
+#     Features:
+#     - Supports both natural and vivid image styles
+#     - Configurable image quality (standard or HD)
+#     - Default settings: natural style, HD quality
+#     - Returns direct URL to the generated image
+    
+#     Example request body:
+#     {
+#         "prompt": "A serene mountain landscape at sunset",
+#         "style": "vivid",
+#         "quality": "hd"
+#     }
 #     ''',
 #     params=[
 #         {
-#             'name': 'initial_story',
-#             'in': 'formData',
-#             'description': 'Initial story text or URL to generate from',
-#             'required': False,
-#             'type': 'string'
-#         },
-#         {
-#             'name': 'files',
-#             'in': 'formData',
-#             'description': 'Multiple document files (PDF, DOC, DOCX, TXT)',
-#             'required': False,
-#             'type': 'file',
-#             'allowMultiple': True
+#             'name': 'body',
+#             'in': 'body',
+#             'description': 'Image generation parameters',
+#             'required': True,
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'prompt': {
+#                         'type': 'string',
+#                         'description': 'The image generation prompt',
+#                         'example': 'A serene mountain landscape at sunset'
+#                     },
+#                     'style': {
+#                         'type': 'string',
+#                         'description': 'Image style preference',
+#                         'enum': ['natural', 'vivid'],
+#                         'default': 'natural'
+#                     },
+#                     'quality': {
+#                         'type': 'string',
+#                         'description': 'Image quality setting',
+#                         'enum': ['standard', 'hd'],
+#                         'default': 'hd'
+#                     }
+#                 },
+#                 'required': ['prompt']
+#             }
 #         }
 #     ],
 #     responses={
 #         '200': {
-#             'description': 'Article generated successfully',
+#             'description': 'Successfully generated image',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
-#                     'success': {'type': 'boolean'},
-#                     'data': {
+#                     'success': {
+#                         'type': 'boolean',
+#                         'example': True
+#                     },
+#                     'image_url': {
+#                         'type': 'string',
+#                         'description': 'URL of the generated image',
+#                         'example': 'https://oaidalleapiprodscus.blob.core.windows.net/private/...'
+#                     },
+#                     'settings': {
 #                         'type': 'object',
 #                         'properties': {
-#                             'content': {
+#                             'style': {
 #                                 'type': 'string',
-#                                 'description': 'The generated article content'
+#                                 'description': 'Style used for generation',
+#                                 'example': 'natural'
+#                             },
+#                             'quality': {
+#                                 'type': 'string',
+#                                 'description': 'Quality setting used',
+#                                 'example': 'hd'
 #                             }
 #                         }
 #                     }
@@ -177,13 +218,18 @@ swagger = Swagger()
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
-#                     'success': {'type': 'boolean'},
 #                     'error': {
 #                         'type': 'string',
 #                         'examples': [
-#                             'Either initial_story or documents must be provided',
-#                             'Invalid file type. Allowed types are: pdf, doc, docx, txt'
+#                             'No JSON data provided',
+#                             'Missing required field: prompt',
+#                             'Invalid style value. Must be either "natural" or "vivid"',
+#                             'Invalid quality value. Must be either "standard" or "hd"'
 #                         ]
+#                     },
+#                     'error_type': {
+#                         'type': 'string',
+#                         'example': 'validation_error'
 #                     }
 #                 }
 #             }
@@ -193,13 +239,13 @@ swagger = Swagger()
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
-#                     'success': {'type': 'boolean'},
 #                     'error': {
 #                         'type': 'string',
-#                         'examples': [
-#                             'Failed to generate article content',
-#                             'Unexpected error occurred'
-#                         ]
+#                         'example': 'An unexpected error occurred'
+#                     },
+#                     'error_type': {
+#                         'type': 'string',
+#                         'example': 'server_error'
 #                     }
 #                 }
 #             }
@@ -208,7 +254,7 @@ swagger = Swagger()
 # )
 
 # ____Delete an endpoint____
-# success, message = swagger.delete_endpoint(endpoint_route='/upload_news_file_to_drive')
+# success, message = swagger.delete_endpoint(endpoint_route='/generate-dalle')
 # print(message)
 
 

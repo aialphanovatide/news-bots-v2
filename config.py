@@ -228,7 +228,6 @@ class Article(db.Model):
         return article_dict
 
 
-
 class ArticleTimeframe(db.Model):
     __tablename__ = 'article_timeframes'
    
@@ -246,6 +245,7 @@ class ArticleTimeframe(db.Model):
             'timeframe': self.timeframe,
             'created_at': self.created_at
         }
+
 
 class UnwantedArticle(db.Model):
     """Represents an unwanted article in the database.

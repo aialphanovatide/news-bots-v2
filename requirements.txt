@@ -5,7 +5,6 @@ Flask-Cors
 Flask-Migrate
 postgres
 psycopg2-binary
-Flask-SQLAlchemy
 bs4
 requests
 aiofiles
@@ -20,8 +19,7 @@ flasgger
 Flask-APScheduler
 scikit-learn
 pyperclip
-google-api-python-client          
-flask_migrate       
+google-api-python-client                
 Flask-SQLAlchemy    
 gunicorn
 redis
@@ -31,3 +29,5 @@ psutil
 openpyxl
 elementpath
 snscrape
+python-docx
+PyPDF2

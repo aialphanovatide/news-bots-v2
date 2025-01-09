@@ -24,6 +24,10 @@ env/
 *.pyo
 *.pyd
 
+*.docx
+*.doc
+*.pdf
+
 app/utils/userDataDir/
 
 # Database
@@ -35,6 +39,8 @@ Thumbs.db
 
 # all temp files
 tmp/
+
+
 
 # Audio files
 *.mp3
