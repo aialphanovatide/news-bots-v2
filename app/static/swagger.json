@@ -3713,6 +3713,126 @@
           }
         }
       }
+    },
+    "/generate-image": {
+      "post": {
+        "tags": [
+          "Image generation"
+        ],
+        "summary": "Generate an image using dall-e based on the provided prompt",
+        "description": "\n    generate an ai image using dall-e 3 with customizable settings.\n    \n    features:\n    - supports both natural and vivid image styles\n    - configurable image quality (standard or hd)\n    - default settings: natural style, hd quality\n    - returns direct url to the generated image\n    \n    example request body:\n    {\n        \"prompt\": \"a serene mountain landscape at sunset\",\n        \"style\": \"vivid\",\n        \"quality\": \"hd\"\n    }\n    ",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Image generation parameters",
+            "required": true,
+            "type": "string",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "prompt": {
+                  "type": "string",
+                  "description": "The image generation prompt",
+                  "example": "A serene mountain landscape at sunset"
+                },
+                "style": {
+                  "type": "string",
+                  "description": "Image style preference",
+                  "enum": [
+                    "natural",
+                    "vivid"
+                  ],
+                  "default": "natural"
+                },
+                "quality": {
+                  "type": "string",
+                  "description": "Image quality setting",
+                  "enum": [
+                    "standard",
+                    "hd"
+                  ],
+                  "default": "hd"
+                }
+              },
+              "required": [
+                "prompt"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully generated image",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean",
+                  "example": true
+                },
+                "image_url": {
+                  "type": "string",
+                  "description": "URL of the generated image",
+                  "example": "https://oaidalleapiprodscus.blob.core.windows.net/private/..."
+                },
+                "settings": {
+                  "type": "object",
+                  "properties": {
+                    "style": {
+                      "type": "string",
+                      "description": "Style used for generation",
+                      "example": "natural"
+                    },
+                    "quality": {
+                      "type": "string",
+                      "description": "Quality setting used",
+                      "example": "hd"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "examples": [
+                    "No JSON data provided",
+                    "Missing required field: prompt",
+                    "Invalid style value. Must be either \"natural\" or \"vivid\"",
+                    "Invalid quality value. Must be either \"standard\" or \"hd\""
+                  ]
+                },
+                "error_type": {
+                  "type": "string",
+                  "example": "validation_error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "An unexpected error occurred"
+                },
+                "error_type": {
+                  "type": "string",
+                  "example": "server_error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

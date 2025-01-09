@@ -126,69 +126,63 @@ swagger = Swagger()
 
 # ____Add or update an endpoint____
 
+swagger = Swagger()
+
 # swagger.add_or_update_endpoint(
-#     endpoint_route='/top-stories',
-#     method='get',
-#     tag='Top Stories',
-#     description='Get paginated top stories with optional filtering',
+#     endpoint_route='/generate-image',
+#     method='post',
+#     tag='Image Generation',
+#     description='Generate an image using DALL-E based on the provided prompt',
 #     detail_description='''
-#     Retrieve top stories from the database with optional filtering and pagination support.
+#     Generate an AI image using DALL-E 3 with customizable settings.
     
 #     Features:
-#     - Results are ordered by date (most recent first)
-#     - Stories are grouped by bot_id in the response
-#     - Default pagination: 10 items per page, starting at page 1
-#     - Optional filtering by timeframe and bot IDs
-#     - When bot_ids are specified, empty arrays are included for bots with no stories
-#     - When no bot_ids are specified, returns stories from all bots
+#     - Supports both natural and vivid image styles
+#     - Configurable image quality (standard or HD)
+#     - Default settings: natural style, HD quality
+#     - Returns direct URL to the generated image
     
-#     Example URLs:
-#     - All stories (paginated): /top-stories
-#     - Specific bots: /top-stories?bot_id=1,2,3
-#     - With timeframe: /top-stories?timeframe=1D
-#     - Custom pagination: /top-stories?page=2&per_page=20
-#     - Combined filters: /top-stories?bot_id=1,2&timeframe=1W&page=1&per_page=10
+#     Example request body:
+#     {
+#         "prompt": "A serene mountain landscape at sunset",
+#         "style": "vivid",
+#         "quality": "hd"
+#     }
 #     ''',
 #     params=[
 #         {
-#             'name': 'page',
-#             'in': 'query',
-#             'description': 'Page number for pagination (default: 1)',
-#             'type': 'integer',
-#             'default': 1,
-#             'minimum': 1,
-#             'required': False
-#         },
-#         {
-#             'name': 'per_page',
-#             'in': 'query',
-#             'description': 'Number of items per page (default: 10)',
-#             'type': 'integer',
-#             'default': 10,
-#             'minimum': 1,
-#             'required': False
-#         },
-#         {
-#             'name': 'timeframe',
-#             'in': 'query',
-#             'description': 'Filter stories by timeframe',
-#             'type': 'string',
-#             'enum': ['1D', '1W', '1M'],
-#             'required': False
-#         },
-#         {
-#             'name': 'bot_id',
-#             'in': 'query',
-#             'description': '''Comma-separated list of bot IDs to filter by.
-#                             If not provided, returns stories from all bots.
-#                             Example: bot_id=1,2,3''',
-#             'type': 'string',
-#             'required': False
+#             'name': 'body',
+#             'in': 'body',
+#             'description': 'Image generation parameters',
+#             'required': True,
+#             'schema': {
+#                 'type': 'object',
+#                 'properties': {
+#                     'prompt': {
+#                         'type': 'string',
+#                         'description': 'The image generation prompt',
+#                         'example': 'A serene mountain landscape at sunset'
+#                     },
+#                     'style': {
+#                         'type': 'string',
+#                         'description': 'Image style preference',
+#                         'enum': ['natural', 'vivid'],
+#                         'default': 'natural'
+#                     },
+#                     'quality': {
+#                         'type': 'string',
+#                         'description': 'Image quality setting',
+#                         'enum': ['standard', 'hd'],
+#                         'default': 'hd'
+#                     }
+#                 },
+#                 'required': ['prompt']
+#             }
 #         }
 #     ],
 #     responses={
 #         '200': {
-#             'description': 'Successfully retrieved top stories',
+#             'description': 'Successfully generated image',
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
@@ -196,50 +190,25 @@ swagger = Swagger()
 #                         'type': 'boolean',
 #                         'example': True
 #                     },
-#                     'data': {
+#                     'image_url': {
+#                         'type': 'string',
+#                         'description': 'URL of the generated image',
+#                         'example': 'https://oaidalleapiprodscus.blob.core.windows.net/private/...'
+#                     },
+#                     'settings': {
 #                         'type': 'object',
-#                         'description': 'Stories grouped by bot_id',
-#                         'additionalProperties': {
-#                             'type': 'array',
-#                             'items': {
-#                                 'type': 'object',
-#                                 'properties': {
-#                                     'id': {'type': 'integer', 'description': 'Article ID'},
-#                                     'title': {'type': 'string', 'description': 'Article title'},
-#                                     'content': {'type': 'string', 'description': 'Article content'},
-#                                     'image': {'type': 'string', 'description': 'Image URL'},
-#                                     'url': {'type': 'string', 'description': 'Article URL'},
-#                                     'date': {'type': 'string', 'format': 'date-time', 'description': 'Article date'},
-#                                     'bot_id': {'type': 'integer', 'description': 'Bot identifier'},
-#                                     'is_top_story': {'type': 'boolean', 'description': 'Indicates if this is a top story'},
-#                                     'timeframes': {
-#                                         'type': 'array',
-#                                         'description': 'Timeframes this article appears in',
-#                                         'items': {
-#                                             'type': 'object',
-#                                             'properties': {
-#                                                 'article_id': {'type': 'integer'},
-#                                                 'timeframe': {'type': 'string', 'enum': ['1D', '1W', '1M']},
-#                                                 'created_at': {'type': 'string', 'format': 'date-time'}
-#                                             }
-#                                         }
-#                                     },
-#                                     'created_at': {'type': 'string', 'format': 'date-time'},
-#                                     'updated_at': {'type': 'string', 'format': 'date-time'}
-#                                 }
+#                         'properties': {
+#                             'style': {
+#                                 'type': 'string',
+#                                 'description': 'Style used for generation',
+#                                 'example': 'natural'
+#                             },
+#                             'quality': {
+#                                 'type': 'string',
+#                                 'description': 'Quality setting used',
+#                                 'example': 'hd'
 #                             }
 #                         }
-#                     },
-#                     'count': {'type': 'integer', 'description': 'Number of articles returned'},
-#                     'total': {'type': 'integer', 'description': 'Total number of articles matching the query'},
-#                     'page': {'type': 'integer', 'description': 'Current page number'},
-#                     'pages': {'type': 'integer', 'description': 'Total number of pages'},
-#                     'per_page': {'type': 'integer', 'description': 'Items per page'},
-#                     'timeframe': {'type': 'string', 'description': 'Applied timeframe filter'},
-#                     'queried_bots': {
-#                         'type': 'array',
-#                         'description': 'List of bot IDs that were queried',
-#                         'items': {'type': 'integer'}
 #                     }
 #                 }
 #             }
@@ -249,15 +218,18 @@ swagger = Swagger()
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
-#                     'success': {'type': 'boolean', 'example': False},
 #                     'error': {
 #                         'type': 'string',
 #                         'examples': [
-#                             'Invalid bot_id format. Must be comma-separated integers (e.g., 1,2,3)',
-#                             'Invalid timeframe: 2D. Must be one of: 1D, 1W, 1M',
-#                             'Page number must be greater than 0',
-#                             'Items per page must be greater than 0'
+#                             'No JSON data provided',
+#                             'Missing required field: prompt',
+#                             'Invalid style value. Must be either "natural" or "vivid"',
+#                             'Invalid quality value. Must be either "standard" or "hd"'
 #                         ]
+#                     },
+#                     'error_type': {
+#                         'type': 'string',
+#                         'example': 'validation_error'
 #                     }
 #                 }
 #             }
@@ -267,8 +239,14 @@ swagger = Swagger()
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
-#                     'success': {'type': 'boolean', 'example': False},
-#                     'error': {'type': 'string', 'example': 'An unexpected error occurred: Database error'}
+#                     'error': {
+#                         'type': 'string',
+#                         'example': 'An unexpected error occurred'
+#                     },
+#                     'error_type': {
+#                         'type': 'string',
+#                         'example': 'server_error'
+#                     }
 #                 }
 #             }
 #         }
@@ -276,7 +254,7 @@ swagger = Swagger()
 # )
 
 # ____Delete an endpoint____
-# success, message = swagger.delete_endpoint(endpoint_route='/articles/all')
+# success, message = swagger.delete_endpoint(endpoint_route='/generate-dalle')
 # print(message)
 
 
