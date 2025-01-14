@@ -81,7 +81,8 @@ def get_all_articles_all():
             if bot_name:
                 top_stories_query = top_stories_query.join(Bot).filter(func.lower(Bot.name) == bot_name.lower())
             if category_name:
-                top_stories_query = top_stories_query.join(Category).filter(func.lower(Category.name) == category_name.lower())
+                top_stories_query = top_stories_query.join(Bot).join(Category, Bot.category_id == Category.id)\
+                    .filter(func.lower(Category.name) == category_name.lower())
             if search_term:
                 top_stories_query = top_stories_query.filter(
                     db.or_(
@@ -117,7 +118,8 @@ def get_all_articles_all():
             if bot_name:
                 valid_query = valid_query.join(Bot).filter(func.lower(Bot.name) == bot_name.lower())
             if category_name:
-                valid_query = valid_query.join(Category).filter(func.lower(Category.name) == category_name.lower())
+                valid_query = valid_query.join(Bot).join(Category, Bot.category_id == Category.id)\
+                    .filter(func.lower(Category.name) == category_name.lower())
             if search_term:
                 valid_query = valid_query.filter(
                     db.or_(
@@ -149,7 +151,8 @@ def get_all_articles_all():
             if bot_name:
                 unwanted_query = unwanted_query.join(Bot).filter(func.lower(Bot.name) == bot_name.lower())
             if category_name:
-                unwanted_query = unwanted_query.join(Category).filter(func.lower(Category.name) == category_name.lower())
+                unwanted_query = unwanted_query.join(Bot).join(Category, Bot.category_id == Category.id)\
+                    .filter(func.lower(Category.name) == category_name.lower())
             if search_term:
                 unwanted_query = unwanted_query.filter(
                     db.or_(
@@ -485,9 +488,6 @@ def generate_article():
         initial_story = request.form.get('initial_story')
         files = request.files.getlist('files')
 
-        print(f"Initial story: {initial_story}")
-        print(f"Files: {files}")
-        
         # Validate that at least one source is provided
         if not initial_story and not files:
             return jsonify(create_response(
